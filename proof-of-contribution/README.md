@@ -209,7 +209,34 @@ npm test
 ```bash
 cd apps/web
 npm run build
+```# Blockchain
+ALCHEMY_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+NEXT_PUBLIC_ALCHEMY_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+CHAIN_ID=11155111
+
+# Contract addresses (set after deployment)
+SBT_ADDRESS=
+NEXT_PUBLIC_SBT_ADDRESS=
+REPUTATION_ADDRESS=
+
+# AI Service
+AI_SERVICE_URL=http://127.0.0.1:8000
+AI_VERIFIER_ADDRESS=
+
+# Storage
+PINATA_JWT=
+
+# GitHub OAuth
+GITHUB_ID=
+GITHUB_SECRET=
+NEXTAUTH_SECRET=
+
+# AI Agent (set in shell)
+# AI_VERIFIER_PRIVATE_KEY=0x...
+# OPENAI_API_KEY=sk-...
+# GITHUB_TOKEN=ghp_...
 ```
+
 
 ### Docker (AI Agent)
 ```bash

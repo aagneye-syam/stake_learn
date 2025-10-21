@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import "./globals.css";
+import { Providers } from "../_context/Providers";
 
 export const metadata: Metadata = {
   title: "Proof of Contribution",
@@ -18,5 +20,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <html lang="en">
+      <body>
+        <Providers>
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
 }

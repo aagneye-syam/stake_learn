@@ -126,4 +126,53 @@ contract StakingManager is Ownable, ReentrancyGuard {
     function getCourseStakeAmount(uint256 courseId) external view returns (uint256) {
         return courseStakeAmounts[courseId];
     }
+
+    /**
+     * @dev Mark course as completed and refund stake to user
+     * @param user Address of the user who completed the course
+     * @param courseId ID of the completed course
+     */
+    function completeCourse(address user, uint256 courseId) external onlyVerifier nonReentrant {
+        Stake storage userStake = stakes[user][courseId];
+        
+        require(userStake.amount > 0, "No stake found for this user and course");
+        require(!userStake.completed, "Course already marked as completed");
+        require(!userStake.refunded, "Stake already refunded");
+
+        userStake.completed = true;
+        userStake.refunded = true;
+
+        // Refund the stake to the user
+        (bool success, ) = payable(user).call{value: userStake.amount}("");
+        require(success, "Refund transfer failed");
+
+        emit CourseCompleted(user, courseId);
+        emit StakeRefunded(user, courseId, userStake.amount);
+    }
+
+    /**
+     * @dev Check if user has completed a course
+     */
+    function hasCompleted(address user, uint256 courseId) external view returns (bool) {
+        return stakes[user][courseId].completed;
+    }
+
+    /**
+     * @dev Get total contract balance
+     */
+    function getContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    /**
+     * @dev Emergency withdraw - only owner can withdraw
+     * Should only be used in emergency situations
+     */
+    function emergencyWithdraw() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No balance to withdraw");
+        
+        (bool success, ) = payable(owner()).call{value: balance}("");
+        require(success, "Withdrawal failed");
+    }
 }

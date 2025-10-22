@@ -1,14 +1,50 @@
-# Proof of Contribution
+# Stake to Learn Platform
 
-Full-stack Web3 dApp that verifies GitHub commits via an AI agent and mints non-transferable Soulbound Tokens (SBTs) using EIP-712 signature verification on Sepolia.
+Full-stack Web3 learning platform where students stake ETH to enroll in courses. Stakes are held in a smart contract and automatically refunded upon successful course completion.
+
+## 🌟 Key Features
+
+### Stake-to-Learn System
+- **Stake ETH** - Students stake a small amount of ETH to enroll in courses
+- **Smart Contract Escrow** - Stakes are held securely in an Ethereum smart contract
+- **Auto Refund** - Stakes automatically returned upon course completion
+- **Transparent** - All transactions verifiable on-chain
+
+### Proof of Contribution
+- **GitHub Integration** - Verify commits via AI agent
+- **Soulbound NFTs** - Non-transferable tokens as proof of contribution
+- **Reputation System** - Track and display contribution scores
+- **EIP-712 Signatures** - Secure signature verification
 
 ## Architecture
 
-- **Frontend**: Next.js 14 (App Router) with wagmi + viem + ConnectKit
-- **Smart Contracts**: Hardhat + Solidity (Soulbound.sol, Reputation.sol)
+- **Frontend**: Next.js 14 (App Router) with wagmi + viem + WalletConnect
+- **Smart Contracts**: Hardhat + Solidity (StakingManager.sol, Soulbound.sol, Reputation.sol)
 - **AI Agent**: FastAPI service for commit verification and EIP-712 signing
 - **Storage**: IPFS/Pinata for metadata
 - **Blockchain**: Ethereum Sepolia testnet
+
+## Smart Contracts
+
+### StakingManager.sol
+Main contract for the stake-to-learn system:
+- **Stake ETH**: Users stake required ETH amount for course enrollment
+- **Course Management**: Admin functions to add/update courses and stake requirements
+- **Automated Refunds**: Stakes automatically refunded upon course completion
+- **Verifier System**: Authorized verifiers can mark courses as complete
+- **Batch Operations**: Efficient batch processing for multiple completions
+- **Security**: ReentrancyGuard, role-based access control
+
+### Soulbound.sol
+- Non-transferable ERC-721 token
+- EIP-712 signature verification for minting
+- Only authorized verifier can sign permits
+- Replay protection via commit hash tracking
+
+### Reputation.sol
+- Tracks contribution scores per address
+- Provides leaderboard functionality
+- Can be called by Soulbound contract to record contributions
 
 ## Project Structure
 
@@ -31,10 +67,15 @@ proof-of-contribution/
 ├── packages/
 │   ├── contracts/               # Hardhat workspace
 │   │   ├── contracts/
-│   │   │   ├── Soulbound.sol    # Non-transferable ERC-721
-│   │   │   └── Reputation.sol   # Reputation aggregation
+│   │   │   ├── StakingManager.sol    # Stake-to-learn contract
+│   │   │   ├── Soulbound.sol         # Non-transferable ERC-721
+│   │   │   ├── Reputation.sol        # Reputation aggregation
+│   │   │   └── CourseRegistry.sol    # Course management
 │   │   ├── scripts/
-│   │   │   └── deploy.ts        # Deployment script
+│   │   │   ├── deploy.ts             # Deployment script
+│   │   │   ├── complete-course.ts    # Course completion helper
+│   │   │   └── export-addresses.ts   # Export contract addresses
+│   │   ├── abis/                     # Contract ABIs for frontend
 │   │   └── test/
 │   └── sdk/                     # TypeScript SDK
 │       ├── index.ts             # Main SDK exports
@@ -53,9 +94,13 @@ proof-of-contribution/
 - Pinata account (optional, for IPFS)
 - OpenAI API key (optional, for LLM scoring)
 
-## Quick Start
+## 🚀 Quick Start
 
-### 1. Install Dependencies
+See [QUICKSTART.md](./QUICKSTART.md) for a 10-minute setup guide.
+
+### Detailed Setup
+
+#### 1. Install Dependencies
 
 ```bash
 # Web app
@@ -71,7 +116,27 @@ cd packages/sdk && npm install && cd -
 cd apps/ai-agent && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && cd -
 ```
 
-### 2. Environment Setup
+#### 2. Environment Setup
+
+**Contracts (.env in packages/contracts/):**
+```bash
+DEPLOYER_PRIVATE_KEY=0x...
+ALCHEMY_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+ETHERSCAN_API_KEY=...
+AI_VERIFIER_ADDRESS=0x...
+```
+
+**Web App (.env.local in apps/web/):**
+```bash
+NEXT_PUBLIC_STAKING_CONTRACT_ADDRESS=0x...
+NEXT_PUBLIC_SOULBOUND_CONTRACT_ADDRESS=0x...
+NEXT_PUBLIC_REPUTATION_CONTRACT_ADDRESS=0x...
+NEXTAUTH_SECRET=...
+GITHUB_ID=...
+GITHUB_SECRET=...
+```
+
+**Legacy .env.local (for backward compatibility):**
 
 Create `.env.local` in the project root:
 
@@ -144,9 +209,22 @@ npm run dev
 
 Open http://localhost:3000
 
-## Usage Flow
+## Usage Flows
 
-1. **Connect Wallet**: Use ConnectKit to connect your wallet
+### Stake-to-Learn Flow
+
+1. **Browse Courses**: View available courses on dashboard
+2. **Connect Wallet**: Connect MetaMask or other Web3 wallet
+3. **Select Course**: Click "Start Learning" on any course
+4. **Stake ETH**: Click "Stake & Start Learning" (e.g., 0.002 ETH)
+5. **Confirm Transaction**: Approve transaction in wallet
+6. **Start Learning**: Access course content after successful stake
+7. **Complete Course**: Submit assignments and finish course
+8. **Receive Refund**: Stake automatically returned to your wallet
+
+### Proof of Contribution Flow
+
+1. **Connect Wallet**: Use WalletConnect to connect your wallet
 2. **GitHub Login**: Authenticate with GitHub to access your repositories
 3. **Verify Commit**: 
    - Go to Dashboard

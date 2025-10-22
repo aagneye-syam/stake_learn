@@ -5,12 +5,28 @@ import { useState, useEffect } from "react";
 
 export default function CertificatePage() {
   const { address, isConnected } = useAccount();
-  const [certificates, setCertificates] = useState([]);
+  const [certificates] = useState([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // TODO: Fetch user's certificates from contract
     // This would query the Soulbound contract for tokens owned by the user
   }, [address]);
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isConnected) {
     return (
@@ -70,7 +86,7 @@ export default function CertificatePage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {certificates.map((cert: any) => (
+          {certificates.map((cert: { id: string; title: string; repository: string; reputation: number; commitHash?: string; timestamp: number; tokenId: string }) => (
             <div
               key={cert.id}
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all"

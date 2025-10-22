@@ -47,7 +47,7 @@ export function useStaking(courseId: number) {
       functionName: 'stake',
       args: [BigInt(courseId)],
       value: stakeAmount,
-    });
+    } as any);
   };
 
   return {

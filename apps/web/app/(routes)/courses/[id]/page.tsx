@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
-import { formatEther } from "viem";
 import { motion } from "framer-motion";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { WalletButton } from "@/components/WalletButton";
@@ -230,6 +229,11 @@ export default function CourseDetailPage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const [stakeStatus, setStakeStatus] = useState<string>("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const courseId = params.id as string;
   const course = coursesData[courseId as keyof typeof coursesData];
@@ -237,8 +241,6 @@ export default function CourseDetailPage() {
   // Use staking hooks
   const numericCourseId = parseInt(courseId);
   const {
-    stakeAmount: contractStakeAmount,
-    isActive,
     stakeForCourse,
     isPending,
     isConfirming,
@@ -247,7 +249,7 @@ export default function CourseDetailPage() {
     error: stakingError,
   } = useStaking(numericCourseId);
   
-  const { stakeInfo, hasStaked, hasCompleted, refetch } = useUserStake(
+  const { hasStaked, hasCompleted, refetch } = useUserStake(
     address,
     numericCourseId
   );
@@ -311,9 +313,9 @@ export default function CourseDetailPage() {
     try {
       setStakeStatus("💫 Please confirm the transaction in your wallet...");
       await stakeForCourse();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Staking error:", error);
-      setStakeStatus(`❌ Staking failed: ${error.message || "Unknown error"}`);
+      setStakeStatus(`❌ Staking failed: ${error instanceof Error ? error.message : "Unknown error"}`);
       setTimeout(() => setStakeStatus(""), 5000);
     }
   };
@@ -330,6 +332,17 @@ export default function CourseDetailPage() {
         return "bg-gray-100 text-gray-700";
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -397,7 +410,7 @@ export default function CourseDetailPage() {
 
           {/* What You'll Learn */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">What You'll Learn</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">What You&apos;ll Learn</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {course.whatYouWillLearn.map((item, index) => (
                 <div key={index} className="flex items-start gap-3">

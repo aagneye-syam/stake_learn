@@ -6,7 +6,11 @@ export function getPublicClient(rpcUrl?: string) {
 }
 
 export function getWalletClient(account?: Address, rpcUrl?: string) {
-  return createWalletClient({ chain: sepolia, transport: http(rpcUrl), account });
+  return createWalletClient({ 
+    chain: sepolia, 
+    transport: http(rpcUrl), 
+    account 
+  } as any);
 }
 
 export const sbtAbi = parseAbi([

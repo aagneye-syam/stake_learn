@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
-import { parseEther } from "viem";
-import { useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { formatEther } from "viem";
 import { motion } from "framer-motion";
 import WalletConnectModal from "@/components/WalletConnectModal";
+import { useStaking, useUserStake } from "@/hooks/useStaking";
 
 // Course data - should match the IDs from dashboard
 const coursesData = {
@@ -229,16 +229,30 @@ export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { address, isConnected } = useAccount();
-  const [isStaking, setIsStaking] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [stakeStatus, setStakeStatus] = useState<string>("");
   const [shouldStakeAfterConnect, setShouldStakeAfterConnect] = useState(false);
 
-  const { data: hash, sendTransaction, isPending } = useSendTransaction();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
   const courseId = params.id as string;
   const course = coursesData[courseId as keyof typeof coursesData];
+  
+  // Use staking hooks
+  const numericCourseId = parseInt(courseId);
+  const {
+    stakeAmount: contractStakeAmount,
+    isActive,
+    stakeForCourse,
+    isPending,
+    isConfirming,
+    isSuccess,
+    hash,
+    error: stakingError,
+  } = useStaking(numericCourseId);
+  
+  const { stakeInfo, hasStaked, hasCompleted, refetch } = useUserStake(
+    address,
+    numericCourseId
+  );
 
   // Effect to handle staking after wallet connection
   useEffect(() => {
@@ -255,13 +269,17 @@ export default function CourseDetailPage() {
     }
     if (isSuccess) {
       setStakeStatus("✅ Successfully staked! You can now start the course.");
-      setIsStaking(false);
+      refetch(); // Refetch stake info
       setTimeout(() => {
         setStakeStatus("");
         // TODO: Navigate to course content or update enrollment status
       }, 3000);
     }
-  }, [isConfirming, isSuccess]);
+    if (stakingError) {
+      setStakeStatus(`❌ Staking failed: ${stakingError.message}`);
+      setTimeout(() => setStakeStatus(""), 5000);
+    }
+  }, [isConfirming, isSuccess, stakingError, refetch]);
 
   if (!course) {
     return (
@@ -291,25 +309,20 @@ export default function CourseDetailPage() {
       return;
     }
 
-    setIsStaking(true);
+    if (hasStaked) {
+      setStakeStatus("❌ You have already staked for this course");
+      setTimeout(() => setStakeStatus(""), 3000);
+      return;
+    }
+
     setStakeStatus("🔄 Preparing stake transaction...");
 
     try {
-      // TODO: Replace with actual staking contract address
-      const stakingContractAddress = process.env.NEXT_PUBLIC_STAKING_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000";
-      
       setStakeStatus("💫 Please confirm the transaction in your wallet...");
-
-      // Send transaction to stake ETH
-      sendTransaction({
-        to: stakingContractAddress as `0x${string}`,
-        value: parseEther(course.stakeAmount),
-      });
-
+      await stakeForCourse();
     } catch (error: any) {
       console.error("Staking error:", error);
       setStakeStatus(`❌ Staking failed: ${error.message || "Unknown error"}`);
-      setIsStaking(false);
       setTimeout(() => setStakeStatus(""), 5000);
     }
   };
@@ -514,11 +527,25 @@ export default function CourseDetailPage() {
                 ) : (
                   <button
                     onClick={handleStake}
-                    disabled={isStaking || isPending || isConfirming}
+                    disabled={isPending || isConfirming || hasStaked || hasCompleted}
                     className="w-full py-4 px-6 rounded-2xl text-white font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)' }}
                   >
-                    {isPending || isConfirming ? (
+                    {hasCompleted ? (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Course Completed
+                      </>
+                    ) : hasStaked ? (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        Continue Learning
+                      </>
+                    ) : isPending || isConfirming ? (
                       <>
                         <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

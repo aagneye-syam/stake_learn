@@ -35,6 +35,7 @@ contract StakingManager is Ownable, ReentrancyGuard {
     event CourseUpdated(uint256 indexed courseId, uint256 stakeAmount, bool active);
     event VerifierAdded(address indexed verifier);
     event VerifierRemoved(address indexed verifier);
+    event EmergencyWithdraw(address indexed owner, uint256 amount);
 
     constructor(address initialOwner) Ownable(initialOwner) {
         authorizedVerifiers[initialOwner] = true;
@@ -174,5 +175,17 @@ contract StakingManager is Ownable, ReentrancyGuard {
         
         (bool success, ) = payable(owner()).call{value: balance}("");
         require(success, "Withdrawal failed");
+        
+        emit EmergencyWithdraw(owner(), balance);
     }
+
+    /**
+     * @dev Receive function to accept ETH
+     */
+    receive() external payable {}
+
+    /**
+     * @dev Fallback function
+     */
+    fallback() external payable {}
 }

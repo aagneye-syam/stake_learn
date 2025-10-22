@@ -180,6 +180,51 @@ contract StakingManager is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @dev Get all stakes for a user across multiple courses
+     * @param user Address of the user
+     * @param courseIds Array of course IDs to check
+     */
+    function getUserStakes(address user, uint256[] calldata courseIds) 
+        external 
+        view 
+        returns (Stake[] memory) 
+    {
+        Stake[] memory userStakes = new Stake[](courseIds.length);
+        for (uint256 i = 0; i < courseIds.length; i++) {
+            userStakes[i] = stakes[user][courseIds[i]];
+        }
+        return userStakes;
+    }
+
+    /**
+     * @dev Batch complete courses for multiple users
+     * @param users Array of user addresses
+     * @param courseIds Array of course IDs (must match users length)
+     */
+    function batchCompleteCourses(address[] calldata users, uint256[] calldata courseIds) 
+        external 
+        onlyVerifier 
+        nonReentrant 
+    {
+        require(users.length == courseIds.length, "Arrays length mismatch");
+        
+        for (uint256 i = 0; i < users.length; i++) {
+            Stake storage userStake = stakes[users[i]][courseIds[i]];
+            
+            if (userStake.amount > 0 && !userStake.completed && !userStake.refunded) {
+                userStake.completed = true;
+                userStake.refunded = true;
+
+                (bool success, ) = payable(users[i]).call{value: userStake.amount}("");
+                if (success) {
+                    emit CourseCompleted(users[i], courseIds[i]);
+                    emit StakeRefunded(users[i], courseIds[i], userStake.amount);
+                }
+            }
+        }
+    }
+
+    /**
      * @dev Receive function to accept ETH
      */
     receive() external payable {}

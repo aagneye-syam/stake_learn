@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
+import { parseEther } from "viem";
+import { useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { motion } from "framer-motion";
 import WalletConnectModal from "@/components/WalletConnectModal";
 
 // Course data - should match the IDs from dashboard
@@ -228,9 +231,37 @@ export default function CourseDetailPage() {
   const { address, isConnected } = useAccount();
   const [isStaking, setIsStaking] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [stakeStatus, setStakeStatus] = useState<string>("");
+  const [shouldStakeAfterConnect, setShouldStakeAfterConnect] = useState(false);
+
+  const { data: hash, sendTransaction, isPending } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const courseId = params.id as string;
   const course = coursesData[courseId as keyof typeof coursesData];
+
+  // Effect to handle staking after wallet connection
+  useEffect(() => {
+    if (isConnected && shouldStakeAfterConnect) {
+      setShouldStakeAfterConnect(false);
+      handleStake();
+    }
+  }, [isConnected, shouldStakeAfterConnect]);
+
+  // Effect to handle transaction confirmation
+  useEffect(() => {
+    if (isConfirming) {
+      setStakeStatus("⏳ Confirming transaction...");
+    }
+    if (isSuccess) {
+      setStakeStatus("✅ Successfully staked! You can now start the course.");
+      setIsStaking(false);
+      setTimeout(() => {
+        setStakeStatus("");
+        // TODO: Navigate to course content or update enrollment status
+      }, 3000);
+    }
+  }, [isConfirming, isSuccess]);
 
   if (!course) {
     return (
@@ -250,20 +281,43 @@ export default function CourseDetailPage() {
 
   const handleStake = async () => {
     if (!isConnected) {
-      alert("Please connect your wallet first!");
+      setShouldStakeAfterConnect(true);
+      setIsWalletModalOpen(true);
+      return;
+    }
+
+    if (!address) {
+      setStakeStatus("❌ No wallet address found");
       return;
     }
 
     setIsStaking(true);
+    setStakeStatus("🔄 Preparing stake transaction...");
+
     try {
-      // TODO: Implement actual staking logic here
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate transaction
-      alert("Successfully staked! You can now start the course.");
-      // Navigate to course content or update UI
-    } catch (error) {
-      alert("Staking failed. Please try again.");
-    } finally {
+      // TODO: Replace with actual staking contract address
+      const stakingContractAddress = process.env.NEXT_PUBLIC_STAKING_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000";
+      
+      setStakeStatus("💫 Please confirm the transaction in your wallet...");
+
+      // Send transaction to stake ETH
+      sendTransaction({
+        to: stakingContractAddress as `0x${string}`,
+        value: parseEther(course.stakeAmount),
+      });
+
+    } catch (error: any) {
+      console.error("Staking error:", error);
+      setStakeStatus(`❌ Staking failed: ${error.message || "Unknown error"}`);
       setIsStaking(false);
+      setTimeout(() => setStakeStatus(""), 5000);
+    }
+  };
+
+  const handleConnectSuccess = () => {
+    if (shouldStakeAfterConnect) {
+      // Will be triggered by useEffect
+      setStakeStatus("✅ Wallet connected! Preparing stake...");
     }
   };
 
@@ -283,7 +337,11 @@ export default function CourseDetailPage() {
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Wallet Connect Modal */}
-      <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
+      <WalletConnectModal 
+        isOpen={isWalletModalOpen} 
+        onClose={() => setIsWalletModalOpen(false)}
+        onConnectSuccess={handleConnectSuccess}
+      />
 
       {/* Hero Section */}
       <div className="relative overflow-hidden rounded-3xl p-8 md:p-12 text-white shadow-2xl" style={{ background: course.gradient }}>
@@ -456,17 +514,17 @@ export default function CourseDetailPage() {
                 ) : (
                   <button
                     onClick={handleStake}
-                    disabled={isStaking}
+                    disabled={isStaking || isPending || isConfirming}
                     className="w-full py-4 px-6 rounded-2xl text-white font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)' }}
                   >
-                    {isStaking ? (
+                    {isPending || isConfirming ? (
                       <>
                         <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Staking...
+                        {isPending ? "Awaiting Approval..." : "Confirming..."}
                       </>
                     ) : (
                       <>
@@ -538,6 +596,41 @@ export default function CourseDetailPage() {
                   💡 Your stake is locked during the course and returned upon completion
                 </p>
               </div>
+
+              {/* Status Message */}
+              {stakeStatus && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`mt-4 p-4 rounded-2xl border ${
+                    stakeStatus.includes("✅") 
+                      ? "bg-green-50 border-green-200" 
+                      : stakeStatus.includes("❌")
+                      ? "bg-red-50 border-red-200"
+                      : "bg-blue-50 border-blue-200"
+                  }`}
+                >
+                  <p className={`text-sm text-center font-medium ${
+                    stakeStatus.includes("✅") 
+                      ? "text-green-800" 
+                      : stakeStatus.includes("❌")
+                      ? "text-red-800"
+                      : "text-blue-800"
+                  }`}>
+                    {stakeStatus}
+                  </p>
+                  {hash && (
+                    <a
+                      href={`https://sepolia.etherscan.io/tx/${hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800 text-center block mt-2 underline"
+                    >
+                      View transaction on Etherscan
+                    </a>
+                  )}
+                </motion.div>
+              )}
             </div>
           </div>
         </div>

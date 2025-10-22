@@ -1,10 +1,13 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useConnect } from "wagmi";
+import { useState } from "react";
 
 interface WalletConnectModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConnectSuccess?: () => void;
 }
 
 const wallets = [
@@ -108,14 +111,53 @@ const wallets = [
   },
 ];
 
-export default function WalletConnectModal({ isOpen, onClose }: WalletConnectModalProps) {
-  const handleWalletClick = (walletName: string) => {
-    console.log(`Connecting to ${walletName}...`);
-    // TODO: Implement actual wallet connection logic here
-    // For now, just close the modal
-    setTimeout(() => {
-      onClose();
-    }, 500);
+export default function WalletConnectModal({ isOpen, onClose, onConnectSuccess }: WalletConnectModalProps) {
+  const { connect, connectors } = useConnect();
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleWalletClick = async (walletName: string) => {
+    setConnecting(walletName);
+    setError(null);
+
+    try {
+      // Find the matching connector
+      const connector = connectors.find(c => 
+        c.name.toLowerCase().includes(walletName.toLowerCase().split(' ')[0])
+      );
+
+      if (connector) {
+        await connect({ connector });
+        setTimeout(() => {
+          onClose();
+          if (onConnectSuccess) {
+            onConnectSuccess();
+          }
+        }, 500);
+      } else {
+        // If connector not found, try to detect if wallet is installed
+        if (walletName === "MetaMask" && typeof window !== "undefined") {
+          if ((window as any).ethereum) {
+            await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
+            setTimeout(() => {
+              onClose();
+              if (onConnectSuccess) {
+                onConnectSuccess();
+              }
+            }, 500);
+          } else {
+            setError("MetaMask is not installed. Please install it from metamask.io");
+          }
+        } else {
+          setError(`${walletName} connector not found. Please make sure the wallet is installed.`);
+        }
+      }
+    } catch (err: any) {
+      console.error(`Error connecting to ${walletName}:`, err);
+      setError(err.message || `Failed to connect to ${walletName}`);
+    } finally {
+      setConnecting(null);
+    }
   };
 
   return (
@@ -158,6 +200,22 @@ export default function WalletConnectModal({ isOpen, onClose }: WalletConnectMod
 
               {/* Wallet Options */}
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                {/* Error Message */}
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl"
+                  >
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-sm text-red-800">{error}</p>
+                    </div>
+                  </motion.div>
+                )}
+
                 <div className="space-y-3">
                   {wallets.map((wallet, index) => (
                     <motion.button
@@ -166,11 +224,19 @@ export default function WalletConnectModal({ isOpen, onClose }: WalletConnectMod
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
                       onClick={() => handleWalletClick(wallet.name)}
-                      className="w-full p-4 rounded-2xl border-2 border-gray-100 hover:border-gray-300 transition-all duration-200 flex items-center gap-4 group hover:shadow-lg"
+                      disabled={connecting !== null}
+                      className="w-full p-4 rounded-2xl border-2 border-gray-100 hover:border-gray-300 transition-all duration-200 flex items-center gap-4 group hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {/* Icon Container */}
                       <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${wallet.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200`}>
-                        {wallet.icon}
+                        {connecting === wallet.name ? (
+                          <svg className="animate-spin h-8 w-8 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          wallet.icon
+                        )}
                       </div>
 
                       {/* Content */}
@@ -179,14 +245,16 @@ export default function WalletConnectModal({ isOpen, onClose }: WalletConnectMod
                           {wallet.name}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          {wallet.description}
+                          {connecting === wallet.name ? "Connecting..." : wallet.description}
                         </p>
                       </div>
 
                       {/* Arrow Icon */}
-                      <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      {connecting !== wallet.name && (
+                        <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
                     </motion.button>
                   ))}
                 </div>

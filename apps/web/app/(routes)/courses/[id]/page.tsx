@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
 import { motion } from "framer-motion";
-import WalletConnectModal from "@/components/WalletConnectModal";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
+import { WalletButton } from "@/components/WalletButton";
 
 // Course data - should match the IDs from dashboard
 const coursesData = {
@@ -229,9 +229,7 @@ export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { address, isConnected } = useAccount();
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [stakeStatus, setStakeStatus] = useState<string>("");
-  const [shouldStakeAfterConnect, setShouldStakeAfterConnect] = useState(false);
 
   const courseId = params.id as string;
   const course = coursesData[courseId as keyof typeof coursesData];
@@ -254,13 +252,6 @@ export default function CourseDetailPage() {
     numericCourseId
   );
 
-  // Effect to handle staking after wallet connection
-  useEffect(() => {
-    if (isConnected && shouldStakeAfterConnect) {
-      setShouldStakeAfterConnect(false);
-      handleStake();
-    }
-  }, [isConnected, shouldStakeAfterConnect]);
 
   // Effect to handle transaction confirmation
   useEffect(() => {
@@ -299,8 +290,8 @@ export default function CourseDetailPage() {
 
   const handleStake = async () => {
     if (!isConnected) {
-      setShouldStakeAfterConnect(true);
-      setIsWalletModalOpen(true);
+      setStakeStatus("❌ Please connect your wallet first");
+      setTimeout(() => setStakeStatus(""), 3000);
       return;
     }
 
@@ -327,13 +318,6 @@ export default function CourseDetailPage() {
     }
   };
 
-  const handleConnectSuccess = () => {
-    if (shouldStakeAfterConnect) {
-      // Will be triggered by useEffect
-      setStakeStatus("✅ Wallet connected! Preparing stake...");
-    }
-  };
-
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Beginner":
@@ -349,15 +333,9 @@ export default function CourseDetailPage() {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Wallet Connect Modal */}
-      <WalletConnectModal 
-        isOpen={isWalletModalOpen} 
-        onClose={() => setIsWalletModalOpen(false)}
-        onConnectSuccess={handleConnectSuccess}
-      />
 
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl p-8 md:p-12 text-white shadow-2xl" style={{ background: course.gradient }}>
+      <div className="relative overflow-visible rounded-3xl p-8 md:p-12 text-white shadow-2xl" style={{ background: course.gradient }}>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
         
@@ -514,16 +492,7 @@ export default function CourseDetailPage() {
               {/* Action Buttons */}
               <div className="space-y-3 mb-6">
                 {!isConnected ? (
-                  <button
-                    onClick={() => setIsWalletModalOpen(true)}
-                    className="w-full py-4 px-6 rounded-2xl text-white font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)' }}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                    </svg>
-                    Connect Wallet
-                  </button>
+                  <WalletButton fullWidth />
                 ) : (
                   <button
                     onClick={handleStake}

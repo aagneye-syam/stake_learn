@@ -5,6 +5,7 @@ import { mintSBT } from "@/sdk/index";
 import StatsCard from "@/components/StatsCard";
 import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
+import { WalletButton } from "@/components/WalletButton";
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
@@ -205,7 +206,7 @@ export default function DashboardPage() {
     return (
       <div className="space-y-8 animate-fadeIn">
         {/* Welcome Section for Non-Connected Users */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-8 md:p-12 text-white shadow-2xl">
+        <div className="relative overflow-visible rounded-3xl bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-8 md:p-12 text-white shadow-2xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 animate-pulse"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24 animate-pulse" style={{ animationDelay: "1s" }}></div>
           
@@ -220,9 +221,9 @@ export default function DashboardPage() {
               Connect your wallet to verify contributions, mint SBTs, and track your reputation
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold hover:bg-purple-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
-                🔗 Connect Wallet to Get Started
-              </button>
+              <div className="transform hover:scale-105 transition-transform">
+                <WalletButton fullWidth />
+              </div>
               <a href="#learning" className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-xl font-semibold hover:bg-white/20 transition-all">
                 📚 Explore Learning Paths
               </a>
@@ -319,9 +320,9 @@ export default function DashboardPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Connect your wallet to verify contributions, earn reputation, and mint Soulbound Tokens
             </p>
-            <button className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
-              Connect Wallet Now
-            </button>
+            <div className="transform hover:scale-105 transition-transform">
+              <WalletButton fullWidth />
+            </div>
           </div>
         </div>
       </div>
@@ -331,7 +332,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Welcome Section - Enhanced */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-8 md:p-12 text-white shadow-2xl">
+      <div className="relative overflow-visible rounded-3xl bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-8 md:p-12 text-white shadow-2xl">
         {/* Animated background elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 animate-pulse"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24 animate-pulse" style={{ animationDelay: "1s" }}></div>

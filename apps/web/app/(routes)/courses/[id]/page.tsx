@@ -8,6 +8,21 @@ import { motion } from "framer-motion";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { WalletButton } from "@/components/WalletButton";
 
+// Client-only wrapper to prevent hydration issues
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 // Course data - should match the IDs from dashboard
 const coursesData = {
   "1": {
@@ -492,7 +507,9 @@ export default function CourseDetailPage() {
               {/* Action Buttons */}
               <div className="space-y-3 mb-6">
                 {!isConnected ? (
-                  <WalletButton fullWidth />
+                  <ClientOnly>
+                    <WalletButton fullWidth />
+                  </ClientOnly>
                 ) : (
                   <button
                     onClick={handleStake}

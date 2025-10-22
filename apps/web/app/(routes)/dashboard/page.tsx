@@ -7,6 +7,21 @@ import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
 import { WalletButton } from "@/components/WalletButton";
 
+// Client-only wrapper to prevent hydration issues
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const [repo, setRepo] = useState("");
@@ -222,7 +237,9 @@ export default function DashboardPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <div className="transform hover:scale-105 transition-transform">
-                <WalletButton fullWidth />
+                <ClientOnly>
+                  <WalletButton fullWidth />
+                </ClientOnly>
               </div>
               <a href="#learning" className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-xl font-semibold hover:bg-white/20 transition-all">
                 📚 Explore Learning Paths
@@ -321,7 +338,9 @@ export default function DashboardPage() {
               Connect your wallet to verify contributions, earn reputation, and mint Soulbound Tokens
             </p>
             <div className="transform hover:scale-105 transition-transform">
-              <WalletButton fullWidth />
+              <ClientOnly>
+                <WalletButton fullWidth />
+              </ClientOnly>
             </div>
           </div>
         </div>

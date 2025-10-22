@@ -2,15 +2,56 @@
 
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { CertificateViewer } from "@/components/CertificateViewer";
+import { CertificateMetadata } from "@/types/certificate";
 
 export default function CertificatePage() {
   const { address, isConnected } = useAccount();
-  const [certificates, setCertificates] = useState([]);
+  const searchParams = useSearchParams();
+  const courseId = searchParams.get('course');
+  const cid = searchParams.get('cid');
+  const [certificates, setCertificates] = useState<CertificateMetadata[]>([]);
+  const [showCertificate, setShowCertificate] = useState(false);
 
   useEffect(() => {
-    // TODO: Fetch user's certificates from contract
-    // This would query the Soulbound contract for tokens owned by the user
-  }, [address]);
+    // If we have a course ID or CID, show the certificate viewer
+    if (courseId || cid) {
+      setShowCertificate(true);
+    }
+  }, [courseId, cid]);
+
+  useEffect(() => {
+    // TODO: Fetch user's certificates from Lighthouse
+    // This would query stored certificate metadata
+    if (address && isConnected) {
+      // Mock data for now
+      setCertificates([
+        {
+          cid: "QmExample1",
+          studentAddress: address,
+          courseId: 1,
+          uploadedAt: Math.floor(Date.now() / 1000),
+          lighthouseUrl: "https://gateway.lighthouse.storage/ipfs/QmExample1"
+        }
+      ]);
+    }
+  }, [address, isConnected]);
+
+  // Show certificate viewer if we have a specific certificate to view
+  if (showCertificate && cid) {
+    return (
+      <CertificateViewer 
+        cid={cid} 
+        courseName={`Course ${courseId || 'Unknown'}`}
+        onClose={() => {
+          setShowCertificate(false);
+          // Navigate back to courses or dashboard
+          window.history.back();
+        }}
+      />
+    );
+  }
 
   if (!isConnected) {
     return (
@@ -56,23 +97,23 @@ export default function CertificatePage() {
             No Certificates Yet
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Start contributing to open source projects to earn your first certificate
+            Complete courses to earn your first certificate stored on Lighthouse
           </p>
           <a
-            href="/dashboard"
+            href="/courses"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Start Contributing
+            Browse Courses
           </a>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {certificates.map((cert: any) => (
+          {certificates.map((cert, index) => (
             <div
-              key={cert.id}
+              key={index}
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all"
             >
               <div className="flex items-center gap-4 mb-4">
@@ -83,47 +124,54 @@ export default function CertificatePage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">
-                    {cert.title}
+                    Course {cert.courseId} Certificate
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {cert.repository}
+                    Lighthouse Encrypted
                   </p>
                 </div>
               </div>
               
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Reputation Score</span>
+                  <span className="text-gray-600 dark:text-gray-400">Course ID</span>
                   <span className="font-semibold text-gray-900 dark:text-white">
-                    {cert.reputation}/100
+                    {cert.courseId}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Commit</span>
+                  <span className="text-gray-600 dark:text-gray-400">Lighthouse CID</span>
                   <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {cert.commitHash?.slice(0, 8)}...
+                    {cert.cid.slice(0, 8)}...
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Date</span>
                   <span className="text-gray-900 dark:text-white">
-                    {new Date(cert.timestamp * 1000).toLocaleDateString()}
+                    {new Date(cert.uploadedAt * 1000).toLocaleDateString()}
                   </span>
                 </div>
               </div>
 
               <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowCertificate(true);
+                    // Update URL to include CID
+                    window.history.pushState({}, '', `/certificate?cid=${cert.cid}`);
+                  }}
+                  className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
+                >
+                  View Certificate
+                </button>
                 <a
-                  href={`https://sepolia.etherscan.io/token/${process.env.NEXT_PUBLIC_SOULBOUND_CONTRACT_ADDRESS}?a=${cert.tokenId}`}
+                  href={cert.lighthouseUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center"
+                  className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
-                  View on Etherscan
+                  Lighthouse
                 </a>
-                <button className="px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-blue-700 transition-all">
-                  Share
-                </button>
               </div>
             </div>
           ))}

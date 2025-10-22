@@ -5,6 +5,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X, User } from "lucide-react"
 import Link from "next/link"
+import { WalletButton } from "../WalletButton"
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard" },
@@ -58,20 +59,14 @@ const Navbar1 = () => {
             ))}
           </nav>
 
-        {/* Desktop Profile Avatar */}
+        {/* Desktop Wallet Connection */}
         <motion.div
           className="hidden md:block"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          whileHover={{ scale: 1.05 }}
         >
-          <Link
-            href="/profile"
-            className="inline-flex items-center justify-center w-10 h-10 text-white bg-gradient-to-br from-purple-500 to-blue-600 rounded-full hover:shadow-lg transition-all"
-          >
-            <User className="h-5 w-5" />
-          </Link>
+          <WalletButton />
         </motion.div>
 
         {/* Mobile Menu Button */}
@@ -122,14 +117,9 @@ const Navbar1 = () => {
                 exit={{ opacity: 0, y: 20 }}
                 className="pt-6"
               >
-                <Link
-                  href="/profile"
-                  className="inline-flex items-center justify-center w-full px-5 py-3 text-base text-white bg-gradient-to-br from-purple-500 to-blue-600 rounded-full hover:shadow-lg transition-all gap-2"
-                  onClick={toggleMenu}
-                >
-                  <User className="h-5 w-5" />
-                  Profile
-                </Link>
+                <div className="px-4">
+                  <WalletButton />
+                </div>
               </motion.div>
             </div>
           </motion.div>

@@ -53,7 +53,7 @@ contract Soulbound is ERC721, EIP712, Ownable {
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        require(_exists(tokenId), "Nonexistent token");
+        require(_ownerOf(tokenId) != address(0), "Nonexistent token");
         return _tokenURIs[tokenId];
     }
 

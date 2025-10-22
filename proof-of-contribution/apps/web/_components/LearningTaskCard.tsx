@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 interface LearningTask {
   id: string;
   title: string;
@@ -18,6 +20,16 @@ interface LearningTaskCardProps {
 }
 
 export default function LearningTaskCard({ task, onStart }: LearningTaskCardProps) {
+  const router = useRouter();
+
+  const handleStartLearning = () => {
+    if (onStart) {
+      onStart();
+    }
+    // Navigate to course detail page
+    router.push(`/courses/${task.id}`);
+  };
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Beginner":
@@ -104,7 +116,7 @@ export default function LearningTaskCard({ task, onStart }: LearningTaskCardProp
 
         {/* Action button */}
         <button
-          onClick={onStart}
+          onClick={handleStartLearning}
           className="w-full py-2.5 px-4 rounded-xl font-semibold text-white transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-xl"
           style={{ background: task.gradient }}
         >

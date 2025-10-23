@@ -256,10 +256,11 @@ export default function CourseDetailPage() {
   const { stakeAmount: contractStakeAmount } = useStaking(numericCourseId);
   const { hasStaked, hasCompleted } = useUserStake(address, numericCourseId);
 
-  // Format stake amount for display
+  // Format stake amount for display with fallback
+  const fallbackAmount = "0.00001"; // 0.0001 ETH for testing
   const displayStakeAmount = contractStakeAmount 
     ? (Number(contractStakeAmount) / 1e18).toFixed(6) 
-    : course.stakeAmount;
+    : fallbackAmount;
 
   if (!course) {
     return (

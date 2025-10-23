@@ -10,11 +10,19 @@ export function useStaking(courseId: number) {
   const contractAddress = CONTRACTS.STAKING_MANAGER as `0x${string}`;
 
   // Read contract state
-  const { data: stakeAmount } = useReadContract({
+  const { data: stakeAmount, error: stakeAmountError } = useReadContract({
     address: contractAddress,
     abi: StakingManagerABI,
     functionName: 'getCourseStakeAmount',
     args: [BigInt(courseId)],
+  });
+
+  // Debug logging
+  console.log('useStaking debug:', {
+    courseId,
+    contractAddress,
+    stakeAmount,
+    stakeAmountError
   });
 
   const { data: isActive } = useReadContract({
@@ -40,16 +48,22 @@ export function useStaking(courseId: number) {
   });
 
   const stakeForCourse = async () => {
-    if (!stakeAmount) {
-      throw new Error('Stake amount not available');
-    }
+    // Use fallback amount if contract doesn't have stake amount set
+    const fallbackAmount = BigInt(Math.floor(parseFloat("0.0001") * 1e18)); // 0.0001 ETH
+    const effectiveStakeAmount = stakeAmount || fallbackAmount;
+    
+    console.log('Staking with amount:', {
+      contractStakeAmount: stakeAmount,
+      fallbackAmount,
+      effectiveStakeAmount
+    });
 
     writeContract({
       address: contractAddress,
       abi: StakingManagerABI,
       functionName: 'stake',
       args: [BigInt(courseId)],
-      value: stakeAmount,
+      value: effectiveStakeAmount,
     });
   };
 

@@ -34,6 +34,9 @@ export function useStaking(courseId: number) {
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
+    query: {
+      enabled: !!hash,
+    },
   });
 
   const stakeForCourse = async () => {

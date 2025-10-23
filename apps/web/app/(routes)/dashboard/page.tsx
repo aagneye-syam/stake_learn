@@ -8,6 +8,7 @@ import LearningTaskCard from "@/components/LearningTaskCard";
 import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 import { useDataCoinBalance } from "@/hooks/useDataCoin";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
+import { NoSSR } from "@/components/NoSSR";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -404,7 +405,9 @@ export default function DashboardPage() {
         
         {/* Network Status */}
         <div className="mt-4">
-          <NetworkSwitcher />
+          <NoSSR>
+            <NetworkSwitcher />
+          </NoSSR>
         </div>
       </div>
 

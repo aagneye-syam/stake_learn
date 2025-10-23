@@ -1,6 +1,8 @@
 "use client";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useState, useEffect } from "react";
+import { ClientOnly } from "./ClientOnly";
+
 
 interface WalletButtonProps {
   fullWidth?: boolean;
@@ -11,16 +13,17 @@ export function WalletButton({ fullWidth = false }: WalletButtonProps) {
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setIsMounted(true);
   }, []);
 
-  if (!mounted) {
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
     return (
-      <div className={`${fullWidth ? 'w-full py-4 px-6' : 'px-6 py-3'} bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold opacity-50`}>
-        Connect Wallet
+      <div className={`${fullWidth ? 'w-full py-4 px-6' : 'px-6 py-3'} bg-gray-300 rounded-xl animate-pulse`}>
+        <div className="h-6 bg-gray-400 rounded"></div>
       </div>
     );
   }

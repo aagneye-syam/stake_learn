@@ -5,7 +5,25 @@ import { mintSBT } from "@/sdk/index";
 import StatsCard from "@/components/StatsCard";
 import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
-import { WalletButton } from "@/components/WalletButton";
+import { DynamicWalletButton } from "@/components/DynamicWalletButton";
+import { useDataCoinBalance } from "@/hooks/useDataCoin";
+import { NetworkSwitcher } from "@/components/NetworkSwitcher";
+import { NoSSR } from "@/components/NoSSR";
+
+// Client-only wrapper to prevent hydration issues
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
@@ -20,6 +38,11 @@ export default function DashboardPage() {
   const [signature, setSignature] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [dataCoinBalance, setDataCoinBalance] = useState("0");
+  const [certificates, setCertificates] = useState([]);
+
+  // DataCoin balance hook
+  const { balance: dataCoinBalanceFromHook } = useDataCoinBalance(address);
 
   // Mock activities - replace with real data
   const [activities] = useState([
@@ -44,7 +67,28 @@ export default function DashboardPage() {
       timestamp: "1 day ago",
       status: "success" as const,
     },
+    {
+      id: "4",
+      type: "datacoin" as const,
+      description: "Earned 25 DataCoins for course completion",
+      timestamp: "3 days ago",
+      status: "success" as const,
+    },
+    {
+      id: "5",
+      type: "certificate" as const,
+      description: "Received certificate for HTML & CSS course",
+      timestamp: "1 week ago",
+      status: "success" as const,
+    },
   ]);
+
+  // Update DataCoin balance when hook data changes
+  useEffect(() => {
+    if (dataCoinBalanceFromHook) {
+      setDataCoinBalance(dataCoinBalanceFromHook.toString());
+    }
+  }, [dataCoinBalanceFromHook]);
 
   // Learning tasks
   const learningTasks = [
@@ -238,7 +282,7 @@ export default function DashboardPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <div className="transform hover:scale-105 transition-transform">
-                <WalletButton fullWidth />
+                <DynamicWalletButton fullWidth />
               </div>
               <a href="#learning" className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-xl font-semibold hover:bg-white/20 transition-all">
                 📚 Explore Learning Paths
@@ -337,7 +381,7 @@ export default function DashboardPage() {
               Connect your wallet to verify contributions, earn reputation, and mint Soulbound Tokens
             </p>
             <div className="transform hover:scale-105 transition-transform">
-              <WalletButton fullWidth />
+              <DynamicWalletButton fullWidth />
             </div>
           </div>
         </div>
@@ -374,10 +418,17 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+        
+        {/* Network Status */}
+        <div className="mt-4">
+          <NoSSR>
+            <NetworkSwitcher />
+          </NoSSR>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total SBTs"
           value="12"
@@ -405,14 +456,27 @@ export default function DashboardPage() {
         />
         
         <StatsCard
-          title="Verified Commits"
-          value="47"
+          title="DataCoins Earned"
+          value={dataCoinBalance}
+          icon={
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+          trend={{ value: "+25 this week", isPositive: true }}
+          gradientFrom="#f59e0b"
+          gradientTo="#f97316"
+        />
+        
+        <StatsCard
+          title="Certificates"
+          value="3"
           icon={
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           }
-          trend={{ value: "+8 this month", isPositive: true }}
+          trend={{ value: "+1 this month", isPositive: true }}
           gradientFrom="#059669"
           gradientTo="#10b981"
         />

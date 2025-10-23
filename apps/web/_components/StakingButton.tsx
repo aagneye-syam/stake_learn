@@ -24,7 +24,7 @@ export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) 
   } = useStaking(courseId);
 
   // Fallback stake amount if contract doesn't have it set
-  const fallbackStakeAmount = "0.0001"; // 0.0001 ETH for testing
+  const fallbackStakeAmount = "0.00001"; // 0.0001 ETH for testing
   const effectiveStakeAmount = stakeAmount || BigInt(Math.floor(parseFloat(fallbackStakeAmount) * 1e18));
 
   const { hasStaked, hasCompleted, refetch } = useUserStake(address, courseId);
@@ -50,6 +50,13 @@ export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) 
       setTimeout(() => setStakeStatus(""), 5000);
     }
   }, [isConfirming, isSuccess, stakingError, refetch, onStakeSuccess]);
+
+  // Force refetch when component mounts to get latest state
+  useEffect(() => {
+    if (isConnected && address) {
+      refetch();
+    }
+  }, [isConnected, address, refetch]);
 
   const handleStake = async () => {
     if (!isConnected) {
@@ -94,11 +101,26 @@ export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) 
 
   return (
     <div className="space-y-4">
+      {/* Success State Indicator */}
+      {hasStaked && !hasCompleted && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm font-medium text-green-800">Successfully staked! You can now access the course content.</span>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={handleStake}
         disabled={isPending || isConfirming || hasStaked || hasCompleted}
-        className="w-full py-4 px-6 rounded-2xl text-white font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
-        style={{ background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)' }}
+        className={`w-full py-4 px-6 rounded-2xl text-white font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 ${
+          hasStaked 
+            ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+            : 'bg-gradient-to-r from-pink-500 to-rose-600'
+        }`}
       >
         {hasCompleted ? (
           <>
@@ -112,7 +134,7 @@ export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) 
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            Continue Learning
+            🎓 Course Started - Continue Learning
           </>
         ) : isPending || isConfirming ? (
           <>

@@ -1,13 +1,14 @@
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { StakingManagerABI } from '@/abis/StakingManagerABI';
 import { CONTRACTS } from '@/config/contracts';
+import { sepolia } from 'wagmi/chains';
 
 /**
  * Hook to interact with StakingManager contract
  */
 export function useStaking(courseId: number) {
   const contractAddress = CONTRACTS.STAKING_MANAGER as `0x${string}`;
+  const { address: account } = useAccount();
 
   // Read contract state
   const { data: stakeAmount, error: stakeAmountError } = useReadContract({
@@ -38,6 +39,7 @@ export function useStaking(courseId: number) {
     writeContract, 
     isPending,
     error: writeError 
+    // @ts-ignore
   } = useWriteContract();
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -48,22 +50,29 @@ export function useStaking(courseId: number) {
   });
 
   const stakeForCourse = async () => {
-    // Use fallback amount if contract doesn't have stake amount set
-    const fallbackAmount = BigInt(Math.floor(parseFloat("0.0001") * 1e18)); // 0.0001 ETH
-    const effectiveStakeAmount = stakeAmount || fallbackAmount;
+    if (!account) {
+      throw new Error('No account connected');
+    }
+
+    // Contract requires exact stake amount - use contract amount or fail
+    if (!stakeAmount) {
+      throw new Error('Stake amount not available from contract. Please try again.');
+    }
     
-    console.log('Staking with amount:', {
+    console.log('Staking with contract amount:', {
+      courseId,
       contractStakeAmount: stakeAmount,
-      fallbackAmount,
-      effectiveStakeAmount
+      stakeAmountETH: Number(stakeAmount) / 1e18
     });
 
-    writeContract({
+    return writeContract({
       address: contractAddress,
       abi: StakingManagerABI,
       functionName: 'stake',
       args: [BigInt(courseId)],
-      value: effectiveStakeAmount,
+      value: stakeAmount,
+      account: account,
+      chain: sepolia,
     });
   };
 
@@ -85,13 +94,16 @@ export function useStaking(courseId: number) {
 export function useUserStake(userAddress: `0x${string}` | undefined, courseId: number) {
   const contractAddress = CONTRACTS.STAKING_MANAGER as `0x${string}`;
 
+  // Only provide args if userAddress is present.
+  const enabled = !!userAddress;
+
   const { data: stakeInfo, refetch } = useReadContract({
     address: contractAddress,
     abi: StakingManagerABI,
     functionName: 'getStake',
-    args: userAddress ? [userAddress, BigInt(courseId)] : undefined,
+    args: enabled ? [userAddress, BigInt(courseId)] : undefined,
     query: {
-      enabled: !!userAddress,
+      enabled,
     },
   });
 
@@ -99,9 +111,9 @@ export function useUserStake(userAddress: `0x${string}` | undefined, courseId: n
     address: contractAddress,
     abi: StakingManagerABI,
     functionName: 'hasStaked',
-    args: userAddress ? [userAddress, BigInt(courseId)] : undefined,
+    args: enabled ? [userAddress, BigInt(courseId)] : undefined,
     query: {
-      enabled: !!userAddress,
+      enabled,
     },
   });
 
@@ -109,9 +121,9 @@ export function useUserStake(userAddress: `0x${string}` | undefined, courseId: n
     address: contractAddress,
     abi: StakingManagerABI,
     functionName: 'hasCompleted',
-    args: userAddress ? [userAddress, BigInt(courseId)] : undefined,
+    args: enabled ? [userAddress, BigInt(courseId)] : undefined,
     query: {
-      enabled: !!userAddress,
+      enabled,
     },
   });
 

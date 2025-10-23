@@ -3,6 +3,7 @@ import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useState, useEffect } from "react";
 import { ClientOnly } from "./ClientOnly";
 
+
 interface WalletButtonProps {
   fullWidth?: boolean;
 }

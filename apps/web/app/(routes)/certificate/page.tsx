@@ -53,6 +53,17 @@ export default function CertificatePage() {
     );
   }
 
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isConnected) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">

@@ -5,9 +5,14 @@ import Link from "next/link";
 
 export default function UserAccountDrawer() {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -25,7 +30,7 @@ export default function UserAccountDrawer() {
     };
   }, [isOpen]);
 
-  if (!isConnected || !address) return null;
+  if (!mounted || !isConnected || !address) return null;
 
   const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
 

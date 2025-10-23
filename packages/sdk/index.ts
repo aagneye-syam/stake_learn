@@ -9,17 +9,17 @@ export async function verifyContribution(aiServiceUrl: string, input: { repo: st
 
 export async function mintSBT(contract: Address, signed: SignedPermit, rpcUrl?: string) {
   const wallet = getWalletClient(undefined, rpcUrl);
-  const hash = await wallet.writeContract({ address: contract, abi: sbtAbi, functionName: "mintWithSig", args: [signed as unknown as Permit, signed.signature] });
+  const hash = await wallet.writeContract({ address: contract, abi: sbtAbi, functionName: "mintWithSig", args: [signed as unknown as Permit, signed.signature] } as any);
   return hash;
 }
 
 export async function fetchReputation(reputationContract: Address, addr: Address, rpcUrl?: string) {
   const client = getPublicClient(rpcUrl);
-  return await client.readContract({ address: reputationContract, abi: reputationAbi, functionName: "getScore", args: [addr] });
+  return await client.readContract({ address: reputationContract, abi: reputationAbi, functionName: "getScore", args: [addr] } as any);
 }
 
 export async function fetchLeaderboard(reputationContract: Address, limit: bigint, rpcUrl?: string) {
   const client = getPublicClient(rpcUrl);
-  return await client.readContract({ address: reputationContract, abi: reputationAbi, functionName: "topContributors", args: [limit] });
+  return await client.readContract({ address: reputationContract, abi: reputationAbi, functionName: "topContributors", args: [limit] } as any);
 }
 

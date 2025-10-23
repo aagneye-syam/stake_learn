@@ -2,13 +2,22 @@
 
 import { useAccount, useSwitchChain, useChainId } from "wagmi";
 import { sepolia } from "wagmi/chains";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function NetworkSwitcher() {
   const { isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChain, isPending } = useSwitchChain();
-  const [showSwitch, setShowSwitch] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   // If not connected, don't show anything
   if (!isConnected) {

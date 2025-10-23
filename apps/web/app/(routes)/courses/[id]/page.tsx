@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import { formatEther } from "viem";
 import { motion } from "framer-motion";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
-import { WalletButton } from "@/components/WalletButton";
+import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { TestnetInstructions } from "@/components/TestnetInstructions";
 
@@ -513,17 +513,13 @@ export default function CourseDetailPage() {
 
               {/* Network Switcher */}
               <div className="mb-4">
-                <ClientOnly>
-                  <NetworkSwitcher />
-                </ClientOnly>
+                <NetworkSwitcher />
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-3 mb-6">
                 {!isConnected ? (
-                  <ClientOnly>
-                    <WalletButton fullWidth />
-                  </ClientOnly>
+                  <DynamicWalletButton fullWidth />
                 ) : (
                   <button
                     onClick={handleStake}
@@ -639,9 +635,7 @@ export default function CourseDetailPage() {
 
               {/* Testnet Instructions */}
               <div className="mt-4">
-                <ClientOnly>
-                  <TestnetInstructions />
-                </ClientOnly>
+                <TestnetInstructions />
               </div>
 
               {/* Info */}

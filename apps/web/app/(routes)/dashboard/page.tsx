@@ -5,7 +5,7 @@ import { mintSBT } from "@/sdk/index";
 import StatsCard from "@/components/StatsCard";
 import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
-import { WalletButton } from "@/components/WalletButton";
+import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 import { useDataCoinBalance } from "@/hooks/useDataCoin";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 
@@ -265,9 +265,7 @@ export default function DashboardPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <div className="transform hover:scale-105 transition-transform">
-                <ClientOnly>
-                  <WalletButton fullWidth />
-                </ClientOnly>
+                <DynamicWalletButton fullWidth />
               </div>
               <a href="#learning" className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-xl font-semibold hover:bg-white/20 transition-all">
                 📚 Explore Learning Paths
@@ -366,9 +364,7 @@ export default function DashboardPage() {
               Connect your wallet to verify contributions, earn reputation, and mint Soulbound Tokens
             </p>
             <div className="transform hover:scale-105 transition-transform">
-              <ClientOnly>
-                <WalletButton fullWidth />
-              </ClientOnly>
+              <DynamicWalletButton fullWidth />
             </div>
           </div>
         </div>
@@ -408,9 +404,7 @@ export default function DashboardPage() {
         
         {/* Network Status */}
         <div className="mt-4">
-          <ClientOnly>
-            <NetworkSwitcher />
-          </ClientOnly>
+          <NetworkSwitcher />
         </div>
       </div>
 

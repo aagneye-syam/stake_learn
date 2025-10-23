@@ -18,6 +18,13 @@ export function useStaking(courseId: number) {
     args: [BigInt(courseId)],
   });
 
+  const { data: isActive } = useReadContract({
+    address: contractAddress,
+    abi: StakingManagerABI,
+    functionName: 'activeCourses',
+    args: [BigInt(courseId)],
+  });
+
   // Debug logging
   console.log('useStaking debug:', {
     courseId,
@@ -26,13 +33,6 @@ export function useStaking(courseId: number) {
     stakeAmountError,
     isActive,
     chainId: sepolia.id
-  });
-
-  const { data: isActive } = useReadContract({
-    address: contractAddress,
-    abi: StakingManagerABI,
-    functionName: 'activeCourses',
-    args: [BigInt(courseId)],
   });
 
   // Write functions

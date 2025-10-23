@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { WalletButton } from "@/components/WalletButton";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
+import { TestnetInstructions } from "@/components/TestnetInstructions";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -635,6 +636,13 @@ export default function CourseDetailPage() {
                   </div>
                 </div>
               )}
+
+              {/* Testnet Instructions */}
+              <div className="mt-4">
+                <ClientOnly>
+                  <TestnetInstructions />
+                </ClientOnly>
+              </div>
 
               {/* Info */}
               <div className="mt-4 p-4 bg-blue-50 rounded-2xl border border-blue-200">

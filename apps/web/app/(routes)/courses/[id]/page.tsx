@@ -250,6 +250,11 @@ export default function CourseDetailPage() {
   const { address, isConnected } = useAccount();
   const courseId = params.id as string;
   const course = coursesData[courseId as keyof typeof coursesData];
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Use staking hooks for display data only
   const numericCourseId = parseInt(courseId);

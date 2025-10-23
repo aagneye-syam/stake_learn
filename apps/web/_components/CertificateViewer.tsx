@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { motion } from 'framer-motion';
-import { CertificateData } from '@/types/certificate';
+import { CertificateMetadata } from '@/types/certificate';
 
 interface CertificateViewerProps {
   cid: string;
@@ -13,7 +13,7 @@ interface CertificateViewerProps {
 
 export function CertificateViewer({ cid, courseName, onClose }: CertificateViewerProps) {
   const { address, isConnected } = useAccount();
-  const [certificate, setCertificate] = useState<CertificateData | null>(null);
+  const [certificate, setCertificate] = useState<CertificateMetadata | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +27,7 @@ export function CertificateViewer({ cid, courseName, onClose }: CertificateViewe
     setError(null);
 
     try {
-      const response = await fetch(`/api/completion?cid=${cid}&userAddress=${address}`);
+      const response = await fetch(`/api/completion?cid=${cid}&accessToken=${address}`);
       const data = await response.json();
 
       if (data.success) {
@@ -174,7 +174,7 @@ export function CertificateViewer({ cid, courseName, onClose }: CertificateViewe
                 <p className="text-gray-600">has successfully completed</p>
                 <p className="text-2xl font-bold text-purple-600 mt-2">{certificate.courseName}</p>
                 <p className="text-gray-500 mt-4">
-                  Completed on {formatDate(certificate.completedAt)}
+                  Completed on {certificate.completionDate || formatDate(certificate.uploadedAt)}
                 </p>
               </div>
 
@@ -187,27 +187,32 @@ export function CertificateViewer({ cid, courseName, onClose }: CertificateViewe
                     <p className="font-semibold">{certificate.courseId}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Stake Amount</p>
-                    <p className="font-semibold">{certificate.stakeAmount} ETH</p>
+                    <p className="text-sm text-gray-500">Lighthouse CID</p>
+                    <p className="font-semibold font-mono text-xs">{certificate.cid}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Modules Completed */}
+              {/* Certificate Info */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Modules Completed</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Certificate Information</h3>
                 <div className="space-y-3">
-                  {certificate.modules.map((module, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900">{module.title}</p>
-                        <p className="text-sm text-gray-500">{module.lessons} lessons • {module.duration}</p>
-                      </div>
-                      <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                  <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">Lighthouse URL</p>
+                      <p className="text-sm text-gray-500">{certificate.lighthouseUrl}</p>
                     </div>
-                  ))}
+                    <a 
+                      href={certificate.lighthouseUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
                 </div>
               </div>
 

@@ -27,9 +27,14 @@ function ClientOnly({ children }: { children: React.ReactNode }) {
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [repo, setRepo] = useState("");
   const [sha, setSha] = useState("");
-  const [permit, setPermit] = useState<any>(null);
+  const [permit, setPermit] = useState<Record<string, unknown> | null>(null);
   const [signature, setSignature] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -208,7 +213,7 @@ export default function DashboardPage() {
       } else {
         setStatus("✗ " + (data.error || "Verification failed. Please check your inputs."));
       }
-    } catch (error) {
+    } catch {
       setStatus("✗ Network error. Please try again.");
     } finally {
       setIsLoading(false);
@@ -232,18 +237,29 @@ export default function DashboardPage() {
         return; 
       }
       const contract = process.env.NEXT_PUBLIC_SBT_ADDRESS as `0x${string}`;
-      const tx = await mintSBT(contract as any, { ...permit, signature } as any, process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+      const tx = await mintSBT(contract, { ...permit, signature } as any);
       setStatus(`✓ Success! Transaction: ${tx}`);
       // Reset form
       setRepo("");
       setSha("");
       setPermit(null);
       setSignature("");
-    } catch (error) {
+    } catch {
       setStatus("✗ Minting failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!isConnected) {

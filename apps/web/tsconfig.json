@@ -22,10 +22,17 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./_components/*"],
-      "@/sdk/*": ["../../packages/sdk/*"]
-    }
+      "@/*": [
+        "./*"
+      ],
+      "@/components/*": [
+        "./_components/*"
+      ],
+      "@/sdk/*": [
+        "../../packages/sdk/*"
+      ]
+    },
+    "target": "ES2017"
   },
   "include": [
     "next-env.d.ts",

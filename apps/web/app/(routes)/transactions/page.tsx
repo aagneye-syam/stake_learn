@@ -5,12 +5,28 @@ import { useState, useEffect } from "react";
 
 export default function TransactionsPage() {
   const { address, isConnected } = useAccount();
-  const [transactions, setTransactions] = useState([]);
+  const [transactions] = useState([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // TODO: Fetch user's transactions from contract events
     // This would query the StakingManager contract for Staked, CourseCompleted, and StakeRefunded events
   }, [address]);
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isConnected) {
     return (
@@ -70,7 +86,7 @@ export default function TransactionsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {transactions.map((tx: any) => (
+          {transactions.map((tx: { hash: string; type: string; amount: string; timestamp: number; status: string; courseId: string }) => (
             <div
               key={tx.hash}
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700"

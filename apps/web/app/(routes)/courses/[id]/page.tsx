@@ -7,6 +7,7 @@ import { formatEther } from "viem";
 import { motion } from "framer-motion";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { WalletButton } from "@/components/WalletButton";
+import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -507,6 +508,13 @@ export default function CourseDetailPage() {
                 </div>
                 <p className="text-3xl font-bold text-gray-900 mb-1">$5.00</p>
                 <p className="text-sm text-orange-500 font-medium">⟠ {displayStakeAmount} ETH</p>
+              </div>
+
+              {/* Network Switcher */}
+              <div className="mb-4">
+                <ClientOnly>
+                  <NetworkSwitcher />
+                </ClientOnly>
               </div>
 
               {/* Action Buttons */}

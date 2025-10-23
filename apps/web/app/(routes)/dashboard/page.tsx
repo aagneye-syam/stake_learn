@@ -7,6 +7,7 @@ import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
 import { WalletButton } from "@/components/WalletButton";
 import { useDataCoinBalance } from "@/hooks/useDataCoin";
+import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -403,6 +404,13 @@ export default function DashboardPage() {
               View Tutorial
             </button>
           </div>
+        </div>
+        
+        {/* Network Status */}
+        <div className="mt-4">
+          <ClientOnly>
+            <NetworkSwitcher />
+          </ClientOnly>
         </div>
       </div>
 

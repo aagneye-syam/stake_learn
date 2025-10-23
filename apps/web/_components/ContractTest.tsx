@@ -13,6 +13,10 @@ export function ContractTest() {
     abi: StakingManagerABI,
     functionName: 'getCourseStakeAmount',
     args: [BigInt(1)],
+    query: {
+      retry: 1,
+      retryDelay: 1000,
+    },
   });
 
   const { data: isActive, error: activeError } = useReadContract({
@@ -20,6 +24,10 @@ export function ContractTest() {
     abi: StakingManagerABI,
     functionName: 'activeCourses',
     args: [BigInt(1)],
+    query: {
+      retry: 1,
+      retryDelay: 1000,
+    },
   });
 
   return (

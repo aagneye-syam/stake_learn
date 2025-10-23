@@ -16,6 +16,10 @@ export function useStaking(courseId: number) {
     abi: StakingManagerABI,
     functionName: 'getCourseStakeAmount',
     args: [BigInt(courseId)],
+    query: {
+      retry: 1, // Only retry once to avoid long waits
+      retryDelay: 1000,
+    },
   });
 
   const { data: isActive } = useReadContract({
@@ -23,6 +27,10 @@ export function useStaking(courseId: number) {
     abi: StakingManagerABI,
     functionName: 'activeCourses',
     args: [BigInt(courseId)],
+    query: {
+      retry: 1,
+      retryDelay: 1000,
+    },
   });
 
   // Debug logging

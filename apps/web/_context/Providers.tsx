@@ -19,7 +19,7 @@ const config = createConfig({
     }),
   ],
   transports: {
-    [sepolia.id]: http(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/demo"),
+    [sepolia.id]: http(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL || "https://rpc.sepolia.org"),
   },
 });
 

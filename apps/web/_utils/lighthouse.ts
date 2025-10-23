@@ -1,4 +1,4 @@
-import { lighthouse } from '@lighthouse-web3/sdk';
+import lighthouse from '@lighthouse-web3/sdk';
 
 export interface CertificateData {
   studentAddress: string;
@@ -64,11 +64,13 @@ export async function uploadEncryptedCertificate(
     const response = await lighthouse.uploadEncrypted(
       JSON.stringify(certificateData),
       apiKey,
-      accessControlConditions
+      JSON.stringify(accessControlConditions),
+      null, // mimeType
+      null  // additional parameter
     );
 
-    if (response.data && response.data.Hash) {
-      return response.data.Hash;
+    if (response.data && response.data.length > 0 && response.data[0].Hash) {
+      return response.data[0].Hash;
     } else {
       throw new Error('Failed to get CID from Lighthouse response');
     }
@@ -159,6 +161,63 @@ export function generateCertificate(
     // Note: In a real implementation, you'd want to add a cryptographic signature
     // signature: await signCertificate(certificateData, privateKey)
   };
+}
+
+/**
+ * Upload encrypted JSON data to Lighthouse
+ * @param data - The data to encrypt and upload
+ * @param accessToken - Access token for encryption
+ * @param conditions - Access control conditions
+ * @returns Promise<string> - The Lighthouse CID
+ */
+export async function uploadEncryptedJson(
+  data: any,
+  accessToken: string,
+  conditions: any[]
+): Promise<string> {
+  const apiKey = process.env.LIGHTHOUSE_API_KEY;
+  if (!apiKey) {
+    throw new Error('LIGHTHOUSE_API_KEY is not configured');
+  }
+
+  try {
+    const response = await lighthouse.uploadText(
+      JSON.stringify(data),
+      apiKey,
+      accessToken,
+      null // mimeType
+    );
+    if (response.data && response.data.length > 0 && response.data[0].Hash) {
+      return response.data[0].Hash;
+    } else {
+      throw new Error('Failed to get CID from Lighthouse response');
+    }
+  } catch (error) {
+    console.error('Lighthouse upload error:', error);
+    throw new Error(`Failed to upload to Lighthouse: ${error}`);
+  }
+}
+
+/**
+ * Decrypt file from Lighthouse
+ * @param cid - The Lighthouse CID
+ * @param accessToken - Access token for decryption
+ * @returns Promise<any> - The decrypted data
+ */
+export async function decryptFile(cid: string, accessToken: string): Promise<any> {
+  const apiKey = process.env.LIGHTHOUSE_API_KEY;
+  if (!apiKey) {
+    throw new Error('LIGHTHOUSE_API_KEY is not configured');
+  }
+
+  try {
+    const file = await lighthouse.decryptFile(cid, accessToken);
+    const decryptedData = await file.text();
+    return JSON.parse(decryptedData);
+  } catch (error) {
+    console.error('Lighthouse decrypt error:', error);
+    throw new Error(`Failed to decrypt file: ${error}`);
+  }
 }
 
 /**

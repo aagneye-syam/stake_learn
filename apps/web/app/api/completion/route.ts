@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadEncryptedCertificate, generateCertificate } from '@/utils/lighthouse';
-import { CertificateData } from '@/types/certificate';
+import { uploadEncryptedJson } from '@/_utils/lighthouse';
+import { CertificateMetadata } from '@/types/certificate';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,12 +9,11 @@ export async function POST(request: NextRequest) {
       studentAddress, 
       courseId, 
       courseName, 
-      stakeAmount, 
-      modules 
+      accessToken 
     } = body;
 
     // Validate required fields
-    if (!studentAddress || !courseId || !courseName || !stakeAmount || !modules) {
+    if (!studentAddress || !courseId || !courseName || !accessToken) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -22,23 +21,43 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate certificate data
-    const certificateData = generateCertificate(
+    const certificateData: CertificateMetadata = {
       studentAddress,
       courseId,
       courseName,
-      stakeAmount,
-      modules
-    );
+      completionDate: new Date().toISOString().split('T')[0],
+      uploadedAt: Math.floor(Date.now() / 1000),
+      cid: '', // Will be filled after upload
+      lighthouseUrl: '',
+    };
+
+    // Define access control conditions (only the student can decrypt)
+    const conditions = [
+      {
+        id: 1,
+        chain: "sepolia",
+        method: "eth_getBalance",
+        standardContractType: "ERC721",
+        contractAddress: "",
+        returnValueTest: {
+          comparator: ">=",
+          value: "0",
+        },
+        parameters: [":userAddress"],
+      },
+    ];
 
     // Upload to Lighthouse with encryption
-    const cid = await uploadEncryptedCertificate(certificateData, studentAddress);
+    const cid = await uploadEncryptedJson(certificateData, accessToken, conditions);
+    certificateData.cid = cid;
+    certificateData.lighthouseUrl = `https://gateway.lighthouse.storage/ipfs/${cid}`;
 
     // Return success response with CID
     return NextResponse.json({
       success: true,
       cid,
       certificateData,
-      lighthouseUrl: `https://gateway.lighthouse.storage/ipfs/${cid}`
+      lighthouseUrl: certificateData.lighthouseUrl
     });
 
   } catch (error) {
@@ -56,18 +75,18 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const cid = searchParams.get('cid');
-  const userAddress = searchParams.get('userAddress');
+  const accessToken = searchParams.get('accessToken');
 
-  if (!cid || !userAddress) {
+  if (!cid || !accessToken) {
     return NextResponse.json(
-      { error: 'Missing CID or userAddress' },
+      { error: 'Missing CID or accessToken' },
       { status: 400 }
     );
   }
 
   try {
-    const { decryptCertificate } = await import('@/utils/lighthouse');
-    const certificateData = await decryptCertificate(cid, userAddress);
+    const { decryptFile } = await import('@/_utils/lighthouse');
+    const certificateData = await decryptFile(cid, accessToken);
     
     return NextResponse.json({
       success: true,

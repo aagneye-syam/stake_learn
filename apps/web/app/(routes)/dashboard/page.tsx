@@ -9,6 +9,8 @@ import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 import { useDataCoinBalance } from "@/hooks/useDataCoin";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { NoSSR } from "@/components/NoSSR";
+import { useStaking, useUserStake } from "@/hooks/useStaking";
+import { useRouter } from "next/navigation";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -25,8 +27,127 @@ function ClientOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Dynamic Learning Task Card with real status
+function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress: `0x${string}` | undefined }) {
+  const router = useRouter();
+  const numericCourseId = parseInt(task.id);
+  const { stakeAmount } = useStaking(numericCourseId);
+  const { hasStaked, hasCompleted } = useUserStake(userAddress, numericCourseId);
+
+  // Format stake amount for display
+  const fallbackAmount = "0.0001";
+  const displayStakeAmount = stakeAmount 
+    ? (Number(stakeAmount) / 1e18).toFixed(6) 
+    : fallbackAmount;
+
+  const getStatusInfo = () => {
+    if (hasCompleted) {
+      return {
+        status: "completed",
+        text: "Completed",
+        color: "bg-green-100 text-green-800 border-green-200",
+        icon: "✅",
+        buttonText: "View Certificate",
+        buttonColor: "bg-green-600 hover:bg-green-700",
+        action: () => router.push(`/certificate?course=${task.id}`)
+      };
+    } else if (hasStaked) {
+      return {
+        status: "started",
+        text: "In Progress",
+        color: "bg-blue-100 text-blue-800 border-blue-200",
+        icon: "🎓",
+        buttonText: "Continue Learning",
+        buttonColor: "bg-blue-600 hover:bg-blue-700",
+        action: () => router.push(`/courses/${task.id}`)
+      };
+    } else {
+      return {
+        status: "not-started",
+        text: "Not Started",
+        color: "bg-gray-100 text-gray-800 border-gray-200",
+        icon: "📚",
+        buttonText: "Start Learning",
+        buttonColor: "bg-purple-600 hover:bg-purple-700",
+        action: () => router.push(`/courses/${task.id}`)
+      };
+    }
+  };
+
+  const statusInfo = getStatusInfo();
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 group">
+      {/* Background Gradient */}
+      <div 
+        className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity"
+        style={{ background: task.gradient }}
+      />
+      
+      <div className="relative p-6 bg-white dark:bg-gray-800">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 shadow-lg">
+              {task.icon}
+            </div>
+            <div>
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                task.difficulty === "Beginner" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                task.difficulty === "Intermediate" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              }`}>
+                {task.difficulty}
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-500">{task.duration}</p>
+            <p className="text-xs text-gray-400">{task.category}</p>
+          </div>
+        </div>
+
+        {/* Course Info */}
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          {task.title}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+          {task.description}
+        </p>
+
+        {/* Stake Amount */}
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600 dark:text-gray-400">Required Stake</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+              {displayStakeAmount} ETH
+            </span>
+          </div>
+        </div>
+
+        {/* Status */}
+        <div className={`mb-4 p-3 rounded-lg border ${statusInfo.color}`}>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{statusInfo.icon}</span>
+            <span className="text-sm font-medium">{statusInfo.text}</span>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <button
+          onClick={statusInfo.action}
+          className={`w-full py-3 px-4 rounded-xl text-white font-semibold transition-all ${statusInfo.buttonColor} shadow-lg hover:shadow-xl transform hover:scale-105`}
+        >
+          {statusInfo.buttonText}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -69,14 +190,14 @@ export default function DashboardPage() {
     },
     {
       id: "4",
-      type: "datacoin" as const,
+      type: "reputation" as const,
       description: "Earned 25 DataCoins for course completion",
       timestamp: "3 days ago",
       status: "success" as const,
     },
     {
       id: "5",
-      type: "certificate" as const,
+      type: "mint" as const,
       description: "Received certificate for HTML & CSS course",
       timestamp: "1 week ago",
       status: "success" as const,
@@ -353,19 +474,20 @@ export default function DashboardPage() {
                 Start learning today - no wallet connection required!
               </p>
             </div>
-            <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg">
+            <button 
+              onClick={() => router.push('/courses')}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+            >
               View All Courses
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {learningTasks.map((task) => (
-              <LearningTaskCard
+              <DynamicLearningTaskCard
                 key={task.id}
                 task={task}
-                onStart={() => {
-                  console.log(`Starting: ${task.title}`);
-                }}
+                userAddress={address}
               />
             ))}
           </div>
@@ -601,7 +723,10 @@ export default function DashboardPage() {
               Master new skills and earn reputation while learning
             </p>
           </div>
-          <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg">
+          <button 
+            onClick={() => router.push('/courses')}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+          >
             View All Courses
           </button>
         </div>
@@ -609,13 +734,10 @@ export default function DashboardPage() {
         {/* Learning Tasks Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {learningTasks.map((task) => (
-            <LearningTaskCard
+            <DynamicLearningTaskCard
               key={task.id}
               task={task}
-              onStart={() => {
-                // Handle start learning - could navigate to course page
-                console.log(`Starting: ${task.title}`);
-              }}
+              userAddress={address}
             />
           ))}
         </div>

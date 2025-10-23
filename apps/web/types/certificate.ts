@@ -19,6 +19,8 @@ export interface CertificateMetadata {
   courseId: number;
   uploadedAt: number;
   lighthouseUrl: string;
+  courseName?: string;
+  completionDate?: string;
 }
 
 export interface DataCoinReward {

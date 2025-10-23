@@ -1,18 +1,23 @@
 "use client";
 
 import { useAccount } from "wagmi";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { CertificateViewer } from "@/components/CertificateViewer";
 import { CertificateMetadata } from "@/types/certificate";
 
-export default function CertificatePage() {
+function CertificatePageContent() {
   const { address, isConnected } = useAccount();
   const searchParams = useSearchParams();
   const courseId = searchParams.get('course');
   const cid = searchParams.get('cid');
   const [certificates, setCertificates] = useState<CertificateMetadata[]>([]);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // If we have a course ID or CID, show the certificate viewer
@@ -222,5 +227,20 @@ export default function CertificatePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CertificatePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    }>
+      <CertificatePageContent />
+    </Suspense>
   );
 }

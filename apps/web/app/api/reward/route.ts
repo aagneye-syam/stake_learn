@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DataCoinReward } from '@/types/certificate';
+import { ethers } from 'ethers';
+import { DataCoinABI } from '@/abis/DataCoinABI';
 
 // Mock DataCoin reward amounts based on course difficulty
 const REWARD_AMOUNTS = {
@@ -29,22 +31,27 @@ export async function POST(request: NextRequest) {
     // Calculate reward amount based on difficulty
     const rewardAmount = REWARD_AMOUNTS[courseDifficulty as keyof typeof REWARD_AMOUNTS] || '10';
     
-    // In a real implementation, this would:
-    // 1. Call the DataCoin contract to mint tokens
-    // 2. Store the transaction hash
-    // 3. Update user's reward history
-    
-    // For now, we'll simulate the reward
+    // Connect to DataCoin contract and mint tokens
+    const dataCoinContractAddress = process.env.NEXT_PUBLIC_DATACOIN_ADDRESS;
+    if (!dataCoinContractAddress || dataCoinContractAddress === '0x0000000000000000000000000000000000000000') {
+      return NextResponse.json({ error: 'DataCoin contract address not configured' }, { status: 500 });
+    }
+
+    // Connect to the DataCoin contract
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+    const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY as string, provider);
+    const dataCoinContract = new ethers.Contract(dataCoinContractAddress, DataCoinABI, wallet);
+
+    // Mint DataCoins to the user
+    const tx = await dataCoinContract.mint(studentAddress, ethers.parseUnits(rewardAmount, 18));
+    await tx.wait();
+
     const reward: DataCoinReward = {
       amount: rewardAmount,
-      tokenAddress: process.env.NEXT_PUBLIC_DATACOIN_ADDRESS || '0x0000000000000000000000000000000000000000',
+      tokenAddress: dataCoinContractAddress,
       timestamp: Math.floor(Date.now() / 1000),
-      // transactionHash: '0x...' // Would be set after actual minting
+      transactionHash: tx.hash
     };
-
-    // TODO: In production, integrate with actual DataCoin contract
-    // const { mintTokens } = await import('@/hooks/useDataCoin');
-    // await mintTokens(studentAddress, rewardAmount);
 
     return NextResponse.json({
       success: true,

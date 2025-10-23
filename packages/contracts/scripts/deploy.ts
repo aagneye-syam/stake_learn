@@ -39,15 +39,17 @@ async function main() {
   const stakingManagerAddress = await stakingManager.getAddress();
   console.log("✅ StakingManager deployed to:", stakingManagerAddress);
 
-  // Add sample courses
+  // Add sample courses with configurable stake amounts
   console.log("\n🔧 Adding sample courses...");
-  const course1Tx = await stakingManager.addCourse(1, ethers.parseEther("0.002"));
-  await course1Tx.wait();
-  console.log("✅ Course 1 added with stake amount: 0.002 ETH");
-
-  const course2Tx = await stakingManager.addCourse(2, ethers.parseEther("0.005"));
-  await course2Tx.wait();
-  console.log("✅ Course 2 added with stake amount: 0.005 ETH");
+  const defaultStakeAmount = process.env.DEFAULT_STAKE_AMOUNT || "0.0001"; // Default to 0.0001 ETH for testing
+  const stakeAmountWei = ethers.parseEther(defaultStakeAmount);
+  
+  // Add all 6 courses with the same configurable stake amount
+  for (let i = 1; i <= 6; i++) {
+    const courseTx = await stakingManager.addCourse(i, stakeAmountWei);
+    await courseTx.wait();
+    console.log(`✅ Course ${i} added with stake amount: ${defaultStakeAmount} ETH`);
+  }
 
   // Save deployment addresses
   const deployments = {

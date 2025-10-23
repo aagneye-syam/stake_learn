@@ -29,7 +29,7 @@ contract StakingManager is Ownable, ReentrancyGuard {
     mapping(address => bool) public authorizedVerifiers;
 
     event Staked(address indexed user, uint256 indexed courseId, uint256 amount);
-    event CourseCompleted(address indexed user, uint256 indexed courseId);
+    event CourseCompleted(address indexed user, uint256 indexed courseId, string certificateCID);
     event StakeRefunded(address indexed user, uint256 indexed courseId, uint256 amount);
     event CourseAdded(uint256 indexed courseId, uint256 stakeAmount);
     event CourseUpdated(uint256 indexed courseId, uint256 stakeAmount, bool active);
@@ -132,8 +132,9 @@ contract StakingManager is Ownable, ReentrancyGuard {
      * @dev Mark course as completed and refund stake to user
      * @param user Address of the user who completed the course
      * @param courseId ID of the completed course
+     * @param certificateCID Lighthouse CID of the completion certificate
      */
-    function completeCourse(address user, uint256 courseId) external onlyVerifier nonReentrant {
+    function completeCourse(address user, uint256 courseId, string calldata certificateCID) external onlyVerifier nonReentrant {
         Stake storage userStake = stakes[user][courseId];
         
         require(userStake.amount > 0, "No stake found for this user and course");
@@ -147,7 +148,7 @@ contract StakingManager is Ownable, ReentrancyGuard {
         (bool success, ) = payable(user).call{value: userStake.amount}("");
         require(success, "Refund transfer failed");
 
-        emit CourseCompleted(user, courseId);
+        emit CourseCompleted(user, courseId, certificateCID);
         emit StakeRefunded(user, courseId, userStake.amount);
     }
 
@@ -200,13 +201,19 @@ contract StakingManager is Ownable, ReentrancyGuard {
      * @dev Batch complete courses for multiple users
      * @param users Array of user addresses
      * @param courseIds Array of course IDs (must match users length)
+     * @param certificateCIDs Array of certificate CIDs (must match users length)
      */
-    function batchCompleteCourses(address[] calldata users, uint256[] calldata courseIds) 
+    function batchCompleteCourses(
+        address[] calldata users, 
+        uint256[] calldata courseIds, 
+        string[] calldata certificateCIDs
+    ) 
         external 
         onlyVerifier 
         nonReentrant 
     {
         require(users.length == courseIds.length, "Arrays length mismatch");
+        require(users.length == certificateCIDs.length, "Certificate CIDs length mismatch");
         
         for (uint256 i = 0; i < users.length; i++) {
             Stake storage userStake = stakes[users[i]][courseIds[i]];
@@ -217,7 +224,7 @@ contract StakingManager is Ownable, ReentrancyGuard {
 
                 (bool success, ) = payable(users[i]).call{value: userStake.amount}("");
                 if (success) {
-                    emit CourseCompleted(users[i], courseIds[i]);
+                    emit CourseCompleted(users[i], courseIds[i], certificateCIDs[i]);
                     emit StakeRefunded(users[i], courseIds[i], userStake.amount);
                 }
             }

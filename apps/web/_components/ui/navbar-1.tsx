@@ -1,11 +1,26 @@
 "use client" 
 
 import * as React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X, User } from "lucide-react"
 import Link from "next/link"
 import { WalletButton } from "../WalletButton"
+
+// Client-only wrapper to prevent hydration issues
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard" },
@@ -66,7 +81,9 @@ const Navbar1 = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <WalletButton />
+          <ClientOnly>
+            <WalletButton />
+          </ClientOnly>
         </motion.div>
 
         {/* Mobile Menu Button */}
@@ -118,7 +135,9 @@ const Navbar1 = () => {
                 className="pt-6"
               >
                 <div className="px-4">
-                  <WalletButton />
+                  <ClientOnly>
+                    <WalletButton />
+                  </ClientOnly>
                 </div>
               </motion.div>
             </div>

@@ -8,7 +8,9 @@ import { injected, walletConnect, coinbaseWallet } from "wagmi/connectors";
 const config = createConfig({
   chains: [sepolia],
   connectors: [
-    injected(),
+    injected({
+      target: "metaMask",
+    }),
     walletConnect({
       projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "14ea17265d2b49b6a49b699b1669d6ca",
     }),
@@ -17,7 +19,7 @@ const config = createConfig({
     }),
   ],
   transports: {
-    [sepolia.id]: http(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL),
+    [sepolia.id]: http(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp"),
   },
 });
 

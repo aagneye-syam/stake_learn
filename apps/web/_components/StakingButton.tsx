@@ -24,7 +24,7 @@ export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) 
   } = useStaking(courseId);
 
   // Fallback stake amount if contract doesn't have it set
-  const fallbackStakeAmount = "0.00001"; // 0.0001 ETH for testing
+  const fallbackStakeAmount = "0.00001"; // 0.00001 ETH for testing
   const effectiveStakeAmount = stakeAmount || BigInt(Math.floor(parseFloat(fallbackStakeAmount) * 1e18));
 
   const { hasStaked, hasCompleted, refetch } = useUserStake(address, courseId);
@@ -76,12 +76,12 @@ export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) 
       return;
     }
 
-    // Check if we have a valid stake amount
-    if (!stakeAmount && !effectiveStakeAmount) {
-      setStakeStatus("❌ Unable to determine stake amount. Please try again.");
-      setTimeout(() => setStakeStatus(""), 3000);
-      return;
-    }
+    // We'll use the fallback amount if contract amount is not available
+    console.log('StakingButton - stake amount check:', {
+      stakeAmount,
+      effectiveStakeAmount,
+      hasStakeAmount: !!stakeAmount
+    });
 
     setStakeStatus("🔄 Preparing stake transaction...");
 

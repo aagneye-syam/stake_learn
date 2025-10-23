@@ -11,6 +11,7 @@ import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { TestnetInstructions } from "@/components/TestnetInstructions";
 import { NoSSR } from "@/components/NoSSR";
 import { StakingButton } from "@/components/StakingButton";
+import { ContractTest } from "@/components/ContractTest";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -454,6 +455,13 @@ export default function CourseDetailPage() {
               <div className="mb-4">
                 <NoSSR>
                   <NetworkSwitcher />
+                </NoSSR>
+              </div>
+
+              {/* Contract Test - Temporary Debug */}
+              <div className="mb-4">
+                <NoSSR>
+                  <ContractTest />
                 </NoSSR>
               </div>
 

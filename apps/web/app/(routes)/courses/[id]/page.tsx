@@ -11,6 +11,9 @@ import { TestnetInstructions } from "@/components/TestnetInstructions";
 import { NoSSR } from "@/components/NoSSR";
 import { StakingButton } from "@/components/StakingButton";
 import { ContractTest } from "@/components/ContractTest";
+import { ProgressRewards } from "@/components/ProgressRewards";
+import { DailyStreak } from "@/components/DailyStreak";
+import { CourseCompletion } from "@/components/CourseCompletion";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -606,6 +609,48 @@ export default function CourseDetailPage() {
                 </p>
               </div>
 
+            </div>
+
+            {/* Progress Rewards Section */}
+            {hasStaked && (
+              <div className="bg-white rounded-3xl p-6 shadow-2xl">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">🎯 Earn DataCoins</h3>
+                <NoSSR>
+                  <ProgressRewards 
+                    courseId={numericCourseId}
+                    courseProgress={Math.floor(Math.random() * 100)} // Mock progress for demo
+                    onRewardEarned={(reward) => {
+                      console.log('Reward earned:', reward);
+                    }}
+                  />
+                </NoSSR>
+              </div>
+            )}
+
+            {/* Course Completion Section for Staked Users */}
+            {hasStaked && !hasCompleted && (
+              <div className="bg-white rounded-3xl p-6 shadow-2xl">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">🎓 Complete Course</h3>
+                <NoSSR>
+                  <CourseCompletion 
+                    courseId={numericCourseId}
+                    courseName={course.title}
+                    courseDifficulty={course.difficulty}
+                    onCompletion={(result) => {
+                      console.log('Course completed:', result);
+                      // You could trigger a page refresh or update state here
+                    }}
+                  />
+                </NoSSR>
+              </div>
+            )}
+
+            {/* Daily Streak Section */}
+            <div className="bg-white rounded-3xl p-6 shadow-2xl">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">🔥 Daily Streak</h3>
+              <NoSSR>
+                <DailyStreak />
+              </NoSSR>
             </div>
           </div>
         </div>

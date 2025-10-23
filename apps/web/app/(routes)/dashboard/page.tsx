@@ -7,10 +7,12 @@ import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
 import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 import { useDataCoinBalance } from "@/hooks/useDataCoin";
+import { useProgress } from "@/hooks/useProgress";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { NoSSR } from "@/components/NoSSR";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { useRouter } from "next/navigation";
+import { DailyStreak } from "@/components/DailyStreak";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -708,6 +710,58 @@ export default function DashboardPage() {
         {/* Activity Card */}
         <div className="lg:col-span-1">
           <ActivityCard activities={activities} />
+        </div>
+      </div>
+
+      {/* DataCoin Rewards Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Daily Streak */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🔥 Daily Streak</h3>
+          <NoSSR>
+            <DailyStreak />
+          </NoSSR>
+        </div>
+
+        {/* Progress Rewards */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🎯 Progress Rewards</h3>
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Earn DataCoins by Learning</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Daily Login</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">+5 DataCoins</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Course Progress (25%)</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">+3 DataCoins</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Course Milestone</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">+8 DataCoins</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">7-Day Streak</span>
+                  <span className="text-orange-600 dark:text-orange-400 font-medium">+15 DataCoins</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">30-Day Streak</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">+50 DataCoins</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <button 
+                onClick={() => router.push('/courses')}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
+              >
+                Start Learning & Earning
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

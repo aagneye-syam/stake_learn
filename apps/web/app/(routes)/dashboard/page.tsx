@@ -8,11 +8,13 @@ import LearningTaskCard from "@/components/LearningTaskCard";
 import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 import { useDataCoinBalance } from "@/hooks/useDataCoin";
 import { useProgress } from "@/hooks/useProgress";
+import { useModuleProgress } from "@/hooks/useModuleProgress";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { NoSSR } from "@/components/NoSSR";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { useRouter } from "next/navigation";
 import { DailyStreak } from "@/components/DailyStreak";
+import { ProgressBar } from "@/components/ProgressBar";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -35,6 +37,9 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
   const numericCourseId = parseInt(task.id);
   const { stakeAmount } = useStaking(numericCourseId);
   const { hasStaked, hasCompleted } = useUserStake(userAddress, numericCourseId);
+  
+  // Get course progress for staked courses
+  const { courseProgress } = useModuleProgress(numericCourseId, task.modules?.length || 4);
 
   // Format stake amount for display
   const fallbackAmount = "0.0001";
@@ -134,6 +139,19 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
             <span className="text-sm font-medium">{statusInfo.text}</span>
           </div>
         </div>
+
+        {/* Progress Bar for Staked Courses */}
+        {hasStaked && courseProgress && (
+          <div className="mb-4">
+            <ProgressBar 
+              progress={courseProgress.progressPercentage}
+              total={courseProgress.totalModules}
+              completed={courseProgress.completedModules}
+              size="sm"
+              animated={true}
+            />
+          </div>
+        )}
 
         {/* Action Button */}
         <button

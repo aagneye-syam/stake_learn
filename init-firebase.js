@@ -1,0 +1,319 @@
+/**
+ * Simple script to initialize Firebase with network configurations
+ * Run with: node init-firebase.js
+ */
+
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin SDK
+// You'll need to download your service account key from Firebase Console
+const serviceAccount = require('./firebase-service-account.json'); // Download this from Firebase
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  projectId: 'your-project-id' // Replace with your project ID
+});
+
+const db = admin.firestore();
+
+// Network configurations
+const networks = [
+  // Ethereum Networks
+  {
+    id: "1",
+    chainId: 1,
+    chainName: "Ethereum",
+    rpcUrl: "https://eth-mainnet.g.alchemy.com/v2/",
+    backupRpcUrls: [
+      "https://mainnet.infura.io/v3/",
+      "https://ethereum.publicnode.com"
+    ],
+    blockExplorer: "https://etherscan.io",
+    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+    isTestnet: false,
+    isActive: true,
+    priority: 1,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  {
+    id: "11155111",
+    chainId: 11155111,
+    chainName: "Ethereum Sepolia",
+    rpcUrl: "https://eth-sepolia.g.alchemy.com/v2/",
+    backupRpcUrls: [
+      "https://sepolia.infura.io/v3/",
+      "https://rpc.sepolia.org"
+    ],
+    blockExplorer: "https://sepolia.etherscan.io",
+    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+    isTestnet: true,
+    isActive: true,
+    priority: 2,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // Base Networks
+  {
+    id: "8453",
+    chainId: 8453,
+    chainName: "Base",
+    rpcUrl: "https://mainnet.base.org",
+    backupRpcUrls: [
+      "https://base-mainnet.g.alchemy.com/v2/",
+      "https://base.publicnode.com"
+    ],
+    blockExplorer: "https://basescan.org",
+    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+    isTestnet: false,
+    isActive: true,
+    priority: 3,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  {
+    id: "84532",
+    chainId: 84532,
+    chainName: "Base Sepolia",
+    rpcUrl: "https://sepolia.base.org",
+    backupRpcUrls: [
+      "https://base-sepolia.g.alchemy.com/v2/"
+    ],
+    blockExplorer: "https://sepolia.basescan.org",
+    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+    isTestnet: true,
+    isActive: true,
+    priority: 4,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // Arbitrum Networks
+  {
+    id: "42161",
+    chainId: 42161,
+    chainName: "Arbitrum One",
+    rpcUrl: "https://arb1.arbitrum.io/rpc",
+    backupRpcUrls: [
+      "https://arbitrum-mainnet.g.alchemy.com/v2/",
+      "https://arbitrum.publicnode.com"
+    ],
+    blockExplorer: "https://arbiscan.io",
+    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+    isTestnet: false,
+    isActive: true,
+    priority: 5,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  {
+    id: "421614",
+    chainId: 421614,
+    chainName: "Arbitrum Sepolia",
+    rpcUrl: "https://sepolia-rollup.arbitrum.io/rpc",
+    backupRpcUrls: [
+      "https://arbitrum-sepolia.g.alchemy.com/v2/"
+    ],
+    blockExplorer: "https://sepolia.arbiscan.io",
+    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+    isTestnet: true,
+    isActive: true,
+    priority: 6,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // BSC Networks
+  {
+    id: "56",
+    chainId: 56,
+    chainName: "BNB Smart Chain",
+    rpcUrl: "https://bsc-dataseed1.binance.org",
+    backupRpcUrls: [
+      "https://bsc-dataseed2.binance.org",
+      "https://bsc-dataseed3.binance.org"
+    ],
+    blockExplorer: "https://bscscan.com",
+    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+    isTestnet: false,
+    isActive: true,
+    priority: 7,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  {
+    id: "97",
+    chainId: 97,
+    chainName: "BNB Smart Chain Testnet",
+    rpcUrl: "https://data-seed-prebsc-1-s1.binance.org:8545",
+    backupRpcUrls: [
+      "https://data-seed-prebsc-2-s1.binance.org:8545"
+    ],
+    blockExplorer: "https://testnet.bscscan.com",
+    nativeCurrency: { name: "tBNB", symbol: "tBNB", decimals: 18 },
+    isTestnet: true,
+    isActive: true,
+    priority: 8,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // Avalanche Networks
+  {
+    id: "43114",
+    chainId: 43114,
+    chainName: "Avalanche C-Chain",
+    rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
+    backupRpcUrls: [
+      "https://avalanche-mainnet.g.alchemy.com/v2/",
+      "https://avalanche.publicnode.com"
+    ],
+    blockExplorer: "https://snowtrace.io",
+    nativeCurrency: { name: "AVAX", symbol: "AVAX", decimals: 18 },
+    isTestnet: false,
+    isActive: true,
+    priority: 9,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  {
+    id: "43113",
+    chainId: 43113,
+    chainName: "Avalanche Fuji",
+    rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
+    backupRpcUrls: [
+      "https://avalanche-fuji.g.alchemy.com/v2/"
+    ],
+    blockExplorer: "https://testnet.snowtrace.io",
+    nativeCurrency: { name: "AVAX", symbol: "AVAX", decimals: 18 },
+    isTestnet: true,
+    isActive: true,
+    priority: 10,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // Polygon Networks
+  {
+    id: "80001",
+    chainId: 80001,
+    chainName: "Polygon Mumbai",
+    rpcUrl: "https://polygon-mumbai.g.alchemy.com/v2/",
+    backupRpcUrls: [
+      "https://rpc-mumbai.maticvigil.com",
+      "https://polygon-mumbai.infura.io/v3/"
+    ],
+    blockExplorer: "https://mumbai.polygonscan.com",
+    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+    isTestnet: true,
+    isActive: true,
+    priority: 11,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // Filecoin Networks
+  {
+    id: "314",
+    chainId: 314,
+    chainName: "Filecoin Mainnet",
+    rpcUrl: "https://api.node.glif.io/rpc/v1",
+    backupRpcUrls: [
+      "https://api.node.glif.io/rpc/v0"
+    ],
+    blockExplorer: "https://filscan.io",
+    nativeCurrency: { name: "FIL", symbol: "FIL", decimals: 18 },
+    isTestnet: false,
+    isActive: true,
+    priority: 12,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  {
+    id: "314159",
+    chainId: 314159,
+    chainName: "Filecoin Calibration",
+    rpcUrl: "https://api.calibration.node.glif.io/rpc/v1",
+    backupRpcUrls: [
+      "https://api.calibration.node.glif.io/rpc/v0"
+    ],
+    blockExplorer: "https://calibration.filscan.io",
+    nativeCurrency: { name: "tFIL", symbol: "tFIL", decimals: 18 },
+    isTestnet: true,
+    isActive: true,
+    priority: 13,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // Worldchain
+  {
+    id: "480",
+    chainId: 480,
+    chainName: "Worldchain Testnet",
+    rpcUrl: "https://worldchain-testnet.g.alchemy.com/v2/",
+    backupRpcUrls: [
+      "https://worldchain-testnet.blockscout.com"
+    ],
+    blockExplorer: "https://worldchain-testnet.blockscout.com",
+    nativeCurrency: { name: "WLD", symbol: "WLD", decimals: 18 },
+    isTestnet: true,
+    isActive: true,
+    priority: 14,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // Yellow Network
+  {
+    id: "23011913",
+    chainId: 23011913,
+    chainName: "Yellow Network",
+    rpcUrl: "https://rpc.yellow.org",
+    backupRpcUrls: [],
+    blockExplorer: "https://explorer.yellow.org",
+    nativeCurrency: { name: "YELLOW", symbol: "YELLOW", decimals: 18 },
+    isTestnet: false,
+    isActive: true,
+    priority: 15,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  },
+  // 0G Network
+  {
+    id: "2043",
+    chainId: 2043,
+    chainName: "0G Network",
+    rpcUrl: "https://rpc.0g.ai",
+    backupRpcUrls: [],
+    blockExplorer: "https://explorer.0g.ai",
+    nativeCurrency: { name: "0G", symbol: "0G", decimals: 18 },
+    isTestnet: false,
+    isActive: true,
+    priority: 16,
+    lastUpdated: Date.now(),
+    createdBy: "admin"
+  }
+];
+
+async function initializeNetworks() {
+  try {
+    console.log('🔥 Initializing Firebase with network configurations...\n');
+    
+    for (const network of networks) {
+      await db.collection('networkRPCs').doc(network.id).set(network);
+      console.log(`✅ Added ${network.chainName} (Chain ID: ${network.chainId})`);
+    }
+    
+    console.log('\n🎉 Successfully initialized Firebase!');
+    console.log(`📊 Total networks added: ${networks.length}`);
+    
+    const testnets = networks.filter(n => n.isTestnet).length;
+    const mainnets = networks.filter(n => !n.isTestnet).length;
+    
+    console.log('\n📈 Summary:');
+    console.log(`   • Mainnets: ${mainnets}`);
+    console.log(`   • Testnets: ${testnets}`);
+    console.log(`   • Total: ${networks.length}`);
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  }
+}
+
+initializeNetworks();

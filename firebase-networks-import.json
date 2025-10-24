@@ -3,7 +3,7 @@
     "1": {
       "chainId": 1,
       "chainName": "Ethereum",
-      "rpcUrl": "https://eth-mainnet.g.alchemy.com/v2/",
+      "rpcUrl": "https://eth-mainnet.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
       "backupRpcUrls": [
         "https://mainnet.infura.io/v3/",
         "https://ethereum.publicnode.com"
@@ -23,7 +23,7 @@
     "11155111": {
       "chainId": 11155111,
       "chainName": "Ethereum Sepolia",
-      "rpcUrl": "https://eth-sepolia.g.alchemy.com/v2/",
+      "rpcUrl": "https://eth-sepolia.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
       "backupRpcUrls": [
         "https://sepolia.infura.io/v3/",
         "https://rpc.sepolia.org"
@@ -82,9 +82,9 @@
     "42161": {
       "chainId": 42161,
       "chainName": "Arbitrum One",
-      "rpcUrl": "https://arb1.arbitrum.io/rpc",
+      "rpcUrl": "https://arb-mainnet.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
       "backupRpcUrls": [
-        "https://arbitrum-mainnet.g.alchemy.com/v2/",
+        "https://arb1.arbitrum.io/rpc",
         "https://arbitrum.publicnode.com"
       ],
       "blockExplorer": "https://arbiscan.io",
@@ -102,9 +102,9 @@
     "421614": {
       "chainId": 421614,
       "chainName": "Arbitrum Sepolia",
-      "rpcUrl": "https://sepolia-rollup.arbitrum.io/rpc",
+      "rpcUrl": "https://arb-sepolia.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
       "backupRpcUrls": [
-        "https://arbitrum-sepolia.g.alchemy.com/v2/"
+        "https://sepolia-rollup.arbitrum.io/rpc"
       ],
       "blockExplorer": "https://sepolia.arbiscan.io",
       "nativeCurrency": {
@@ -257,7 +257,7 @@
     "480": {
       "chainId": 480,
       "chainName": "Worldchain Testnet",
-      "rpcUrl": "https://worldchain-testnet.g.alchemy.com/v2/",
+      "rpcUrl": "https://worldchain-sepolia.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
       "backupRpcUrls": [
         "https://worldchain-testnet.blockscout.com"
       ],
@@ -270,6 +270,25 @@
       "isTestnet": true,
       "isActive": true,
       "priority": 14,
+      "lastUpdated": 1703123456789,
+      "createdBy": "admin"
+    },
+    "4801": {
+      "chainId": 4801,
+      "chainName": "Worldchain Mainnet",
+      "rpcUrl": "https://worldchain-mainnet.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
+      "backupRpcUrls": [
+        "https://worldchain-mainnet.blockscout.com"
+      ],
+      "blockExplorer": "https://worldchain-mainnet.blockscout.com",
+      "nativeCurrency": {
+        "name": "WLD",
+        "symbol": "WLD",
+        "decimals": 18
+      },
+      "isTestnet": false,
+      "isActive": true,
+      "priority": 17,
       "lastUpdated": 1703123456789,
       "createdBy": "admin"
     },

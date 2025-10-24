@@ -1,22 +1,18 @@
 /**
  * Simple script to initialize Firebase with network configurations
- * Run with: node init-firebase.js
+ * Run with: node init-firebase-simple.js
  */
 
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin SDK
-// You'll need to download your service account key from Firebase Console
-const serviceAccount = require('./firebase-service-account.json'); // Download this from Firebase
-
+// Initialize Firebase Admin SDK with your project configuration
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: 'your-project-id' // Replace with your project ID
+  projectId: 'ethonline-57983'
 });
 
 const db = admin.firestore();
 
-// Network configurations
+// Network configurations with your Alchemy API keys
 const networks = [
   // Ethereum Networks
   {
@@ -60,7 +56,7 @@ const networks = [
     chainName: "Base",
     rpcUrl: "https://mainnet.base.org",
     backupRpcUrls: [
-      "https://base-mainnet.g.alchemy.com/v2/",
+      "https://base-mainnet.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
       "https://base.publicnode.com"
     ],
     blockExplorer: "https://basescan.org",
@@ -77,7 +73,7 @@ const networks = [
     chainName: "Base Sepolia",
     rpcUrl: "https://sepolia.base.org",
     backupRpcUrls: [
-      "https://base-sepolia.g.alchemy.com/v2/"
+      "https://base-sepolia.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp"
     ],
     blockExplorer: "https://sepolia.basescan.org",
     nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
@@ -162,7 +158,7 @@ const networks = [
     chainName: "Avalanche C-Chain",
     rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
     backupRpcUrls: [
-      "https://avalanche-mainnet.g.alchemy.com/v2/",
+      "https://avalanche-mainnet.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
       "https://avalanche.publicnode.com"
     ],
     blockExplorer: "https://snowtrace.io",
@@ -179,7 +175,7 @@ const networks = [
     chainName: "Avalanche Fuji",
     rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
     backupRpcUrls: [
-      "https://avalanche-fuji.g.alchemy.com/v2/"
+      "https://avalanche-fuji.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp"
     ],
     blockExplorer: "https://testnet.snowtrace.io",
     nativeCurrency: { name: "AVAX", symbol: "AVAX", decimals: 18 },
@@ -194,7 +190,7 @@ const networks = [
     id: "80001",
     chainId: 80001,
     chainName: "Polygon Mumbai",
-    rpcUrl: "https://polygon-mumbai.g.alchemy.com/v2/",
+    rpcUrl: "https://polygon-mumbai.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp",
     backupRpcUrls: [
       "https://rpc-mumbai.maticvigil.com",
       "https://polygon-mumbai.infura.io/v3/"

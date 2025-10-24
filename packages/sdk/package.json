@@ -1,0 +1,11 @@
+{
+  "name": "proof-of-contribution-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "viem": "^2.38.3",
+    "zod": "^3.23.8"
+  }
+}

@@ -1,0 +1,46 @@
+# Node
+node_modules/
+*.log
+
+# Env
+.env
+.env.*
+!.env.example
+.env.local
+
+# Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Build outputs
+/dist/
+/build/
+/out/
+
+# Next.js
+.next/
+.vercel/
+
+# Hardhat
+packages/contracts/artifacts/
+packages/contracts/cache/
+coverage/
+coverage.json
+
+# Python
+__pycache__/
+*.pyc
+apps/ai-agent/.venv/
+apps/ai-agent/.env
+
+apps/web/.next/
+apps/web/node_modules/
+
+# SDK build
+packages/sdk/dist/
+
+# Locks (optional)
+# package-lock.json
+# pnpm-lock.yaml
+# yarn.lock

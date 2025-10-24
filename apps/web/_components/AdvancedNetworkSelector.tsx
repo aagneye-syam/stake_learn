@@ -3,7 +3,11 @@
 import { useAccount, useSwitchChain, useChainId } from "wagmi";
 import { NETWORKS } from "../config/contracts";
 import { useState, useEffect } from "react";
+<<<<<<< HEAD
 // Icons replaced with inline SVG
+=======
+import { ChevronDownIcon, CheckIcon } from "@heroicons/react/24/outline";
+>>>>>>> 630355a1f4fd4949b7fc0c75225be1f6bd9a7c5c
 
 interface AdvancedNetworkSelectorProps {
   className?: string;
@@ -58,9 +62,13 @@ export function AdvancedNetworkSelector({
             </div>
           </div>
         </div>
+<<<<<<< HEAD
         <svg className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
+=======
+        <ChevronDownIcon className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+>>>>>>> 630355a1f4fd4949b7fc0c75225be1f6bd9a7c5c
       </button>
 
       {/* Network Dropdown */}
@@ -92,9 +100,13 @@ export function AdvancedNetworkSelector({
                       </div>
                     </div>
                     {network.chainId === chainId && (
+<<<<<<< HEAD
                       <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
+=======
+                      <CheckIcon className="w-4 h-4 text-green-600" />
+>>>>>>> 630355a1f4fd4949b7fc0c75225be1f6bd9a7c5c
                     )}
                   </button>
                 ))}
@@ -126,9 +138,13 @@ export function AdvancedNetworkSelector({
                       </div>
                     </div>
                     {network.chainId === chainId && (
+<<<<<<< HEAD
                       <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
+=======
+                      <CheckIcon className="w-4 h-4 text-green-600" />
+>>>>>>> 630355a1f4fd4949b7fc0c75225be1f6bd9a7c5c
                     )}
                   </button>
                 ))}

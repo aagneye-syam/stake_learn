@@ -6,7 +6,7 @@ import { CONTRACTS } from '@/config/contracts';
 import { sepolia } from 'wagmi/chains';
 
 export function ContractTest() {
-  const contractAddress = CONTRACTS.STAKING_MANAGER as `0x${string}`;
+  const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
 
   const { data: stakeAmount, error: stakeError, isLoading } = useReadContract({
     address: contractAddress,

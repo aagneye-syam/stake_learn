@@ -7,7 +7,7 @@ import { sepolia } from 'wagmi/chains';
  * Hook to interact with StakingManager contract
  */
 export function useStaking(courseId: number) {
-  const contractAddress = CONTRACTS.STAKING_MANAGER as `0x${string}`;
+  const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
   const { address: account } = useAccount();
 
   // Read contract state
@@ -103,7 +103,7 @@ export function useStaking(courseId: number) {
  * Hook to check user's stake status
  */
 export function useUserStake(userAddress: `0x${string}` | undefined, courseId: number) {
-  const contractAddress = CONTRACTS.STAKING_MANAGER as `0x${string}`;
+  const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
 
   // Only provide args if userAddress is present.
   const enabled = !!userAddress;

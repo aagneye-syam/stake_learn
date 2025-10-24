@@ -4,6 +4,7 @@
  */
 
 import { rpcService, NetworkRPC } from '../lib/rpcService';
+import { contractService, ContractAddresses } from '../lib/contractService';
 
 // Network-specific contract addresses (these can also be stored in Firebase)
 export const CONTRACTS = {
@@ -124,6 +125,42 @@ export async function getAllNetworkConfigs(): Promise<NetworkRPC[]> {
  */
 export async function getBestRPCUrl(chainId: number): Promise<string | null> {
   return await rpcService.getBestRPCUrl(chainId);
+}
+
+/**
+ * Get contract addresses for a specific network
+ */
+export async function getContractAddresses(chainId: number): Promise<ContractAddresses | null> {
+  return await contractService.getContractAddresses(chainId);
+}
+
+/**
+ * Get all contract addresses
+ */
+export async function getAllContractAddresses(): Promise<ContractAddresses[]> {
+  return await contractService.getAllContractAddresses();
+}
+
+/**
+ * Get contract addresses for a specific network (simplified)
+ */
+export async function getContractsForNetwork(chainId: number): Promise<{
+  stakingManager: string;
+  soulbound: string;
+  reputation: string;
+  dataCoin?: string;
+  isActive: boolean;
+} | null> {
+  const addresses = await contractService.getContractAddresses(chainId);
+  if (!addresses) return null;
+
+  return {
+    stakingManager: addresses.stakingManager,
+    soulbound: addresses.soulbound,
+    reputation: addresses.reputation,
+    dataCoin: addresses.dataCoin,
+    isActive: addresses.isActive
+  };
 }
 
 /**

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useAllNetworkRPCs } from '../../../hooks/useNetworkRPC';
-import { rpcService, NetworkRPC } from '../../../lib/rpcService';
+import { useAllNetworkRPCs } from '../../../../hooks/useNetworkRPC';
+import { rpcService, NetworkRPC } from '../../../../lib/rpcService';
 
 export default function NetworkAdminPage() {
   const { networkRPCs, loading, error, refetch } = useAllNetworkRPCs();

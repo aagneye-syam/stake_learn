@@ -3,7 +3,7 @@
 import { useAccount, useSwitchChain, useChainId } from "wagmi";
 import { NETWORKS } from "../config/contracts";
 import { useState, useEffect } from "react";
-import { ChevronDownIcon, CheckIcon } from "@heroicons/react/24/outline";
+// Icons replaced with inline SVG
 
 interface AdvancedNetworkSelectorProps {
   className?: string;
@@ -58,7 +58,9 @@ export function AdvancedNetworkSelector({
             </div>
           </div>
         </div>
-        <ChevronDownIcon className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <svg className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
 
       {/* Network Dropdown */}
@@ -90,7 +92,9 @@ export function AdvancedNetworkSelector({
                       </div>
                     </div>
                     {network.chainId === chainId && (
-                      <CheckIcon className="w-4 h-4 text-green-600" />
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
                     )}
                   </button>
                 ))}
@@ -122,7 +126,9 @@ export function AdvancedNetworkSelector({
                       </div>
                     </div>
                     {network.chainId === chainId && (
-                      <CheckIcon className="w-4 h-4 text-green-600" />
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
                     )}
                   </button>
                 ))}

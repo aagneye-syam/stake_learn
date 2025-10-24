@@ -41,6 +41,11 @@ class RPCService {
   private cache: Map<number, NetworkRPC> = new Map();
   private cacheExpiry: Map<number, number> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private useFirebase: boolean;
+
+  constructor() {
+    this.useFirebase = process.env.NEXT_PUBLIC_USE_FIREBASE_RPC === 'true';
+  }
 
   /**
    * Get RPC configuration for a specific network
@@ -54,6 +59,17 @@ class RPCService {
       }
     }
 
+    if (this.useFirebase) {
+      return this.getNetworkRPCFromFirebase(chainId);
+    } else {
+      return this.getNetworkRPCFromEnv(chainId);
+    }
+  }
+
+  /**
+   * Get RPC configuration from Firebase
+   */
+  private async getNetworkRPCFromFirebase(chainId: number): Promise<NetworkRPC | null> {
     try {
       const docRef = doc(db, 'networkRPCs', chainId.toString());
       const docSnap = await getDoc(docRef);
@@ -65,9 +81,22 @@ class RPCService {
         return data;
       }
     } catch (error) {
-      console.error('Error fetching RPC config:', error);
+      console.error('Error fetching RPC config from Firebase:', error);
     }
 
+    return null;
+  }
+
+  /**
+   * Get RPC configuration from environment variables
+   */
+  private getNetworkRPCFromEnv(chainId: number): NetworkRPC | null {
+    const networkConfig = this.getNetworkConfigFromEnv(chainId);
+    if (networkConfig) {
+      this.cache.set(chainId, networkConfig);
+      this.cacheExpiry.set(chainId, Date.now() + this.CACHE_DURATION);
+      return networkConfig;
+    }
     return null;
   }
 
@@ -75,6 +104,17 @@ class RPCService {
    * Get all active network RPCs
    */
   async getAllNetworkRPCs(): Promise<NetworkRPC[]> {
+    if (this.useFirebase) {
+      return this.getAllNetworkRPCsFromFirebase();
+    } else {
+      return this.getAllNetworkRPCsFromEnv();
+    }
+  }
+
+  /**
+   * Get all network RPCs from Firebase
+   */
+  private async getAllNetworkRPCsFromFirebase(): Promise<NetworkRPC[]> {
     try {
       const q = query(
         collection(db, 'networkRPCs'),
@@ -94,38 +134,281 @@ class RPCService {
 
       return networks;
     } catch (error) {
-      console.error('Error fetching all RPC configs:', error);
+      console.error('Error fetching all RPC configs from Firebase:', error);
       return [];
     }
+  }
+
+  /**
+   * Get all network RPCs from environment variables
+   */
+  private getAllNetworkRPCsFromEnv(): NetworkRPC[] {
+    const networks: NetworkRPC[] = [];
+    
+    // Define all supported chain IDs
+    const supportedChainIds = [1, 11155111, 8453, 84532, 42161, 421614, 56, 97, 43114, 43113, 80001, 314, 314159, 480, 4801, 23011913, 2043];
+    
+    for (const chainId of supportedChainIds) {
+      const networkConfig = this.getNetworkConfigFromEnv(chainId);
+      if (networkConfig && networkConfig.isActive) {
+        networks.push(networkConfig);
+        this.cache.set(chainId, networkConfig);
+        this.cacheExpiry.set(chainId, Date.now() + this.CACHE_DURATION);
+      }
+    }
+
+    return networks.sort((a, b) => a.priority - b.priority);
+  }
+
+  /**
+   * Get network configuration from environment variables
+   */
+  private getNetworkConfigFromEnv(chainId: number): NetworkRPC | null {
+    const envVars = this.getEnvVarsForChain(chainId);
+    if (!envVars) return null;
+
+    const backupRpcUrls = envVars.backupRpcUrls ? envVars.backupRpcUrls.split(',').map(url => url.trim()) : [];
+
+    return {
+      id: chainId.toString(),
+      chainId,
+      chainName: envVars.chainName,
+      rpcUrl: envVars.rpcUrl,
+      backupRpcUrls,
+      blockExplorer: envVars.blockExplorer,
+      nativeCurrency: envVars.nativeCurrency,
+      isTestnet: envVars.isTestnet,
+      isActive: true,
+      priority: envVars.priority,
+      lastUpdated: Date.now(),
+      createdBy: 'env'
+    };
+  }
+
+  /**
+   * Get environment variables for a specific chain
+   */
+  private getEnvVarsForChain(chainId: number): any {
+    const chainConfigs: { [key: number]: any } = {
+      // Ethereum Mainnet
+      1: {
+        rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_ETHEREUM_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_ETHEREUM_BLOCK_EXPLORER,
+        chainName: 'Ethereum',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        isTestnet: false,
+        priority: 1
+      },
+      // Ethereum Sepolia
+      11155111: {
+        rpcUrl: process.env.NEXT_PUBLIC_ETHEREUM_SEPOLIA_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_ETHEREUM_SEPOLIA_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_ETHEREUM_SEPOLIA_BLOCK_EXPLORER,
+        chainName: 'Ethereum Sepolia',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        isTestnet: true,
+        priority: 2
+      },
+      // Base Mainnet
+      8453: {
+        rpcUrl: process.env.NEXT_PUBLIC_BASE_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_BASE_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_BASE_BLOCK_EXPLORER,
+        chainName: 'Base',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        isTestnet: false,
+        priority: 3
+      },
+      // Base Sepolia
+      84532: {
+        rpcUrl: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_BASE_SEPOLIA_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_BASE_SEPOLIA_BLOCK_EXPLORER,
+        chainName: 'Base Sepolia',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        isTestnet: true,
+        priority: 4
+      },
+      // Arbitrum One
+      42161: {
+        rpcUrl: process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_ARBITRUM_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_ARBITRUM_BLOCK_EXPLORER,
+        chainName: 'Arbitrum One',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        isTestnet: false,
+        priority: 5
+      },
+      // Arbitrum Sepolia
+      421614: {
+        rpcUrl: process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_BLOCK_EXPLORER,
+        chainName: 'Arbitrum Sepolia',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        isTestnet: true,
+        priority: 6
+      },
+      // BSC Mainnet
+      56: {
+        rpcUrl: process.env.NEXT_PUBLIC_BSC_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_BSC_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_BSC_BLOCK_EXPLORER,
+        chainName: 'BNB Smart Chain',
+        nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+        isTestnet: false,
+        priority: 7
+      },
+      // BSC Testnet
+      97: {
+        rpcUrl: process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_BSC_TESTNET_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_BSC_TESTNET_BLOCK_EXPLORER,
+        chainName: 'BNB Smart Chain Testnet',
+        nativeCurrency: { name: 'tBNB', symbol: 'tBNB', decimals: 18 },
+        isTestnet: true,
+        priority: 8
+      },
+      // Avalanche C-Chain
+      43114: {
+        rpcUrl: process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_AVALANCHE_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_AVALANCHE_BLOCK_EXPLORER,
+        chainName: 'Avalanche C-Chain',
+        nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+        isTestnet: false,
+        priority: 9
+      },
+      // Avalanche Fuji
+      43113: {
+        rpcUrl: process.env.NEXT_PUBLIC_AVALANCHE_FUJI_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_AVALANCHE_FUJI_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_AVALANCHE_FUJI_BLOCK_EXPLORER,
+        chainName: 'Avalanche Fuji',
+        nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+        isTestnet: true,
+        priority: 10
+      },
+      // Polygon Mumbai
+      80001: {
+        rpcUrl: process.env.NEXT_PUBLIC_POLYGON_MUMBAI_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_POLYGON_MUMBAI_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_POLYGON_MUMBAI_BLOCK_EXPLORER,
+        chainName: 'Polygon Mumbai',
+        nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+        isTestnet: true,
+        priority: 11
+      },
+      // Filecoin Mainnet
+      314: {
+        rpcUrl: process.env.NEXT_PUBLIC_FILECOIN_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_FILECOIN_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_FILECOIN_BLOCK_EXPLORER,
+        chainName: 'Filecoin Mainnet',
+        nativeCurrency: { name: 'FIL', symbol: 'FIL', decimals: 18 },
+        isTestnet: false,
+        priority: 12
+      },
+      // Filecoin Calibration
+      314159: {
+        rpcUrl: process.env.NEXT_PUBLIC_FILECOIN_CALIBRATION_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_FILECOIN_CALIBRATION_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_FILECOIN_CALIBRATION_BLOCK_EXPLORER,
+        chainName: 'Filecoin Calibration',
+        nativeCurrency: { name: 'tFIL', symbol: 'tFIL', decimals: 18 },
+        isTestnet: true,
+        priority: 13
+      },
+      // Worldchain Testnet
+      480: {
+        rpcUrl: process.env.NEXT_PUBLIC_WORLDCHAIN_TESTNET_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_WORLDCHAIN_TESTNET_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_WORLDCHAIN_TESTNET_BLOCK_EXPLORER,
+        chainName: 'Worldchain Testnet',
+        nativeCurrency: { name: 'WLD', symbol: 'WLD', decimals: 18 },
+        isTestnet: true,
+        priority: 14
+      },
+      // Worldchain Mainnet
+      4801: {
+        rpcUrl: process.env.NEXT_PUBLIC_WORLDCHAIN_MAINNET_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_WORLDCHAIN_MAINNET_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_WORLDCHAIN_MAINNET_BLOCK_EXPLORER,
+        chainName: 'Worldchain Mainnet',
+        nativeCurrency: { name: 'WLD', symbol: 'WLD', decimals: 18 },
+        isTestnet: false,
+        priority: 17
+      },
+      // Yellow Network
+      23011913: {
+        rpcUrl: process.env.NEXT_PUBLIC_YELLOW_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_YELLOW_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_YELLOW_BLOCK_EXPLORER,
+        chainName: 'Yellow Network',
+        nativeCurrency: { name: 'YELLOW', symbol: 'YELLOW', decimals: 18 },
+        isTestnet: false,
+        priority: 15
+      },
+      // 0G Network
+      2043: {
+        rpcUrl: process.env.NEXT_PUBLIC_0G_RPC_URL,
+        backupRpcUrls: process.env.NEXT_PUBLIC_0G_BACKUP_RPC_URLS,
+        blockExplorer: process.env.NEXT_PUBLIC_0G_BLOCK_EXPLORER,
+        chainName: '0G Network',
+        nativeCurrency: { name: '0G', symbol: '0G', decimals: 18 },
+        isTestnet: false,
+        priority: 16
+      }
+    };
+
+    const config = chainConfigs[chainId];
+    if (!config || !config.rpcUrl) return null;
+
+    return config;
   }
 
   /**
    * Subscribe to real-time updates for network RPCs
    */
   subscribeToNetworkRPCs(callback: (networks: NetworkRPC[]) => void): Unsubscribe {
-    const q = query(
-      collection(db, 'networkRPCs'),
-      orderBy('priority', 'asc')
-    );
+    if (this.useFirebase) {
+      const q = query(
+        collection(db, 'networkRPCs'),
+        orderBy('priority', 'asc')
+      );
 
-    return onSnapshot(q, (querySnapshot) => {
-      const networks: NetworkRPC[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data() as NetworkRPC;
-        if (data.isActive) {
-          networks.push(data);
-          this.cache.set(data.chainId, data);
-          this.cacheExpiry.set(data.chainId, Date.now() + this.CACHE_DURATION);
-        }
+      return onSnapshot(q, (querySnapshot) => {
+        const networks: NetworkRPC[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data() as NetworkRPC;
+          if (data.isActive) {
+            networks.push(data);
+            this.cache.set(data.chainId, data);
+            this.cacheExpiry.set(data.chainId, Date.now() + this.CACHE_DURATION);
+          }
+        });
+        callback(networks);
       });
+    } else {
+      // For environment mode, return a no-op unsubscribe function
+      // and immediately call the callback with environment data
+      const networks = this.getAllNetworkRPCsFromEnv();
       callback(networks);
-    });
+      
+      return () => {}; // No-op unsubscribe function
+    }
   }
 
   /**
    * Update or create network RPC configuration
    */
   async updateNetworkRPC(networkRPC: Partial<NetworkRPC>): Promise<boolean> {
+    if (!this.useFirebase) {
+      console.warn('Cannot update network RPC in environment mode. Use environment variables instead.');
+      return false;
+    }
+
     try {
       if (!networkRPC.chainId) {
         throw new Error('Chain ID is required');
@@ -217,6 +500,11 @@ class RPCService {
    * Initialize default network RPCs
    */
   async initializeDefaultRPCs(): Promise<void> {
+    if (!this.useFirebase) {
+      console.warn('Cannot initialize default RPCs in environment mode. Use environment variables instead.');
+      return;
+    }
+
     const defaultNetworks: Partial<NetworkRPC>[] = [
       // Ethereum Networks
       {

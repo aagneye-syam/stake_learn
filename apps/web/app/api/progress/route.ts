@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DataCoinReward } from '@/types/certificate';
 import { ethers } from 'ethers';
 import { DataCoinABI } from '@/abis/DataCoinABI';
 
-// Mock DataCoin reward amounts based on course difficulty
-const REWARD_AMOUNTS = {
-  'Beginner': '10', // 10 DataCoins
-  'Intermediate': '25', // 25 DataCoins  
-  'Advanced': '50', // 50 DataCoins
+// Progress-based reward amounts
+const PROGRESS_REWARDS = {
+  'daily_streak': '5', // 5 DataCoins for daily login
+  'course_progress': '3', // 3 DataCoins for 25% course progress
+  'milestone': '8', // 8 DataCoins for course milestones
+  'weekly_streak': '15', // 15 DataCoins for 7-day streak
+  'monthly_streak': '50', // 50 DataCoins for 30-day streak
 } as const;
 
 export async function POST(request: NextRequest) {
@@ -15,21 +16,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { 
       studentAddress, 
-      courseId, 
-      courseDifficulty,
-      courseName 
+      rewardType,
+      courseId,
+      progressPercentage,
+      streakDays,
+      milestone
     } = body;
 
     // Validate required fields
-    if (!studentAddress || !courseId || !courseDifficulty || !courseName) {
+    if (!studentAddress || !rewardType) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Calculate reward amount based on difficulty
-    const rewardAmount = REWARD_AMOUNTS[courseDifficulty as keyof typeof REWARD_AMOUNTS] || '10';
+    // Get reward amount based on type
+    const rewardAmount = PROGRESS_REWARDS[rewardType as keyof typeof PROGRESS_REWARDS] || '1';
     
     // Connect to DataCoin contract and mint tokens
     const dataCoinContractAddress = process.env.NEXT_PUBLIC_DATACOIN_ADDRESS;
@@ -46,24 +49,29 @@ export async function POST(request: NextRequest) {
     const tx = await dataCoinContract.mint(studentAddress, ethers.parseUnits(rewardAmount, 18));
     await tx.wait();
 
-    const reward: DataCoinReward = {
+    const reward = {
       amount: rewardAmount,
       tokenAddress: dataCoinContractAddress,
       timestamp: Math.floor(Date.now() / 1000),
-      transactionHash: tx.hash
+      transactionHash: tx.hash,
+      rewardType,
+      courseId,
+      progressPercentage,
+      streakDays,
+      milestone
     };
 
     return NextResponse.json({
       success: true,
       reward,
-      message: `Awarded ${rewardAmount} DataCoins for completing ${courseName}`
+      message: `Awarded ${rewardAmount} DataCoins for ${rewardType}`
     });
 
   } catch (error) {
-    console.error('Reward distribution error:', error);
+    console.error('Progress reward error:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to distribute reward',
+        error: 'Failed to distribute progress reward',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
@@ -84,28 +92,30 @@ export async function GET(request: NextRequest) {
 
   try {
     // In a real implementation, this would fetch from a database
-    // For now, return mock data
-    const mockRewards: DataCoinReward[] = [
-      {
-        amount: '25',
-        tokenAddress: process.env.NEXT_PUBLIC_DATACOIN_ADDRESS || '0x0000000000000000000000000000000000000000',
-        timestamp: Math.floor(Date.now() / 1000) - 86400, // 1 day ago
-      }
-    ];
-
-    const totalEarned = mockRewards.reduce((sum, reward) => sum + parseInt(reward.amount), 0);
+    // For now, return mock progress data
+    const mockProgress = {
+      dailyStreak: 5,
+      weeklyStreak: 2,
+      monthlyStreak: 0,
+      totalProgressRewards: 45,
+      lastActivity: new Date().toISOString(),
+      milestones: [
+        { type: 'daily_streak', count: 5, lastReward: new Date().toISOString() },
+        { type: 'course_progress', count: 3, lastReward: new Date().toISOString() },
+        { type: 'milestone', count: 1, lastReward: new Date().toISOString() }
+      ]
+    };
 
     return NextResponse.json({
       success: true,
-      rewards: mockRewards,
-      totalEarned: totalEarned.toString(),
+      progress: mockProgress,
       userAddress
     });
   } catch (error) {
-    console.error('Reward retrieval error:', error);
+    console.error('Progress retrieval error:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to retrieve rewards',
+        error: 'Failed to retrieve progress',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

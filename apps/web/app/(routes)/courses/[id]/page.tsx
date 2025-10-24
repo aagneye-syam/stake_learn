@@ -11,6 +11,12 @@ import { TestnetInstructions } from "@/components/TestnetInstructions";
 import { NoSSR } from "@/components/NoSSR";
 import { StakingButton } from "@/components/StakingButton";
 import { ContractTest } from "@/components/ContractTest";
+import { ProgressRewards } from "@/components/ProgressRewards";
+import { DailyStreak } from "@/components/DailyStreak";
+import { CourseCompletion } from "@/components/CourseCompletion";
+import { ModuleCard } from "@/components/ModuleCard";
+import { ProgressBar } from "@/components/ProgressBar";
+import { useModuleProgress } from "@/hooks/useModuleProgress";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -260,6 +266,15 @@ export default function CourseDetailPage() {
   const numericCourseId = parseInt(courseId);
   const { stakeAmount: contractStakeAmount } = useStaking(numericCourseId);
   const { hasStaked, hasCompleted } = useUserStake(address, numericCourseId);
+  
+  // Module progress tracking
+  const { 
+    courseProgress, 
+    loading: moduleLoading, 
+    completeModule, 
+    isModuleCompleted, 
+    getModuleProgress 
+  } = useModuleProgress(numericCourseId, course?.modules.length || 0);
 
   // Format stake amount for display with fallback
   const fallbackAmount = "0.00001"; // 0.0001 ETH for testing
@@ -387,34 +402,60 @@ export default function CourseDetailPage() {
             </div>
           </div>
 
+          {/* Course Progress - Only show for staked courses */}
+          {hasStaked && courseProgress && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Course Progress</h2>
+              <ProgressBar 
+                progress={courseProgress.progressPercentage}
+                total={courseProgress.totalModules}
+                completed={courseProgress.completedModules}
+                size="lg"
+                animated={true}
+              />
+            </div>
+          )}
+
           {/* Course Modules */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Course Modules</h2>
-            <div className="space-y-4">
-              {course.modules.map((module) => (
-                <div key={module.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:border-purple-300 dark:hover:border-purple-700 transition-colors">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Module {module.id}: {module.title}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                      {module.lessons} lessons
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {module.duration}
-                    </span>
-                  </div>
+            
+            {!hasStaked ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
                 </div>
-              ))}
-            </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Stake to Unlock Course Modules
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Stake ETH to access all course modules and start earning DataCoins for your progress.
+                </p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 max-w-md mx-auto">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    💡 <strong>How it works:</strong> Stake ETH to unlock course access, complete modules to earn DataCoins, and get your stake back when you finish the course!
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {course.modules.map((module) => (
+                  <ModuleCard
+                    key={module.id}
+                    module={module}
+                    courseId={numericCourseId}
+                    isCompleted={isModuleCompleted(module.id)}
+                    onComplete={completeModule}
+                    loading={moduleLoading}
+                    moduleProgress={getModuleProgress(module.id)}
+                    hasStaked={hasStaked}
+                    hasCompleted={hasCompleted}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -606,6 +647,48 @@ export default function CourseDetailPage() {
                 </p>
               </div>
 
+            </div>
+
+            {/* Progress Rewards Section */}
+            {hasStaked && (
+              <div className="bg-white rounded-3xl p-6 shadow-2xl">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">🎯 Earn DataCoins</h3>
+                <NoSSR>
+                  <ProgressRewards 
+                    courseId={numericCourseId}
+                    courseProgress={courseProgress?.progressPercentage || 0}
+                    onRewardEarned={(reward) => {
+                      console.log('Reward earned:', reward);
+                    }}
+                  />
+                </NoSSR>
+              </div>
+            )}
+
+            {/* Course Completion Section for Staked Users */}
+            {hasStaked && !hasCompleted && (
+              <div className="bg-white rounded-3xl p-6 shadow-2xl">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">🎓 Complete Course</h3>
+                <NoSSR>
+                  <CourseCompletion 
+                    courseId={numericCourseId}
+                    courseName={course.title}
+                    courseDifficulty={course.difficulty}
+                    onCompletion={(result) => {
+                      console.log('Course completed:', result);
+                      // You could trigger a page refresh or update state here
+                    }}
+                  />
+                </NoSSR>
+              </div>
+            )}
+
+            {/* Daily Streak Section */}
+            <div className="bg-white rounded-3xl p-6 shadow-2xl">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">🔥 Daily Streak</h3>
+              <NoSSR>
+                <DailyStreak />
+              </NoSSR>
             </div>
           </div>
         </div>

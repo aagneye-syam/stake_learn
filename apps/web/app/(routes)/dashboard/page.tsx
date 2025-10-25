@@ -57,7 +57,7 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
       return {
         status: "completed",
         text: "Completed",
-        color: "bg-green-100 text-green-800 border-green-200",
+        color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
         icon: "✅",
         buttonText: "View Certificate",
         buttonColor: "bg-green-600 hover:bg-green-700",
@@ -67,7 +67,7 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
       return {
         status: "started",
         text: "In Progress",
-        color: "bg-blue-100 text-blue-800 border-blue-200",
+        color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
         icon: "🎓",
         buttonText: "Continue Learning",
         buttonColor: "bg-blue-600 hover:bg-blue-700",
@@ -77,7 +77,7 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
       return {
         status: "not-started",
         text: "Not Started",
-        color: "bg-gray-100 text-gray-800 border-gray-200",
+        color: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600",
         icon: "📚",
         buttonText: "Start Learning",
         buttonColor: "bg-purple-600 hover:bg-purple-700",
@@ -89,14 +89,14 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
   const statusInfo = getStatusInfo();
 
   return (
-    <div className="relative overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 group">
+    <div className="relative overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 group h-full flex flex-col">
       {/* Background Gradient */}
       <div 
         className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity"
         style={{ background: task.gradient }}
       />
       
-      <div className="relative p-6 bg-white dark:bg-gray-800">
+      <div className="relative p-6 bg-white dark:bg-gray-800 flex flex-col h-full">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -114,21 +114,23 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500">{task.duration}</p>
-            <p className="text-xs text-gray-400">{task.category}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{task.duration}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{task.category}</p>
           </div>
         </div>
 
-        {/* Course Info */}
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          {task.title}
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
-          {task.description}
-        </p>
+        {/* Course Info - Fixed height section */}
+        <div className="mb-4 flex-shrink-0">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+            {task.title}
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3 min-h-[3.75rem]">
+            {task.description}
+          </p>
+        </div>
 
         {/* Stake Amount */}
-        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex-shrink-0">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-400">Required Stake</span>
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -138,30 +140,37 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
         </div>
 
         {/* Status */}
-        <div className={`mb-4 p-3 rounded-lg border ${statusInfo.color}`}>
+        <div className={`mb-4 p-3 rounded-lg border ${statusInfo.color} flex-shrink-0`}>
           <div className="flex items-center gap-2">
             <span className="text-lg">{statusInfo.icon}</span>
             <span className="text-sm font-medium">{statusInfo.text}</span>
           </div>
         </div>
 
-        {/* Progress Bar for Staked Courses */}
-        {hasStaked && courseProgress && (
-          <div className="mb-4">
-            <ProgressBar 
-              progress={courseProgress.progressPercentage}
-              total={courseProgress.totalModules}
-              completed={courseProgress.completedModules}
-              size="sm"
-              animated={true}
-            />
-          </div>
-        )}
+        {/* Progress Bar for Staked Courses - Fixed height */}
+        <div className="mb-4 flex-shrink-0 min-h-[2.5rem]">
+          {hasStaked && courseProgress ? (
+            <div>
+              <ProgressBar 
+                progress={courseProgress.progressPercentage}
+                total={courseProgress.totalModules}
+                completed={courseProgress.completedModules}
+                size="sm"
+                animated={true}
+              />
+            </div>
+          ) : (
+            <div className="h-10"></div> // Placeholder to maintain consistent height
+          )}
+        </div>
 
-        {/* Action Button */}
+        {/* Spacer to push button to bottom */}
+        <div className="flex-grow"></div>
+
+        {/* Action Button - Always at bottom */}
         <button
           onClick={statusInfo.action}
-          className={`w-full py-3 px-4 rounded-xl text-white font-semibold transition-all ${statusInfo.buttonColor} shadow-lg hover:shadow-xl transform hover:scale-105`}
+          className={`w-full py-3 px-4 rounded-xl text-white font-semibold transition-all ${statusInfo.buttonColor} shadow-lg hover:shadow-xl transform hover:scale-105 flex-shrink-0`}
         >
           {statusInfo.buttonText}
         </button>
@@ -519,7 +528,7 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
             {learningTasks.map((task) => (
               <DynamicLearningTaskCard
                 key={task.id}
@@ -855,7 +864,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Learning Tasks Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {learningTasks.map((task) => (
             <DynamicLearningTaskCard
               key={task.id}

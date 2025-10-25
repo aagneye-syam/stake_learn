@@ -18,6 +18,7 @@ function exportDeployments() {
 // Last updated: ${deployments.timestamp}
 
 export const CONTRACTS = {
+  DATACOIN: "${deployments.contracts.DataCoin}",
   SOULBOUND: "${deployments.contracts.Soulbound}",
   REPUTATION: "${deployments.contracts.Reputation}",
   STAKING_MANAGER: "${deployments.contracts.StakingManager}",
@@ -33,6 +34,7 @@ export const DEPLOYER = "${deployments.deployer}";
   console.log("✅ Contract addresses exported to exported-addresses.ts");
   console.log("\nContract Addresses:");
   console.log("-------------------");
+  console.log("DataCoin:", deployments.contracts.DataCoin);
   console.log("Soulbound:", deployments.contracts.Soulbound);
   console.log("Reputation:", deployments.contracts.Reputation);
   console.log("StakingManager:", deployments.contracts.StakingManager);

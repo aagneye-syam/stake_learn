@@ -31,6 +31,14 @@ async function main() {
   await tx.wait();
   console.log("✅ Reputation minter set to Soulbound");
 
+  // Deploy DataCoin
+  console.log("\n📝 Deploying DataCoin...");
+  const DataCoin = await ethers.getContractFactory("DataCoin");
+  const dataCoin = await DataCoin.deploy(deployer.address);
+  await dataCoin.waitForDeployment();
+  const dataCoinAddress = await dataCoin.getAddress();
+  console.log("✅ DataCoin deployed to:", dataCoinAddress);
+
   // Deploy StakingManager
   console.log("\n📝 Deploying StakingManager...");
   const StakingManager = await ethers.getContractFactory("StakingManager");
@@ -58,6 +66,7 @@ async function main() {
     contracts: {
       Soulbound: soulboundAddress,
       Reputation: reputationAddress,
+      DataCoin: dataCoinAddress,
       StakingManager: stakingManagerAddress
     },
     timestamp: new Date().toISOString()
@@ -72,6 +81,7 @@ async function main() {
   console.log("-------------------");
   console.log("Soulbound:", soulboundAddress);
   console.log("Reputation:", reputationAddress);
+  console.log("DataCoin:", dataCoinAddress);
   console.log("StakingManager:", stakingManagerAddress);
 }
 

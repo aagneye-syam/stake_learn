@@ -17,6 +17,7 @@ import { CourseCompletion } from "@/components/CourseCompletion";
 import { ModuleCard } from "@/components/ModuleCard";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
+import { DebugProgress } from "@/components/DebugProgress";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -273,7 +274,9 @@ export default function CourseDetailPage() {
     loading: moduleLoading, 
     completeModule, 
     isModuleCompleted, 
-    getModuleProgress 
+    getModuleProgress,
+    error: moduleError,
+    refreshProgress
   } = useModuleProgress(numericCourseId, course?.modules.length || 0);
 
   // Format stake amount for display with fallback
@@ -406,12 +409,27 @@ export default function CourseDetailPage() {
           {hasStaked && courseProgress && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Course Progress</h2>
-              <ProgressBar 
-                progress={courseProgress.progressPercentage}
-                total={courseProgress.totalModules}
-                completed={courseProgress.completedModules}
-                size="lg"
-                animated={true}
+              <div className="flex items-center justify-between mb-4">
+                <ProgressBar 
+                  progress={courseProgress.progressPercentage}
+                  total={courseProgress.totalModules}
+                  completed={courseProgress.completedModules}
+                  size="lg"
+                  animated={true}
+                />
+                <button
+                  onClick={refreshProgress}
+                  className="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  🔄 Refresh
+                </button>
+              </div>
+              
+              {/* Debug Progress - Remove in production */}
+              <DebugProgress 
+                courseId={numericCourseId} 
+                totalModules={course?.modules.length || 0} 
+                onRefresh={refreshProgress}
               />
             </div>
           )}
@@ -452,6 +470,7 @@ export default function CourseDetailPage() {
                     moduleProgress={getModuleProgress(module.id)}
                     hasStaked={hasStaked}
                     hasCompleted={hasCompleted}
+                    error={moduleError}
                   />
                 ))}
               </div>

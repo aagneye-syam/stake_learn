@@ -24,6 +24,7 @@ interface ModuleCardProps {
   };
   hasStaked: boolean;
   hasCompleted: boolean;
+  error?: string | null;
 }
 
 export function ModuleCard({ 
@@ -34,7 +35,8 @@ export function ModuleCard({
   loading,
   moduleProgress,
   hasStaked,
-  hasCompleted
+  hasCompleted,
+  error
 }: ModuleCardProps) {
   const { isConnected } = useAccount();
   const [showReward, setShowReward] = useState(false);
@@ -123,6 +125,18 @@ export function ModuleCard({
           )}
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-red-700 dark:text-red-300">{error}</span>
+          </div>
+        </div>
+      )}
 
       {/* Action Button */}
       <div className="flex items-center justify-between">

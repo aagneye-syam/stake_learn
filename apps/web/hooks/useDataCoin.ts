@@ -9,7 +9,7 @@ import { sepolia } from 'wagmi/chains';
  */
 export function useDataCoin() {
   const { address: account } = useAccount();
-  const contractAddress = process.env.NEXT_PUBLIC_DATACOIN_ADDRESS as `0x${string}`;
+  const contractAddress = process.env.NEXT_PUBLIC_DATACOIN_CONTRACT_ADDRESS_SEPOLIA as `0x${string}`;
 
   // Read contract state
   const { data: totalSupply } = useReadContract({
@@ -48,7 +48,7 @@ export function useDataCoin() {
     hash,
   });
 
-  const mintTokens = async (to: `0x${string}`, amount: string) => {
+  const mintTokens = async (to: `0x${string}`, amount: string, reason: string = "Course completion reward") => {
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
       throw new Error('DataCoin contract not configured');
     }
@@ -57,7 +57,7 @@ export function useDataCoin() {
       address: contractAddress,
       abi: DataCoinABI,
       functionName: 'mint',
-      args: [to, parseEther(amount)],
+      args: [to, parseEther(amount), reason],
       account: account,
       chain: sepolia,
     });
@@ -81,7 +81,7 @@ export function useDataCoin() {
  * Hook to check user's DataCoin balance
  */
 export function useDataCoinBalance(userAddress: `0x${string}` | undefined) {
-  const contractAddress = process.env.NEXT_PUBLIC_DATACOIN_ADDRESS as `0x${string}`;
+  const contractAddress = process.env.NEXT_PUBLIC_DATACOIN_CONTRACT_ADDRESS_SEPOLIA as `0x${string}`;
 
   const { data: balance, refetch } = useReadContract({
     address: contractAddress,

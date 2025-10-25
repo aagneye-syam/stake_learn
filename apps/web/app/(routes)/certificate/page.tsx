@@ -30,7 +30,7 @@ function CertificatePageContent() {
     // TODO: Fetch user's certificates from Lighthouse
     // This would query stored certificate metadata
     if (address && isConnected) {
-      // Mock data for now
+      // Mock data for completed courses
       setCertificates([
         {
           cid: "QmExample1",
@@ -38,6 +38,13 @@ function CertificatePageContent() {
           courseId: 1,
           uploadedAt: Math.floor(Date.now() / 1000),
           lighthouseUrl: "https://gateway.lighthouse.storage/ipfs/QmExample1"
+        },
+        {
+          cid: "QmExample2", 
+          studentAddress: address,
+          courseId: 2,
+          uploadedAt: Math.floor(Date.now() / 1000) - 86400, // 1 day ago
+          lighthouseUrl: "https://gateway.lighthouse.storage/ipfs/QmExample2"
         }
       ]);
     }
@@ -45,10 +52,22 @@ function CertificatePageContent() {
 
   // Show certificate viewer if we have a specific certificate to view
   if (showCertificate && cid) {
+    // Get course name from courseId if available
+    const courseNames: { [key: string]: string } = {
+      '1': 'Introduction to HTML',
+      '2': 'CSS Fundamentals', 
+      '3': 'Responsive Design',
+      '4': 'Advanced CSS',
+      '5': 'JavaScript Basics',
+      '6': 'React Fundamentals'
+    };
+    
+    const courseName = courseId ? courseNames[courseId] || `Course ${courseId}` : 'Unknown Course';
+    
     return (
       <CertificateViewer 
         cid={cid} 
-        courseName={`Course ${courseId || 'Unknown'}`}
+        courseName={courseName}
         onClose={() => {
           setShowCertificate(false);
           // Navigate back to courses or dashboard
@@ -140,7 +159,13 @@ function CertificatePageContent() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Course {cert.courseId} Certificate
+                    {cert.courseId === 1 ? 'Introduction to HTML' :
+                     cert.courseId === 2 ? 'CSS Fundamentals' :
+                     cert.courseId === 3 ? 'Responsive Design' :
+                     cert.courseId === 4 ? 'Advanced CSS' :
+                     cert.courseId === 5 ? 'JavaScript Basics' :
+                     cert.courseId === 6 ? 'React Fundamentals' :
+                     `Course ${cert.courseId}`} Certificate
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Lighthouse Encrypted

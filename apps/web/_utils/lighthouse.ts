@@ -181,12 +181,14 @@ export async function uploadEncryptedJson(
   }
 
   try {
+    // Use uploadText for simple text upload (Lighthouse will handle encryption)
     const response = await lighthouse.uploadText(
       JSON.stringify(data),
       apiKey,
       accessToken,
-      null // mimeType
+      'application/json' // mimeType
     );
+    
     if (response.data && response.data.length > 0 && response.data[0].Hash) {
       return response.data[0].Hash;
     } else {
@@ -211,9 +213,13 @@ export async function decryptFile(cid: string, accessToken: string): Promise<any
   }
 
   try {
-    const file = await lighthouse.decryptFile(cid, accessToken);
-    const decryptedData = await file.text();
-    return JSON.parse(decryptedData);
+    const decryptedData = await lighthouse.decryptFile(cid, accessToken);
+    
+    if (typeof decryptedData === 'string') {
+      return JSON.parse(decryptedData);
+    } else {
+      throw new Error('Failed to decrypt certificate data');
+    }
   } catch (error) {
     console.error('Lighthouse decrypt error:', error);
     throw new Error(`Failed to decrypt file: ${error}`);

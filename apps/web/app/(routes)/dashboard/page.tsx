@@ -9,6 +9,7 @@ import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 import { useDataCoinBalance } from "@/hooks/useDataCoin";
 import { useProgress } from "@/hooks/useProgress";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
+import { useCertificates } from "@/hooks/useCertificates";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { NoSSR } from "@/components/NoSSR";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
@@ -48,7 +49,10 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
     : fallbackAmount;
 
   const getStatusInfo = () => {
-    if (hasCompleted) {
+    // Check if all modules are completed locally
+    const allModulesCompleted = courseProgress && courseProgress.completedModules === courseProgress.totalModules;
+    
+    if (allModulesCompleted) {
       return {
         status: "completed",
         text: "Completed",
@@ -180,10 +184,12 @@ export default function DashboardPage() {
   const [status, setStatus] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [dataCoinBalance, setDataCoinBalance] = useState("0");
-  const [certificates, setCertificates] = useState([]);
 
   // DataCoin balance hook
-  const { balance: dataCoinBalanceFromHook } = useDataCoinBalance(address);
+  const { balance: dataCoinBalanceFromHook, refetch: refetchDataCoinBalance } = useDataCoinBalance(address);
+  
+  // Certificates hook
+  const { certificates, getTotalDataCoinsEarned } = useCertificates();
 
   // Mock activities - replace with real data
   const [activities] = useState([
@@ -230,6 +236,13 @@ export default function DashboardPage() {
       setDataCoinBalance(dataCoinBalanceFromHook.toString());
     }
   }, [dataCoinBalanceFromHook]);
+
+  // Refresh DataCoin balance when user returns to dashboard
+  useEffect(() => {
+    if (isConnected && address) {
+      refetchDataCoinBalance();
+    }
+  }, [isConnected, address, refetchDataCoinBalance]);
 
   // Learning tasks
   const learningTasks = [
@@ -597,22 +610,33 @@ export default function DashboardPage() {
           gradientTo="#3b82f6"
         />
         
-        <StatsCard
-          title="DataCoins Earned"
-          value={dataCoinBalance}
-          icon={
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className="relative group">
+          <StatsCard
+            title="DataCoins Earned"
+            value={dataCoinBalance}
+            icon={
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+            trend={{ value: `+${getTotalDataCoinsEarned()} from certificates`, isPositive: true }}
+            gradientFrom="#f59e0b"
+            gradientTo="#f97316"
+          />
+          <button
+            onClick={() => refetchDataCoinBalance()}
+            className="absolute top-2 right-2 p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-all opacity-0 group-hover:opacity-100"
+            title="Refresh DataCoin Balance"
+          >
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-          }
-          trend={{ value: "+25 this week", isPositive: true }}
-          gradientFrom="#f59e0b"
-          gradientTo="#f97316"
-        />
+          </button>
+        </div>
         
         <StatsCard
           title="Certificates"
-          value="3"
+          value={certificates.length.toString()}
           icon={
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -814,6 +838,75 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Certificates Section */}
+      {certificates.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">🏆 Your Certificates</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {certificates.map((cert, index) => (
+              <div
+                key={index}
+                className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      {cert.courseName} Certificate
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Completed {cert.completionDate}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Modules</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {cert.modules?.length || 0} completed
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">DataCoins</span>
+                    <span className="font-semibold text-purple-600 dark:text-purple-400">
+                      +{(cert.modules?.length || 0) * 3} earned
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Lighthouse CID</span>
+                    <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                      {cert.cid.slice(0, 8)}...
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push(`/certificate?cid=${cert.cid}`)}
+                    className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
+                  >
+                    View Certificate
+                  </button>
+                  <a
+                    href={cert.lighthouseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    IPFS
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

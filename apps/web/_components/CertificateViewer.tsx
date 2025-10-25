@@ -172,7 +172,7 @@ export function CertificateViewer({ cid, courseName, onClose }: CertificateViewe
                   {certificate.studentAddress.slice(0, 6)}...{certificate.studentAddress.slice(-4)}
                 </p>
                 <p className="text-gray-600">has successfully completed</p>
-                <p className="text-2xl font-bold text-purple-600 mt-2">{certificate.courseName}</p>
+                <p className="text-2xl font-bold text-purple-600 mt-2">{certificate.courseName || courseName}</p>
                 <p className="text-gray-500 mt-4">
                   Completed on {certificate.completionDate || formatDate(certificate.uploadedAt)}
                 </p>

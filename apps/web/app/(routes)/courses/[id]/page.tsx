@@ -279,6 +279,9 @@ export default function CourseDetailPage() {
     refreshProgress
   } = useModuleProgress(numericCourseId, course?.modules.length || 0);
 
+  // Check if all modules are completed
+  const allModulesCompleted = courseProgress && courseProgress.completedModules === courseProgress.totalModules;
+
   // Format stake amount for display with fallback
   const fallbackAmount = "0.00001"; // 0.0001 ETH for testing
   const displayStakeAmount = contractStakeAmount 
@@ -431,6 +434,72 @@ export default function CourseDetailPage() {
                 totalModules={course?.modules.length || 0} 
                 onRefresh={refreshProgress}
               />
+            </div>
+          )}
+
+          {/* Course Completion Celebration */}
+          {hasStaked && allModulesCompleted && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-8 shadow-lg border-2 border-green-200 dark:border-green-800">
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-3xl font-bold text-green-800 dark:text-green-200 mb-4">
+                  🎉 Congratulations! Course Completed!
+                </h2>
+                <p className="text-green-700 dark:text-green-300 text-lg mb-6">
+                  You've successfully completed all modules in <strong>{course.title}</strong>!
+                </p>
+                <div className="bg-white/50 dark:bg-green-900/30 rounded-xl p-6 mb-6">
+                  <h3 className="text-xl font-semibold text-green-800 dark:text-green-200 mb-4">🎯 What You've Achieved</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">📚</span>
+                      <div>
+                        <p className="font-semibold text-green-800 dark:text-green-200">All Modules Completed</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">{courseProgress.completedModules}/{courseProgress.totalModules} modules</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🪙</span>
+                      <div>
+                        <p className="font-semibold text-green-800 dark:text-green-200">DataCoins Earned</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">{courseProgress.completedModules * 3} DataCoins</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🏆</span>
+                      <div>
+                        <p className="font-semibold text-green-800 dark:text-green-200">Certificate Ready</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">Soulbound certificate available</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">💎</span>
+                      <div>
+                        <p className="font-semibold text-green-800 dark:text-green-200">Stake Returned</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">Your ETH stake will be returned</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => router.push(`/certificate?course=${courseId}`)}
+                    className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    🏆 View Certificate
+                  </button>
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="px-8 py-4 bg-white/20 backdrop-blur-sm border-2 border-green-300 text-green-800 dark:text-green-200 rounded-xl font-semibold hover:bg-white/30 transition-all"
+                  >
+                    📊 Back to Dashboard
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

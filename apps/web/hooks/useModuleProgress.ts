@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useDataCoinBalance } from './useDataCoin';
 
+// Helper function to get course name
+function getCourseName(courseId: number): string {
+  const courseNames: { [key: number]: string } = {
+    1: 'Introduction to HTML',
+    2: 'CSS Fundamentals',
+    3: 'Responsive Design',
+    4: 'Advanced CSS',
+    5: 'JavaScript Basics',
+    6: 'React Fundamentals'
+  };
+  return courseNames[courseId] || `Course ${courseId}`;
+}
+
 export interface ModuleProgress {
   courseId: number;
   moduleId: number;
@@ -173,8 +186,99 @@ export function useModuleProgress(courseId: number, totalModules: number) {
 
         console.log('Module completed successfully:', moduleId);
         
-        // Refresh DataCoin balance without reloading progress
-        refetchDataCoinBalance();
+        // Check if all modules are now completed
+        const allModulesCompleted = completedModules + 1 === totalModules;
+        
+        if (allModulesCompleted) {
+          // Store certificate on Lighthouse when all modules are completed
+          try {
+            const certificateResponse = await fetch('/api/complete-course', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                studentAddress: address,
+                courseId: courseId,
+                courseName: getCourseName(courseId), // Get proper course name
+                modules: updatedModules.filter(m => m.completed),
+                stakeAmount: "0.0001"
+              }),
+            });
+            
+            const certificateData = await certificateResponse.json();
+            
+            if (certificateData.success) {
+              console.log('Certificate stored on Lighthouse:', certificateData.cid);
+              
+              // Show certificate success notification
+              if (typeof window !== 'undefined') {
+                const toast = document.createElement('div');
+                toast.className = 'fixed top-4 right-4 bg-purple-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+                toast.innerHTML = `
+                  <div class="flex items-center gap-2">
+                    <span class="text-xl">🏆</span>
+                    <div>
+                      <p class="font-semibold">Certificate Generated!</p>
+                      <p class="text-sm opacity-90">Stored on Lighthouse IPFS</p>
+                    </div>
+                  </div>
+                `;
+                document.body.appendChild(toast);
+                
+                // Animate in
+                setTimeout(() => {
+                  toast.classList.remove('translate-x-full');
+                }, 100);
+                
+                // Remove after 4 seconds
+                setTimeout(() => {
+                  toast.classList.add('translate-x-full');
+                  setTimeout(() => {
+                    document.body.removeChild(toast);
+                  }, 300);
+                }, 4000);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to store certificate:', error);
+          }
+        }
+        
+        // Show success notification
+        if (typeof window !== 'undefined') {
+          // Create a simple toast notification
+          const toast = document.createElement('div');
+          toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+          toast.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🪙</span>
+              <div>
+                <p class="font-semibold">+3 DataCoins Earned!</p>
+                <p class="text-sm opacity-90">Module ${moduleId} completed</p>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(toast);
+          
+          // Animate in
+          setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+          }, 100);
+          
+          // Remove after 3 seconds
+          setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => {
+              document.body.removeChild(toast);
+            }, 300);
+          }, 3000);
+        }
+        
+        // Refresh DataCoin balance with a small delay to ensure the API has processed
+        setTimeout(() => {
+          refetchDataCoinBalance();
+        }, 1000);
         
         return true;
       } else {

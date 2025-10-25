@@ -3,7 +3,16 @@ import { ethers } from 'ethers';
 import { DataCoinABI } from '@/abis/DataCoinABI';
 
 // In-memory storage for development (replace with database in production)
-const progressStorage = new Map<string, any>();
+// Use global variable to persist across requests
+declare global {
+  var progressStorage: Map<string, any> | undefined;
+}
+
+if (!global.progressStorage) {
+  global.progressStorage = new Map<string, any>();
+}
+
+const progressStorage = global.progressStorage;
 
 // Progress-based reward amounts
 const PROGRESS_REWARDS = {
@@ -60,6 +69,59 @@ export async function POST(request: NextRequest) {
         milestone
       };
 
+      // Save progress to storage if module completion (BEFORE returning)
+      if (moduleId && totalModules && courseId) {
+        const key = `${studentAddress}-${courseId}`;
+        let existingProgress = progressStorage.get(key);
+        
+        if (!existingProgress) {
+          // Create new progress if none exists
+          existingProgress = {
+            courseId: parseInt(courseId),
+            totalModules: parseInt(totalModules),
+            completedModules: 0,
+            progressPercentage: 0,
+            modules: []
+          };
+          
+          // Initialize all modules
+          for (let i = 1; i <= parseInt(totalModules); i++) {
+            existingProgress.modules.push({
+              courseId: parseInt(courseId),
+              moduleId: i,
+              completed: false
+            });
+          }
+        }
+
+        // Update the specific module
+        const moduleIndex = existingProgress.modules.findIndex((m: any) => m.moduleId === parseInt(moduleId));
+        
+        const moduleData = {
+          courseId: parseInt(courseId),
+          moduleId: parseInt(moduleId),
+          completed: true,
+          completedAt: Math.floor(Date.now() / 1000),
+          rewardEarned: rewardAmount,
+          transactionHash: txHash
+        };
+
+        if (moduleIndex >= 0) {
+          existingProgress.modules[moduleIndex] = moduleData;
+        } else {
+          existingProgress.modules.push(moduleData);
+        }
+
+        // Recalculate progress
+        const completedModules = existingProgress.modules.filter((m: any) => m.completed).length;
+        existingProgress.completedModules = completedModules;
+        existingProgress.progressPercentage = Math.floor((completedModules / parseInt(totalModules)) * 100);
+
+        // Save updated progress
+        progressStorage.set(key, existingProgress);
+        console.log('Saved progress to storage (mock path):', key, existingProgress);
+      }
+
       return NextResponse.json({
         success: true,
         reward,
@@ -94,19 +156,22 @@ export async function POST(request: NextRequest) {
       milestone
     };
 
-    // Save progress to storage if module completion
+    // Save progress to storage if module completion (real minting path)
     if (moduleId && totalModules && courseId) {
       const key = `${studentAddress}-${courseId}`;
-      const existingProgress = progressStorage.get(key) || {
-        courseId: parseInt(courseId),
-        totalModules: parseInt(totalModules),
-        completedModules: 0,
-        progressPercentage: 0,
-        modules: []
-      };
-
-      // Initialize modules if they don't exist
-      if (existingProgress.modules.length === 0) {
+      let existingProgress = progressStorage.get(key);
+      
+      if (!existingProgress) {
+        // Create new progress if none exists
+        existingProgress = {
+          courseId: parseInt(courseId),
+          totalModules: parseInt(totalModules),
+          completedModules: 0,
+          progressPercentage: 0,
+          modules: []
+        };
+        
+        // Initialize all modules
         for (let i = 1; i <= parseInt(totalModules); i++) {
           existingProgress.modules.push({
             courseId: parseInt(courseId),
@@ -118,6 +183,7 @@ export async function POST(request: NextRequest) {
 
       // Update the specific module
       const moduleIndex = existingProgress.modules.findIndex((m: any) => m.moduleId === parseInt(moduleId));
+      
       const moduleData = {
         courseId: parseInt(courseId),
         moduleId: parseInt(moduleId),
@@ -140,6 +206,7 @@ export async function POST(request: NextRequest) {
 
       // Save updated progress
       progressStorage.set(key, existingProgress);
+      console.log('Saved progress to storage (real minting path):', key, existingProgress);
     }
 
     return NextResponse.json({
@@ -164,6 +231,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const userAddress = searchParams.get('userAddress');
   const courseId = searchParams.get('courseId');
+  const totalModules = searchParams.get('totalModules');
 
   if (!userAddress) {
     return NextResponse.json(
@@ -179,9 +247,10 @@ export async function GET(request: NextRequest) {
       const courseProgress = progressStorage.get(key);
 
       if (!courseProgress) {
-        // Initialize empty progress with all modules
+        // Initialize empty progress with correct number of modules
+        const moduleCount = totalModules ? parseInt(totalModules) : 4; // Use provided totalModules or default to 4
         const modules = [];
-        for (let i = 1; i <= 4; i++) { // Default to 4 modules
+        for (let i = 1; i <= moduleCount; i++) {
           modules.push({
             courseId: parseInt(courseId),
             moduleId: i,
@@ -191,7 +260,7 @@ export async function GET(request: NextRequest) {
         
         const emptyProgress = {
           courseId: parseInt(courseId),
-          totalModules: 4,
+          totalModules: moduleCount,
           completedModules: 0,
           progressPercentage: 0,
           modules
@@ -199,12 +268,15 @@ export async function GET(request: NextRequest) {
         
         // Save the initialized progress
         progressStorage.set(key, emptyProgress);
+        console.log('Initialized empty progress:', key, emptyProgress);
         
         return NextResponse.json({
           success: true,
           progress: emptyProgress
         });
       }
+
+      console.log('Retrieved existing progress:', key, courseProgress);
 
       return NextResponse.json({
         success: true,

@@ -4,7 +4,6 @@ import { sepolia } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { injected, walletConnect, coinbaseWallet } from "wagmi/connectors";
-import { ThemeProvider } from "next-themes";
 
 const config = createConfig({
   chains: [sepolia],
@@ -28,13 +27,11 @@ const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
-      </WagmiProvider>
-    </ThemeProvider>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
 

@@ -27,21 +27,29 @@ export function useModuleProgress(courseId: number, totalModules: number) {
   const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
   
   // Get DataCoin balance refetch function
   const { refetch: refetchDataCoinBalance } = useDataCoinBalance(address);
 
-  // Initialize course progress
+  // Initialize course progress - only run once when component mounts
   useEffect(() => {
-    if (!courseId || !totalModules || !address) return;
+    if (!courseId || !totalModules || !address || initialized) return;
 
     const loadProgress = async () => {
       try {
         // Try to load existing progress from API
-        const response = await fetch(`/api/progress?userAddress=${address}&courseId=${courseId}`);
+        const response = await fetch(`/api/progress?userAddress=${address}&courseId=${courseId}&totalModules=${totalModules}`);
         const data = await response.json();
+        
+        console.log('API Response:', { 
+          success: data.success, 
+          hasProgress: !!data.progress, 
+          modulesCount: data.progress?.modules?.length,
+          data 
+        });
 
-        if (data.success && data.progress && data.progress.modules && data.progress.modules.length > 0) {
+        if (data.success && data.progress) {
           console.log('Loaded existing progress:', data.progress);
           setCourseProgress(data.progress);
         } else {
@@ -63,6 +71,7 @@ export function useModuleProgress(courseId: number, totalModules: number) {
             modules,
           });
         }
+        setInitialized(true);
       } catch (error) {
         console.error('Failed to load progress:', error);
         // Fallback to empty progress
@@ -82,11 +91,12 @@ export function useModuleProgress(courseId: number, totalModules: number) {
           progressPercentage: 0,
           modules,
         });
+        setInitialized(true);
       }
     };
 
     loadProgress();
-  }, [courseId, totalModules, address]);
+  }, [courseId, totalModules, address, initialized]);
 
   // Complete a module
   const completeModule = async (moduleId: number): Promise<boolean> => {
@@ -163,22 +173,8 @@ export function useModuleProgress(courseId: number, totalModules: number) {
 
         console.log('Module completed successfully:', moduleId);
         
-        // Reload progress from server to ensure consistency
-        setTimeout(async () => {
-          try {
-            const response = await fetch(`/api/progress?userAddress=${address}&courseId=${courseId}`);
-            const data = await response.json();
-            if (data.success && data.progress) {
-              console.log('Reloaded progress after completion:', data.progress);
-              setCourseProgress(data.progress);
-            }
-            
-            // Refresh DataCoin balance
-            refetchDataCoinBalance();
-          } catch (error) {
-            console.error('Failed to reload progress:', error);
-          }
-        }, 1000);
+        // Refresh DataCoin balance without reloading progress
+        refetchDataCoinBalance();
         
         return true;
       } else {
@@ -237,11 +233,13 @@ export function useModuleProgress(courseId: number, totalModules: number) {
     if (!address || !courseId) return;
     
     try {
-      const response = await fetch(`/api/progress?userAddress=${address}&courseId=${courseId}`);
+      const response = await fetch(`/api/progress?userAddress=${address}&courseId=${courseId}&totalModules=${totalModules}`);
       const data = await response.json();
       if (data.success && data.progress) {
         console.log('Manually refreshed progress:', data.progress);
         setCourseProgress(data.progress);
+        // Also refresh DataCoin balance
+        refetchDataCoinBalance();
       }
     } catch (error) {
       console.error('Failed to refresh progress:', error);

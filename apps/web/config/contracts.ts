@@ -7,9 +7,11 @@
 export const CONTRACTS = {
   // Ethereum Sepolia
   sepolia: {
-    STAKING_MANAGER: process.env.NEXT_PUBLIC_STAKING_CONTRACT_ADDRESS_SEPOLIA || "0x9Eda33d2aa6F2f65Cb7710EA55b5458F98cB88c4",
-    SOULBOUND: process.env.NEXT_PUBLIC_SOULBOUND_CONTRACT_ADDRESS_SEPOLIA || "0x94A8DDf14a32c792B191b29Dc1A8583D5E108AF3",
-    REPUTATION: process.env.NEXT_PUBLIC_REPUTATION_CONTRACT_ADDRESS_SEPOLIA || "0x75749472F369d4935E946AEDD0F34355Af2504C9",
+    STAKING_MANAGER: process.env.NEXT_PUBLIC_STAKING_CONTRACT_ADDRESS_SEPOLIA,
+    SOULBOUND: process.env.NEXT_PUBLIC_SOULBOUND_CONTRACT_ADDRESS_SEPOLIA,
+    REPUTATION: process.env.NEXT_PUBLIC_REPUTATION_CONTRACT_ADDRESS_SEPOLIA,
+    DATACOIN: process.env.NEXT_PUBLIC_DATACOIN_CONTRACT_ADDRESS_SEPOLIA,
+    COURSE_REGISTRY: process.env.NEXT_PUBLIC_COURSE_REGISTRY_CONTRACT_ADDRESS_SEPOLIA,
   },
   // Worldchain Testnet
   worldchain: {
@@ -242,10 +244,26 @@ export const NETWORK_CONFIG = NETWORKS.sepolia;
 export const COURSES = [
   {
     id: 1,
-    stakeAmount: "0.00001", // ETH
+    stakeAmount: "0.0001", // ETH (matches deployed contract)
   },
   {
     id: 2,
-    stakeAmount: "0.00001", // ETH
+    stakeAmount: "0.0001", // ETH (matches deployed contract)
+  },
+  {
+    id: 3,
+    stakeAmount: "0.0001", // ETH (matches deployed contract)
+  },
+  {
+    id: 4,
+    stakeAmount: "0.0001", // ETH (matches deployed contract)
+  },
+  {
+    id: 5,
+    stakeAmount: "0.0001", // ETH (matches deployed contract)
+  },
+  {
+    id: 6,
+    stakeAmount: "0.0001", // ETH (matches deployed contract)
   },
 ] as const;

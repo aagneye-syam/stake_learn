@@ -139,10 +139,10 @@ describe("StakingManager", function () {
       const initialBalance = await ethers.provider.getBalance(user1.address);
 
       await expect(
-        stakingManager.connect(verifier).completeCourse(user1.address, COURSE_ID_1)
+        stakingManager.connect(verifier).completeCourse(user1.address, COURSE_ID_1, "QmTestCertificateCID")
       )
         .to.emit(stakingManager, "CourseCompleted")
-        .withArgs(user1.address, COURSE_ID_1)
+        .withArgs(user1.address, COURSE_ID_1, "QmTestCertificateCID")
         .and.to.emit(stakingManager, "StakeRefunded")
         .withArgs(user1.address, COURSE_ID_1, STAKE_AMOUNT_1);
 
@@ -156,15 +156,15 @@ describe("StakingManager", function () {
 
     it("Should not allow non-verifier to complete course", async function () {
       await expect(
-        stakingManager.connect(user2).completeCourse(user1.address, COURSE_ID_1)
+        stakingManager.connect(user2).completeCourse(user1.address, COURSE_ID_1, "QmTestCertificateCID")
       ).to.be.revertedWith("Not authorized verifier");
     });
 
     it("Should not allow completing course twice", async function () {
-      await stakingManager.connect(verifier).completeCourse(user1.address, COURSE_ID_1);
+      await stakingManager.connect(verifier).completeCourse(user1.address, COURSE_ID_1, "QmTestCertificateCID");
 
       await expect(
-        stakingManager.connect(verifier).completeCourse(user1.address, COURSE_ID_1)
+        stakingManager.connect(verifier).completeCourse(user1.address, COURSE_ID_1, "QmTestCertificateCID2")
       ).to.be.revertedWith("Course already marked as completed");
     });
   });
@@ -178,8 +178,9 @@ describe("StakingManager", function () {
     it("Should batch complete courses", async function () {
       const users = [user1.address, user2.address];
       const courseIds = [COURSE_ID_1, COURSE_ID_2];
+      const certificateCIDs = ["QmTestCertificateCID1", "QmTestCertificateCID2"];
 
-      await stakingManager.connect(verifier).batchCompleteCourses(users, courseIds);
+      await stakingManager.connect(verifier).batchCompleteCourses(users, courseIds, certificateCIDs);
 
       const stake1 = await stakingManager.getStake(user1.address, COURSE_ID_1);
       const stake2 = await stakingManager.getStake(user2.address, COURSE_ID_2);

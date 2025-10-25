@@ -1,0 +1,37 @@
+// Auto-generated file - do not edit manually
+// Run `npm run build` in contracts package to regenerate
+
+export const DataCoinABI = [
+  "constructor(address initialOwner)",
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() pure returns (uint8)",
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address account) view returns (uint256)",
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function transferFrom(address from, address to, uint256 amount) returns (bool)",
+  "function mint(address to, uint256 amount, string reason)",
+  "function burn(address from, uint256 amount, string reason)",
+  "function burnSelf(uint256 amount)",
+  "function addMinter(address minter)",
+  "function removeMinter(address minter)",
+  "function addBurner(address burner)",
+  "function removeBurner(address burner)",
+  "function getTotalSupply() view returns (uint256)",
+  "function getRemainingSupply() view returns (uint256)",
+  "function isMinter(address account) view returns (bool)",
+  "function isBurner(address account) view returns (bool)",
+  "function authorizedMinters(address) view returns (bool)",
+  "function authorizedBurners(address) view returns (bool)",
+  "function MAX_SUPPLY() view returns (uint256)",
+  "event Transfer(address indexed from, address indexed to, uint256 value)",
+  "event Approval(address indexed owner, address indexed spender, uint256 value)",
+  "event MinterAdded(address indexed minter)",
+  "event MinterRemoved(address indexed minter)",
+  "event BurnerAdded(address indexed burner)",
+  "event BurnerRemoved(address indexed burner)",
+  "event TokensMinted(address indexed to, uint256 amount, string reason)",
+  "event TokensBurned(address indexed from, uint256 amount, string reason)"
+] as const;

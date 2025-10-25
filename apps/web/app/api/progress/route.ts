@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const rewardAmount = PROGRESS_REWARDS[rewardType as keyof typeof PROGRESS_REWARDS] || '1';
     
     // Connect to DataCoin contract and mint tokens
-    const dataCoinContractAddress = process.env.NEXT_PUBLIC_DATACOIN_ADDRESS;
+    const dataCoinContractAddress = process.env.NEXT_PUBLIC_DATACOIN_CONTRACT_ADDRESS_SEPOLIA;
     let txHash = 'mock-transaction-hash';
     
     // Check if we have the required environment variables for real minting
@@ -122,6 +122,27 @@ export async function POST(request: NextRequest) {
         console.log('Saved progress to storage (mock path):', key, existingProgress);
       }
 
+      // Track the transaction
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userAddress: studentAddress,
+            type: 'datacoin',
+            amount: rewardAmount,
+            courseId: courseId || '0',
+            hash: txHash,
+            timestamp: Math.floor(Date.now() / 1000),
+            status: 'success'
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to track transaction:', error);
+      }
+
       return NextResponse.json({
         success: true,
         reward,
@@ -136,7 +157,7 @@ export async function POST(request: NextRequest) {
       const dataCoinContract = new ethers.Contract(dataCoinContractAddress, DataCoinABI, wallet);
 
       // Mint DataCoins to the user
-      const tx = await dataCoinContract.mint(studentAddress, ethers.parseUnits(rewardAmount, 18));
+      const tx = await dataCoinContract.mint(studentAddress, ethers.parseUnits(rewardAmount, 18), `Module ${moduleId} completion reward`);
       await tx.wait();
       txHash = tx.hash;
     } catch (contractError) {
@@ -207,6 +228,27 @@ export async function POST(request: NextRequest) {
       // Save updated progress
       progressStorage.set(key, existingProgress);
       console.log('Saved progress to storage (real minting path):', key, existingProgress);
+    }
+
+    // Track the transaction
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: studentAddress,
+          type: 'datacoin',
+          amount: rewardAmount,
+          courseId: courseId || '0',
+          hash: txHash,
+          timestamp: Math.floor(Date.now() / 1000),
+          status: 'success'
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to track transaction:', error);
     }
 
     return NextResponse.json({

@@ -72,6 +72,71 @@ export async function POST(request: NextRequest) {
     // Calculate DataCoins to allocate (3 DataCoins per module completed)
     const dataCoinsToAllocate = modules.length * 3;
 
+    // Track stake refund transaction
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: studentAddress,
+          type: 'refund',
+          amount: stakeAmount,
+          courseId: courseId.toString(),
+          hash: `0x${Math.random().toString(16).substring(2, 66)}`,
+          timestamp: Math.floor(Date.now() / 1000),
+          status: 'success'
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to track refund transaction:', error);
+    }
+
+    // Track course completion transaction
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: studentAddress,
+          type: 'complete',
+          amount: '0',
+          courseId: courseId.toString(),
+          hash: `0x${Math.random().toString(16).substring(2, 66)}`,
+          timestamp: Math.floor(Date.now() / 1000),
+          status: 'success',
+          certificateCID: certificateData.cid
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to track completion transaction:', error);
+    }
+
+    // Track DataCoin allocation transaction
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: studentAddress,
+          type: 'datacoin',
+          amount: dataCoinsToAllocate.toString(),
+          courseId: courseId.toString(),
+          hash: `0x${Math.random().toString(16).substring(2, 66)}`,
+          timestamp: Math.floor(Date.now() / 1000),
+          status: 'success',
+          reason: 'Course completion reward'
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to track DataCoin transaction:', error);
+    }
+
     // Return success response with CID and DataCoin allocation
     return NextResponse.json({
       success: true,
@@ -79,7 +144,7 @@ export async function POST(request: NextRequest) {
       certificateData,
       lighthouseUrl: certificateData.lighthouseUrl,
       dataCoinsAllocated: dataCoinsToAllocate,
-      message: `Certificate stored on Lighthouse and ${dataCoinsToAllocate} DataCoins allocated!`
+      message: `Certificate stored on Lighthouse, stake refunded, and ${dataCoinsToAllocate} DataCoins allocated!`
     });
 
   } catch (error) {

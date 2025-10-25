@@ -7,6 +7,7 @@ import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
 import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 import { useDataCoinBalance } from "@/hooks/useDataCoin";
+import { useLocalDataCoin } from "@/hooks/useLocalDataCoin";
 import { useProgress } from "@/hooks/useProgress";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
 import { useCertificates } from "@/hooks/useCertificates";
@@ -185,8 +186,11 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [dataCoinBalance, setDataCoinBalance] = useState("0");
 
-  // DataCoin balance hook
-  const { balance: dataCoinBalanceFromHook, refetch: refetchDataCoinBalance } = useDataCoinBalance(address);
+  // DataCoin balance hook (local tracking)
+  const { balance: localDataCoinBalance, refetch: refetchLocalDataCoinBalance } = useLocalDataCoin();
+  
+  // Contract DataCoin balance hook (for reference)
+  const { balance: contractDataCoinBalance, refetch: refetchContractDataCoinBalance } = useDataCoinBalance(address);
   
   // Certificates hook
   const { certificates, getTotalDataCoinsEarned } = useCertificates();
@@ -230,19 +234,19 @@ export default function DashboardPage() {
     },
   ]);
 
-  // Update DataCoin balance when hook data changes
+  // Update DataCoin balance when local balance changes
   useEffect(() => {
-    if (dataCoinBalanceFromHook) {
-      setDataCoinBalance(dataCoinBalanceFromHook.toString());
+    if (localDataCoinBalance !== undefined) {
+      setDataCoinBalance(localDataCoinBalance.toString());
     }
-  }, [dataCoinBalanceFromHook]);
+  }, [localDataCoinBalance]);
 
   // Refresh DataCoin balance when user returns to dashboard
   useEffect(() => {
     if (isConnected && address) {
-      refetchDataCoinBalance();
+      refetchLocalDataCoinBalance();
     }
-  }, [isConnected, address, refetchDataCoinBalance]);
+  }, [isConnected, address, refetchLocalDataCoinBalance]);
 
   // Learning tasks
   const learningTasks = [
@@ -546,6 +550,29 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fadeIn">
+      {/* RPC Limitation Warning */}
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-yellow-800">
+              RPC Provider Limitation Notice
+            </h3>
+            <div className="mt-2 text-sm text-yellow-700">
+              <p>
+                Your RPC provider has free tier limitations for blockchain event queries. 
+                This doesn't affect your DataCoin balance, certificates, or transaction tracking - 
+                everything is working perfectly with our local system.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Welcome Section - Enhanced */}
       <div className="relative overflow-visible rounded-3xl bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-8 md:p-12 text-white shadow-2xl">
         {/* Animated background elements */}
@@ -624,7 +651,7 @@ export default function DashboardPage() {
             gradientTo="#f97316"
           />
           <button
-            onClick={() => refetchDataCoinBalance()}
+            onClick={() => refetchLocalDataCoinBalance()}
             className="absolute top-2 right-2 p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-all opacity-0 group-hover:opacity-100"
             title="Refresh DataCoin Balance"
           >

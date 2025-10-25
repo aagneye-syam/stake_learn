@@ -18,46 +18,53 @@ export function useCertificates() {
     setError(null);
 
     try {
-      // For now, we'll use mock certificates
-      // In a real implementation, you'd fetch from a database or Lighthouse
-      const mockCertificates: CertificateMetadata[] = [
-        {
-          cid: "QmExample1",
-          studentAddress: address,
-          courseId: 1,
-          courseName: "Introduction to HTML",
-          completionDate: new Date().toISOString().split('T')[0],
-          uploadedAt: Math.floor(Date.now() / 1000),
-          lighthouseUrl: "https://gateway.lighthouse.storage/ipfs/QmExample1",
-          modules: [
-            { id: 1, title: "HTML Basics", lessons: 8, duration: "2 hours" },
-            { id: 2, title: "CSS Fundamentals", lessons: 10, duration: "3 hours" },
-            { id: 3, title: "Responsive Design", lessons: 6, duration: "2.5 hours" },
-            { id: 4, title: "Advanced CSS", lessons: 12, duration: "4 hours" }
-          ],
-          stakeAmount: "0.0001",
-          completedAt: Math.floor(Date.now() / 1000)
-        },
-        {
-          cid: "QmExample2",
-          studentAddress: address,
-          courseId: 2,
-          courseName: "CSS Fundamentals",
-          completionDate: new Date(Date.now() - 86400 * 1000).toISOString().split('T')[0], // 1 day ago
-          uploadedAt: Math.floor(Date.now() / 1000) - 86400,
-          lighthouseUrl: "https://gateway.lighthouse.storage/ipfs/QmExample2",
-          modules: [
-            { id: 1, title: "CSS Basics", lessons: 6, duration: "2 hours" },
-            { id: 2, title: "Layout Techniques", lessons: 8, duration: "3 hours" },
-            { id: 3, title: "Animations", lessons: 4, duration: "1.5 hours" },
-            { id: 4, title: "Advanced CSS", lessons: 10, duration: "4 hours" }
-          ],
-          stakeAmount: "0.0001",
-          completedAt: Math.floor(Date.now() / 1000) - 86400
-        }
-      ];
+      // Fetch transactions to find completed courses
+      const response = await fetch(`/api/transactions?userAddress=${address}`);
+      const data = await response.json();
 
-      setCertificates(mockCertificates);
+      if (response.ok && data.transactions) {
+        // Find completion transactions
+        const completionTransactions = data.transactions.filter(
+          (tx: any) => tx.type === 'complete'
+        );
+
+        // Convert completion transactions to certificates
+        const certificatesFromTransactions: CertificateMetadata[] = completionTransactions.map((tx: any) => {
+          const courseNames: { [key: string]: string } = {
+            '1': 'Introduction to HTML',
+            '2': 'CSS Fundamentals',
+            '3': 'Responsive Design',
+            '4': 'Advanced CSS',
+            '5': 'JavaScript Basics',
+            '6': 'React Fundamentals'
+          };
+
+          const courseName = courseNames[tx.courseId] || `Course ${tx.courseId}`;
+          const completionDate = new Date(tx.timestamp * 1000).toISOString().split('T')[0];
+
+          return {
+            cid: tx.certificateCID || `Qm${Math.random().toString(36).substring(2, 15)}`,
+            studentAddress: address,
+            courseId: parseInt(tx.courseId),
+            courseName: courseName,
+            completionDate: completionDate,
+            uploadedAt: tx.timestamp,
+            lighthouseUrl: `https://gateway.lighthouse.storage/ipfs/${tx.certificateCID || 'QmExample'}`,
+            modules: [
+              { id: 1, title: `${courseName} Module 1`, lessons: 8, duration: "2 hours" },
+              { id: 2, title: `${courseName} Module 2`, lessons: 10, duration: "3 hours" },
+              { id: 3, title: `${courseName} Module 3`, lessons: 6, duration: "2.5 hours" },
+              { id: 4, title: `${courseName} Module 4`, lessons: 12, duration: "4 hours" }
+            ],
+            stakeAmount: "0.0001",
+            completedAt: tx.timestamp
+          };
+        });
+
+        setCertificates(certificatesFromTransactions);
+      } else {
+        setCertificates([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch certificates');
       console.error('Certificate fetch error:', err);

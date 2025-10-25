@@ -21,6 +21,14 @@ export interface CertificateMetadata {
   lighthouseUrl: string;
   courseName?: string;
   completionDate?: string;
+  modules?: Array<{
+    id: number;
+    title: string;
+    lessons: number;
+    duration: string;
+  }>;
+  stakeAmount?: string;
+  completedAt?: number;
 }
 
 export interface DataCoinReward {

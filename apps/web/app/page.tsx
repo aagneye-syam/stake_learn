@@ -1,20 +1,18 @@
 "use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+
+import { AnimatedHero } from "@/components/ui/animated-hero";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function HomePage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.push("/dashboard");
-  }, [router]);
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
-      <div className="text-center">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
-        <p className="text-gray-600 font-medium">Loading...</p>
+    <main className="relative min-h-screen bg-background">
+      {/* Theme Toggle - Fixed Position */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
       </div>
-    </div>
+
+      {/* Animated Hero Section */}
+      <AnimatedHero />
+    </main>
   );
 }

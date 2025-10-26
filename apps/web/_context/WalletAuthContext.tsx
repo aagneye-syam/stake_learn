@@ -29,13 +29,18 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
 
   const loadUser = async (address: string) => {
     try {
+      console.log("🔵 Loading user for address:", address);
       const userData = await getUserByWallet(address);
+      console.log("🔵 User data from Firestore:", userData);
       setUser(userData);
       if (userData) {
         await updateLastLogin(address);
+        console.log("🟢 User found and last login updated");
+      } else {
+        console.log("🟡 No user found in Firestore for this address");
       }
     } catch (error) {
-      console.error("Failed to load user:", error);
+      console.error("🔴 Failed to load user:", error);
       setUser(null);
     }
   };
@@ -69,23 +74,29 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
+      console.log("🔵 WalletAuthContext: Initializing...");
       setIsLoading(true);
       
-      // DON'T auto-connect on page load to avoid MetaMask popup conflicts
-      // Only check if already connected
+      // Check if wallet was previously connected
       const wasConnected = localStorage.getItem("walletConnected");
+      console.log("🔵 Was previously connected:", wasConnected);
       
       if (wasConnected) {
         const address = await getCurrentWalletAddress();
+        console.log("🔵 Current wallet address:", address);
+        
         if (address) {
           setWalletAddress(address);
           await loadUser(address);
+          console.log("🟢 User loaded successfully");
         } else {
+          console.log("🟡 No address found, removing walletConnected flag");
           localStorage.removeItem("walletConnected");
         }
       }
       
       setIsLoading(false);
+      console.log("🟢 WalletAuthContext: Initialization complete");
     };
 
     init();

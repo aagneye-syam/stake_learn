@@ -123,11 +123,11 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
         {/* Course Info - Fixed height section */}
         <div className="mb-4 flex-shrink-0">
           <h3 className="text-xl font-bold text-black mb-2 line-clamp-2">
-            {task.title}
-          </h3>
+          {task.title}
+        </h3>
           <p className="text-gray-600 text-sm line-clamp-3 min-h-[3.75rem]">
-            {task.description}
-          </p>
+          {task.description}
+        </p>
         </div>
 
         {/* Stake Amount */}
@@ -152,17 +152,17 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
         <div className="mb-4 flex-shrink-0 min-h-[2.5rem]">
           {hasStaked && courseProgress ? (
             <div>
-              <ProgressBar 
-                progress={courseProgress.progressPercentage}
-                total={courseProgress.totalModules}
-                completed={courseProgress.completedModules}
-                size="sm"
-                animated={true}
-              />
-            </div>
+            <ProgressBar 
+              progress={courseProgress.progressPercentage}
+              total={courseProgress.totalModules}
+              completed={courseProgress.completedModules}
+              size="sm"
+              animated={true}
+            />
+          </div>
           ) : (
             <div className="h-10"></div> // Placeholder to maintain consistent height
-          )}
+        )}
         </div>
 
         {/* Spacer to push button to bottom */}
@@ -257,6 +257,17 @@ export default function DashboardPage() {
       refetchLocalDataCoinBalance();
     }
   }, [isConnected, address, refetchLocalDataCoinBalance]);
+
+  // Manual refresh function for testing
+  const handleRefreshData = async () => {
+    if (isConnected && address) {
+      await refetchLocalDataCoinBalance();
+      // Also refresh certificates
+      if (certificates && typeof certificates === 'object' && 'fetchCertificates' in certificates) {
+        await (certificates as any).fetchCertificates();
+      }
+    }
+  };
 
   // Learning tasks
   const learningTasks = [
@@ -562,24 +573,32 @@ export default function DashboardPage() {
     <div className="space-y-8 animate-fadeIn">
       {/* RPC Limitation Warning */}
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">
-              RPC Provider Limitation Notice
-            </h3>
-            <div className="mt-2 text-sm text-yellow-700">
-              <p>
-                Your RPC provider has free tier limitations for blockchain event queries. 
-                This doesn't affect your DataCoin balance, certificates, or transaction tracking - 
-                everything is working perfectly with our local system.
-              </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                RPC Provider Limitation Notice
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>
+                  Your RPC provider has free tier limitations for blockchain event queries. 
+                  This doesn't affect your DataCoin balance, certificates, or transaction tracking - 
+                  everything is working perfectly with our local system.
+                </p>
+              </div>
             </div>
           </div>
+          <button
+            onClick={handleRefreshData}
+            className="ml-4 px-3 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-sm font-medium transition-colors"
+          >
+            🔄 Refresh Data
+          </button>
         </div>
       </div>
 

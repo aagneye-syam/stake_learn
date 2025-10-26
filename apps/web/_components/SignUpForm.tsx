@@ -13,11 +13,28 @@ const validateEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
+const getPasswordStrength = (password: string): { strength: string; color: string; percent: number } => {
+  if (!password) return { strength: "", color: "", percent: 0 };
+  
+  let strength = 0;
+  if (password.length >= 6) strength++;
+  if (password.length >= 10) strength++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+  if (/\d/.test(password)) strength++;
+  if (/[^a-zA-Z\d]/.test(password)) strength++;
+  
+  if (strength <= 2) return { strength: "Weak", color: "bg-red-500", percent: 33 };
+  if (strength <= 3) return { strength: "Medium", color: "bg-yellow-500", percent: 66 };
+  return { strength: "Strong", color: "bg-green-500", percent: 100 };
+};
+
 export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [formError, setFormError] = useState("");
+  
+  const passwordStrength = getPasswordStrength(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +100,26 @@ export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormPro
           disabled={isLoading}
           required
         />
+        {password && (
+          <div className="mt-2">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs text-gray-600">Password strength:</span>
+              <span className={`text-xs font-medium ${
+                passwordStrength.strength === "Weak" ? "text-red-600" :
+                passwordStrength.strength === "Medium" ? "text-yellow-600" :
+                "text-green-600"
+              }`}>
+                {passwordStrength.strength}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div 
+                className={`h-1.5 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                style={{ width: `${passwordStrength.percent}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div>

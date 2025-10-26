@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import SignUpForm from "@/_components/SignUpForm";
 import Link from "next/link";
+import { signUpWithEmail } from "@/services/auth.service";
+import { createUserDocument } from "@/services/user.service";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -15,11 +17,11 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      // TODO: Implement Firebase authentication
-      console.log("Signing up with:", email);
+      // Create user with Firebase Auth
+      const authUser = await signUpWithEmail(email, password);
       
-      // Placeholder for now
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Create user document in Firestore
+      await createUserDocument(authUser.uid, email);
       
       // Navigate to home page after successful signup
       router.push("/");

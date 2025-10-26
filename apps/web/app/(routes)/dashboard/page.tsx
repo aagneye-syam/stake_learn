@@ -23,6 +23,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { StatsBentoGrid } from "@/_components/StatsBentoGrid";
 import { VerifyMintCard } from "@/_components/VerifyMintCard";
 import { ConsumerDataModal } from "@/components/ConsumerDataModal";
+import { CompactProgressRewards } from "@/_components/CompactProgressRewards";
 import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 // Client-only wrapper to prevent hydration issues
@@ -778,57 +779,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* DataCoin Rewards Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Daily Streak */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-          <h3 className="text-xl font-bold text-black mb-4">🔥 Daily Streak</h3>
-          <NoSSR>
-            <DailyStreak />
-          </NoSSR>
-        </div>
-
-        {/* Progress Rewards */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-          <h3 className="text-xl font-bold text-black mb-4">🎯 Progress Rewards</h3>
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
-              <h4 className="font-semibold text-black mb-2">Earn DataCoins by Learning</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Daily Login</span>
-                  <span className="text-blue-600 font-medium">+5 DataCoins</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Course Progress (25%)</span>
-                  <span className="text-blue-600 font-medium">+3 DataCoins</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Course Milestone</span>
-                  <span className="text-blue-600 font-medium">+8 DataCoins</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">7-Day Streak</span>
-                  <span className="text-orange-600 font-medium">+15 DataCoins</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">30-Day Streak</span>
-                  <span className="text-green-600 font-medium">+50 DataCoins</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <button 
-                onClick={() => router.push('/courses')}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
-              >
-                Start Learning & Earning
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Compact Progress Rewards */}
+      <CompactProgressRewards />
 
       {/* Consumer Data Section */}
       <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">

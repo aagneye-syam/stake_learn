@@ -1,5 +1,9 @@
 import { BrowserProvider } from "ethers";
 
+// Global lock to prevent multiple simultaneous connection requests
+let isConnecting = false;
+let connectionPromise: Promise<string> | null = null;
+
 // Check if MetaMask is installed
 export const isMetaMaskInstalled = (): boolean => {
   return typeof window !== "undefined" && typeof window.ethereum !== "undefined";
@@ -7,25 +11,42 @@ export const isMetaMaskInstalled = (): boolean => {
 
 // Connect wallet and return address
 export const connectWallet = async (): Promise<string> => {
+  // If already connecting, return the existing promise
+  if (isConnecting && connectionPromise) {
+    console.log("🟡 Connection already in progress, waiting for existing request...");
+    return connectionPromise;
+  }
+
   if (!isMetaMaskInstalled()) {
     throw new Error("MetaMask is not installed. Please install MetaMask to continue.");
   }
 
-  try {
-    const provider = new BrowserProvider(window.ethereum);
-    const accounts = await provider.send("eth_requestAccounts", []);
-    
-    if (!accounts || accounts.length === 0) {
-      throw new Error("No accounts found. Please unlock your wallet.");
-    }
+  isConnecting = true;
+  connectionPromise = (async () => {
+    try {
+      const provider = new BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts found. Please unlock your wallet.");
+      }
 
-    return accounts[0].toLowerCase(); // Normalize to lowercase
-  } catch (error: any) {
-    if (error.code === 4001) {
-      throw new Error("Connection request rejected. Please approve the connection to continue.");
+      return accounts[0].toLowerCase(); // Normalize to lowercase
+    } catch (error: any) {
+      if (error.code === 4001) {
+        throw new Error("Connection request rejected. Please approve the connection to continue.");
+      }
+      if (error.code === -32002) {
+        throw new Error("Connection request already pending. Please check your MetaMask popup.");
+      }
+      throw new Error(error.message || "Failed to connect wallet");
+    } finally {
+      isConnecting = false;
+      connectionPromise = null;
     }
-    throw new Error(error.message || "Failed to connect wallet");
-  }
+  })();
+
+  return connectionPromise;
 };
 
 // Get current connected wallet address

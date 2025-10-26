@@ -167,13 +167,62 @@ export async function POST(request: NextRequest) {
       const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY as string, provider);
       const dataCoinContract = new ethers.Contract(dataCoinContractAddress, DataCoinABI, wallet);
 
-      // Mint DataCoins to the user
-      const tx = await dataCoinContract.mint(studentAddress, ethers.parseUnits(rewardAmount, 18), `Module ${moduleId} completion reward`);
-      await tx.wait();
-      txHash = tx.hash;
+      // Get current gas price and add buffer
+      const gasPrice = await provider.getFeeData();
+      const gasPriceWithBuffer = gasPrice.gasPrice ? gasPrice.gasPrice * BigInt(120) / BigInt(100) : undefined; // 20% buffer
+
+      // Mint DataCoins to the user with retry logic
+      let tx;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          // Get fresh gas price for each retry
+          const currentGasPrice = await provider.getFeeData();
+          const retryGasPrice = currentGasPrice.gasPrice ? 
+            currentGasPrice.gasPrice * (BigInt(120) + BigInt(retryCount * 10)) / BigInt(100) : // Increase gas price with each retry
+            undefined;
+
+          tx = await dataCoinContract.mint(
+            studentAddress, 
+            ethers.parseUnits(rewardAmount, 18), 
+            `Module ${moduleId} completion reward`,
+            {
+              gasPrice: retryGasPrice,
+              gasLimit: 200000, // Set reasonable gas limit
+              nonce: await provider.getTransactionCount(wallet.address, 'pending') // Use pending nonce
+            }
+          );
+          
+          console.log(`Transaction submitted (attempt ${retryCount + 1}): ${tx.hash}`);
+          await tx.wait();
+          txHash = tx.hash;
+          console.log(`Transaction confirmed: ${txHash}`);
+          break; // Success, exit retry loop
+          
+        } catch (retryError: any) {
+          retryCount++;
+          console.error(`Transaction attempt ${retryCount} failed:`, retryError.message);
+          
+          if (retryCount >= maxRetries) {
+            throw retryError; // Re-throw if max retries reached
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
     } catch (contractError) {
       console.error('Contract interaction failed, using mock transaction:', contractError);
-      // Continue with mock transaction for development
+      
+      // If it's a known transaction error, try to get the transaction hash
+      if (contractError.transaction) {
+        txHash = contractError.transaction;
+        console.log(`Using transaction hash from error: ${txHash}`);
+      } else {
+        // Continue with mock transaction for development
+      }
     }
 
     const reward = {

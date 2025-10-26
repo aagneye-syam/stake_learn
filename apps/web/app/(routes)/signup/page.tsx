@@ -11,10 +11,12 @@ export default function SignUpPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleSignUp = async (email: string, password: string) => {
     setIsLoading(true);
     setError("");
+    setSuccess(false);
 
     try {
       // Create user with Firebase Auth
@@ -23,8 +25,13 @@ export default function SignUpPage() {
       // Create user document in Firestore
       await createUserDocument(authUser.uid, email);
       
-      // Navigate to home page after successful signup
-      router.push("/");
+      // Show success message
+      setSuccess(true);
+      
+      // Navigate to home page after brief delay
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
     } catch (err: any) {
       setError(err.message || "Failed to create account. Please try again.");
     } finally {
@@ -41,16 +48,30 @@ export default function SignUpPage() {
         </div>
 
         <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
-          <SignUpForm onSubmit={handleSignUp} isLoading={isLoading} error={error} />
+          {success ? (
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-black mb-2">Account Created Successfully!</h3>
+              <p className="text-gray-600">Redirecting you to the home page...</p>
+            </div>
+          ) : (
+            <SignUpForm onSubmit={handleSignUp} isLoading={isLoading} error={error} />
+          )}
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <Link href="/signin" className="text-purple-600 hover:text-purple-700 font-medium">
-                Sign In
-              </Link>
-            </p>
-          </div>
+          {!success && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{" "}
+                <Link href="/signin" className="text-purple-600 hover:text-purple-700 font-medium">
+                  Sign In
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 text-center">

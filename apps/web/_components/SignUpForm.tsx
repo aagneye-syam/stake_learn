@@ -71,7 +71,7 @@ export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormPro
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" aria-label="Sign up form">
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
           Email Address
@@ -85,6 +85,8 @@ export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormPro
           placeholder="Enter your email"
           disabled={isLoading}
           required
+          aria-required="true"
+          aria-describedby="email-hint"
         />
       </div>
 
@@ -107,6 +109,7 @@ export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormPro
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,6 +164,7 @@ export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormPro
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
           >
             {showConfirmPassword ? (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,8 +181,8 @@ export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormPro
       </div>
 
       {(formError || error) && (
-        <div className="p-4 rounded-xl bg-red-50 border-2 border-red-200 flex items-start gap-3">
-          <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="p-4 rounded-xl bg-red-50 border-2 border-red-200 flex items-start gap-3" role="alert" aria-live="polite">
+          <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-sm font-medium text-red-800">{formError || error}</p>

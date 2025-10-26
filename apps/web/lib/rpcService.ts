@@ -48,6 +48,13 @@ class RPCService {
   }
 
   /**
+   * Check if Firebase is available
+   */
+  private isFirebaseAvailable(): boolean {
+    return db !== null && db !== undefined;
+  }
+
+  /**
    * Get RPC configuration for a specific network
    */
   async getNetworkRPC(chainId: number): Promise<NetworkRPC | null> {
@@ -71,6 +78,11 @@ class RPCService {
    */
   private async getNetworkRPCFromFirebase(chainId: number): Promise<NetworkRPC | null> {
     try {
+      if (!this.isFirebaseAvailable()) {
+        console.warn('Firebase not initialized, falling back to environment variables');
+        return this.getNetworkRPCFromEnv(chainId);
+      }
+      
       const docRef = doc(db, 'networkRPCs', chainId.toString());
       const docSnap = await getDoc(docRef);
 
@@ -116,6 +128,11 @@ class RPCService {
    */
   private async getAllNetworkRPCsFromFirebase(): Promise<NetworkRPC[]> {
     try {
+      if (!this.isFirebaseAvailable()) {
+        console.warn('Firebase not initialized, falling back to environment variables');
+        return this.getAllNetworkRPCsFromEnv();
+      }
+      
       const q = query(
         collection(db, 'networkRPCs'),
         orderBy('priority', 'asc')
@@ -372,7 +389,7 @@ class RPCService {
    * Subscribe to real-time updates for network RPCs
    */
   subscribeToNetworkRPCs(callback: (networks: NetworkRPC[]) => void): Unsubscribe {
-    if (this.useFirebase) {
+    if (this.useFirebase && this.isFirebaseAvailable()) {
       const q = query(
         collection(db, 'networkRPCs'),
         orderBy('priority', 'asc')
@@ -406,6 +423,11 @@ class RPCService {
   async updateNetworkRPC(networkRPC: Partial<NetworkRPC>): Promise<boolean> {
     if (!this.useFirebase) {
       console.warn('Cannot update network RPC in environment mode. Use environment variables instead.');
+      return false;
+    }
+
+    if (!this.isFirebaseAvailable()) {
+      console.warn('Firebase not initialized, cannot update network RPC');
       return false;
     }
 
@@ -502,6 +524,11 @@ class RPCService {
   async initializeDefaultRPCs(): Promise<void> {
     if (!this.useFirebase) {
       console.warn('Cannot initialize default RPCs in environment mode. Use environment variables instead.');
+      return;
+    }
+
+    if (!this.isFirebaseAvailable()) {
+      console.warn('Firebase not initialized, cannot initialize default RPCs');
       return;
     }
 

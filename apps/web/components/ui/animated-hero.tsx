@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import SignInModal from "@/_components/SignInModal";
 import { useRouter } from "next/navigation";
+import { signInWithEmail } from "@/services/auth.service";
 
 function AnimatedHero() {
   const [titleNumber, setTitleNumber] = useState(0);
@@ -18,6 +19,21 @@ function AnimatedHero() {
     () => ["revolutionary", "secure", "transparent", "rewarding", "innovative"],
     []
   );
+
+  const handleSignIn = async (email: string, password: string) => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      await signInWithEmail(email, password);
+      setIsSignInModalOpen(false);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Failed to sign in. Please check your credentials.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -95,7 +111,7 @@ function AnimatedHero() {
           setIsSignInModalOpen(false);
           setError("");
         }}
-        onSignIn={async () => {}}
+        onSignIn={handleSignIn}
         isLoading={isLoading}
         error={error}
       />

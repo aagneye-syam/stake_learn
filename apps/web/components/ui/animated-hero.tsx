@@ -71,9 +71,9 @@ function AnimatedHero() {
             </p>
           </div>
           <div className="flex flex-row gap-3">
-            <Link href="/courses">
+            <Link href="/signup">
               <Button size="lg" className="gap-4" variant="outline">
-                Browse Courses <Rocket className="w-4 h-4" />
+                Sign Up <Rocket className="w-4 h-4" />
               </Button>
             </Link>
             <Link href="/dashboard">

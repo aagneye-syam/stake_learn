@@ -5,9 +5,11 @@ import { motion } from "framer-motion";
 import { MoveRight, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import SignInModal from "@/_components/SignInModal";
 
 function AnimatedHero() {
   const [titleNumber, setTitleNumber] = useState(0);
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
   const titles = useMemo(
     () => ["revolutionary", "secure", "transparent", "rewarding", "innovative"],
     []
@@ -76,14 +78,18 @@ function AnimatedHero() {
                 Sign Up <Rocket className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href="/dashboard">
-              <Button size="lg" className="gap-4">
-                Go to Dashboard <MoveRight className="w-4 h-4" />
-              </Button>
-            </Link>
+            <Button size="lg" className="gap-4" onClick={() => setIsSignInModalOpen(true)}>
+              Go to Dashboard <MoveRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>
+
+      <SignInModal
+        isOpen={isSignInModalOpen}
+        onClose={() => setIsSignInModalOpen(false)}
+        onSignIn={async () => {}}
+      />
     </div>
   );
 }

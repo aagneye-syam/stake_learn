@@ -362,62 +362,122 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
             {selectedRepository ? (
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-900">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
                     {selectedRepository.repoName}
                   </h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleRepositoryStatusUpdate(selectedRepository.id, 'approved', 50)}
-                      className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm hover:bg-green-200 transition-colors"
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold border-2 ${getStatusColor(selectedRepository.status)} flex items-center gap-1`}>
+                      {getStatusIcon(selectedRepository.status)}
+                      <span className="capitalize">{selectedRepository.status}</span>
+                    </span>
+                    <a
+                      href={selectedRepository.repoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center gap-1"
                     >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleRepositoryStatusUpdate(selectedRepository.id, 'rejected')}
-                      className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200 transition-colors"
-                    >
-                      Reject
-                    </button>
+                      <ExternalLink className="h-4 w-4" />
+                      View on GitHub
+                    </a>
                   </div>
                 </div>
 
-                <div className="space-y-4 mb-6">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Owner:</span>
-                      <span className="ml-2 font-medium">{selectedRepository.repoOwner}</span>
+                {/* Repository Details Card */}
+                <div className="bg-gray-50 rounded-xl p-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Repository Info */}
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-3">Repository Information</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Owner</span>
+                            <span className="font-medium text-gray-900">{selectedRepository.repoOwner}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Language</span>
+                            <span className="font-medium text-gray-900">{selectedRepository.language || 'Unknown'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Stars</span>
+                            <span className="font-medium text-gray-900 flex items-center gap-1">
+                              <Star className="h-4 w-4 text-yellow-500" />
+                              {selectedRepository.stars || 0}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Forks</span>
+                            <span className="font-medium text-gray-900 flex items-center gap-1">
+                              <GitFork className="h-4 w-4 text-gray-500" />
+                              {selectedRepository.forks || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Language:</span>
-                      <span className="ml-2 font-medium">{selectedRepository.language || 'Unknown'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Stars:</span>
-                      <span className="ml-2 font-medium">{selectedRepository.stars || 0}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Forks:</span>
-                      <span className="ml-2 font-medium">{selectedRepository.forks || 0}</span>
+
+                    {/* User Information */}
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-3">Submitter Information</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Name</span>
+                            <span className="font-medium text-gray-900">{selectedRepository.userName}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Email</span>
+                            <span className="font-medium text-gray-900">{selectedRepository.userEmail}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">GitHub Username</span>
+                            <span className="font-medium text-gray-900">@{selectedRepository.githubUsername}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Submitted</span>
+                            <span className="font-medium text-gray-900">
+                              {new Date(selectedRepository.submittedAt.seconds * 1000).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="text-sm">
-                    <span className="text-gray-600">Submitted by:</span>
-                    <span className="ml-2 font-medium">{selectedRepository.userName}</span>
-                    <span className="ml-2 text-gray-500">({selectedRepository.userEmail})</span>
-                  </div>
-                  
-                  <div className="text-sm">
-                    <span className="text-gray-600">GitHub Username:</span>
-                    <span className="ml-2 font-medium">{selectedRepository.githubUsername}</span>
-                  </div>
-                  
-                  <div className="text-sm">
-                    <span className="text-gray-600">Submitted:</span>
-                    <span className="ml-2 font-medium">
-                      {new Date(selectedRepository.submittedAt.seconds * 1000).toLocaleDateString()}
-                    </span>
+
+                  {/* Progress Indicator */}
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-lg font-semibold text-gray-900">Verification Progress</h4>
+                      <span className="text-sm text-gray-600">
+                        {selectedRepository.verifiedCommits}/{selectedRepository.totalCommits} commits verified
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${selectedRepository.totalCommits > 0 ? (selectedRepository.verifiedCommits / selectedRepository.totalCommits) * 100 : 0}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <span>
+                        {selectedRepository.totalCommits > 0 
+                          ? `${Math.round((selectedRepository.verifiedCommits / selectedRepository.totalCommits) * 100)}% Complete`
+                          : 'No commits to verify'
+                        }
+                      </span>
+                      <span>
+                        {selectedRepository.dataCoinsEarned} DataCoins earned
+                      </span>
+                    </div>
                   </div>
                 </div>
 

@@ -24,7 +24,7 @@ export function useContractAddresses(chainId?: number) {
     if (chainId) {
       fetchContractAddresses(chainId);
     }
-  }, [chainId, fetchContractAddresses]);
+  }, [chainId]); // Remove fetchContractAddresses from dependencies
 
   return {
     contractAddresses,
@@ -55,7 +55,7 @@ export function useAllContractAddresses() {
 
   useEffect(() => {
     fetchAllContractAddresses();
-  }, [fetchAllContractAddresses]);
+  }, []); // Remove fetchAllContractAddresses from dependencies
 
   return {
     contractAddresses,

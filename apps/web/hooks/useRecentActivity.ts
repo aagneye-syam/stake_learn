@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
 import { useTransactionsContext } from '@/_context/TransactionsContext';
 
@@ -33,7 +33,6 @@ const mapToActivityCardType = (txType: string): 'mint' | 'verify' | 'reputation'
 export function useRecentActivity() {
   const { address } = useAccount();
   const { transactions, loading } = useTransactionsContext();
-  const [activities, setActivities] = useState<Activity[]>([]);
 
   const formatTimestamp = (timestamp: number): string => {
     const now = Date.now();
@@ -71,22 +70,16 @@ export function useRecentActivity() {
     }
   };
 
-  const calculateRecentActivities = useCallback(() => {
+  const activities = useMemo(() => {
     if (!transactions || transactions.length === 0) {
-      setActivities(prev => {
-        if (prev.length === 0) {
-          return prev; // No change needed
-        }
-        return [];
-      });
-      return;
+      return [];
     }
 
     // Sort transactions by timestamp (newest first)
     const sortedTransactions = [...transactions].sort((a, b) => b.timestamp - a.timestamp);
 
     // Convert transactions to activities
-    const newActivities: Activity[] = sortedTransactions.slice(0, 10).map((tx, index) => ({
+    return sortedTransactions.slice(0, 10).map((tx, index) => ({
       id: tx.hash || `activity-${index}`,
       type: mapToActivityCardType(tx.type),
       description: generateActivityDescription(tx),
@@ -96,29 +89,11 @@ export function useRecentActivity() {
       amount: tx.amount,
       courseId: tx.courseId,
     }));
-
-    setActivities(prev => {
-      // Only update if data actually changed
-      if (prev.length === newActivities.length && 
-          prev[0]?.id === newActivities[0]?.id &&
-          prev[0]?.timestamp === newActivities[0]?.timestamp) {
-        return prev;
-      }
-      return newActivities;
-    });
   }, [transactions]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      calculateRecentActivities();
-    }, 100); // Debounce by 100ms
-
-    return () => clearTimeout(timeoutId);
-  }, [calculateRecentActivities]);
 
   return {
     activities,
     loading,
-    refetch: calculateRecentActivities,
+    refetch: () => {}, // No-op since we're using useMemo
   };
 }

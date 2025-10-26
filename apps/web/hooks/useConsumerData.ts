@@ -243,7 +243,7 @@ export function useConsumerData() {
       initializeReclaim();
       fetchContributions();
     }
-  }, [isConnected, address, initializeReclaim, fetchContributions]);
+  }, [isConnected, address]); // Remove initializeReclaim and fetchContributions from dependencies
 
   return {
     // State

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
 import { useTransactionsContext } from '@/_context/TransactionsContext';
 
@@ -27,35 +27,19 @@ export interface ReputationStats {
 export function useReputation() {
   const { address } = useAccount();
   const { transactions, loading } = useTransactionsContext();
-  const [reputationStats, setReputationStats] = useState<ReputationStats>({
-    totalReputation: 0,
-    reputationBreakdown: {
-      courseCompletion: 0,
-      dataCoins: 0,
-      certificates: 0,
-      contributions: 0,
-    },
-    recentGains: [],
-  });
 
-  const calculateReputationStats = useCallback(() => {
+  const reputationStats = useMemo(() => {
     if (!transactions || transactions.length === 0) {
-      setReputationStats(prev => {
-        if (prev.totalReputation === 0 && prev.recentGains.length === 0) {
-          return prev; // No change needed
-        }
-        return {
-          totalReputation: 0,
-          reputationBreakdown: {
-            courseCompletion: 0,
-            dataCoins: 0,
-            certificates: 0,
-            contributions: 0,
-          },
-          recentGains: [],
-        };
-      });
-      return;
+      return {
+        totalReputation: 0,
+        reputationBreakdown: {
+          courseCompletion: 0,
+          dataCoins: 0,
+          certificates: 0,
+          contributions: 0,
+        },
+        recentGains: [],
+      };
     }
 
     let totalReputation = 0;
@@ -126,35 +110,17 @@ export function useReputation() {
     // Sort by timestamp (newest first)
     const sortedGains = recentGains.sort((a, b) => b.timestamp - a.timestamp);
 
-    const newStats = {
+    return {
       totalReputation,
       reputationBreakdown: breakdown,
       recentGains: sortedGains.slice(0, 10), // Last 10 gains
       lastGain: sortedGains.length > 0 ? sortedGains[0] : undefined,
     };
-
-    setReputationStats(prev => {
-      // Only update if data actually changed
-      if (prev.totalReputation === newStats.totalReputation && 
-          prev.recentGains.length === newStats.recentGains.length &&
-          prev.recentGains[0]?.timestamp === newStats.recentGains[0]?.timestamp) {
-        return prev;
-      }
-      return newStats;
-    });
   }, [transactions]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      calculateReputationStats();
-    }, 100); // Debounce by 100ms
-
-    return () => clearTimeout(timeoutId);
-  }, [calculateReputationStats]);
 
   return {
     ...reputationStats,
     loading: loading && transactions.length === 0, // Only show loading if no transactions yet
-    refetch: calculateReputationStats,
+    refetch: () => {}, // No-op since we're using useMemo
   };
 }

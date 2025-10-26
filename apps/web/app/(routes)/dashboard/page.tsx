@@ -237,7 +237,7 @@ export default function DashboardPage() {
     if (isConnected && address) {
       refetchLocalDataCoinBalance();
     }
-  }, [isConnected, address, refetchLocalDataCoinBalance]);
+  }, [isConnected, address]); // Remove refetchLocalDataCoinBalance from dependencies
 
   // Manual refresh function for testing
   const handleRefreshData = async () => {

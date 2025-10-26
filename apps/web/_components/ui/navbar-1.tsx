@@ -28,7 +28,6 @@ const navigationItems = [
   { name: "Courses", href: "/courses" },
   { name: "Certificate", href: "/certificate" },
   { name: "Transactions", href: "/transactions" },
-  { name: "Admin", href: "/admin" },
 ]
 
 const Navbar1 = () => {

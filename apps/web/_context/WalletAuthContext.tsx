@@ -67,6 +67,9 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
+      
+      // DON'T auto-connect on page load to avoid MetaMask popup conflicts
+      // Only check if already connected
       const wasConnected = localStorage.getItem("walletConnected");
       
       if (wasConnected) {

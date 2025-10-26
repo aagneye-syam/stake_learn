@@ -25,6 +25,8 @@ export default function WalletConnectButton({
     setIsLoading(true);
     try {
       await onConnect();
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
     } finally {
       setIsLoading(false);
     }

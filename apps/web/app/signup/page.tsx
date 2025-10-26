@@ -7,9 +7,11 @@ import WalletConnectButton from "@/_components/WalletConnectButton";
 import UserOnboardingModal from "@/_components/UserOnboardingModal";
 import { connectWallet } from "@/services/wallet-auth.service";
 import { getUserByWallet, createWalletUser } from "@/services/user.service";
+import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { refreshUser } = useWalletAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
@@ -28,15 +30,21 @@ export default function SignUpPage() {
       const existingUser = await getUserByWallet(address);
 
       if (existingUser) {
-        // User exists, redirect to dashboard
+        // User exists, redirect to dashboard immediately
+        // Store wallet connection in localStorage
+        localStorage.setItem("walletConnected", "true");
+        
+        // Refresh user context
+        await refreshUser();
+        
         router.push("/dashboard");
       } else {
-        // New user, show onboarding modal
+        // New user, show onboarding modal immediately
         setShowOnboarding(true);
+        setIsLoading(false);
       }
     } catch (err: any) {
       setError(err.message || "Failed to connect wallet. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -44,6 +52,14 @@ export default function SignUpPage() {
   const handleOnboardingSubmit = async (name: string, email: string) => {
     try {
       await createWalletUser(walletAddress, name, email);
+      
+      setShowOnboarding(false);
+      
+      // Store wallet connection in localStorage
+      localStorage.setItem("walletConnected", "true");
+      
+      await refreshUser(); // Refresh wallet context
+      
       router.push("/dashboard");
     } catch (err: any) {
       throw new Error(err.message || "Failed to create account");
@@ -51,7 +67,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-6 sm:mb-8">
           <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">

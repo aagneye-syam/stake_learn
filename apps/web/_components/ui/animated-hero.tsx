@@ -6,13 +6,18 @@ import { MoveRight, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import UserOnboardingModal from "@/_components/UserOnboardingModal";
 import { connectWallet } from "@/services/wallet-auth.service";
-import { getUserByWallet } from "@/services/user.service";
+import { getUserByWallet, createWalletUser } from "@/services/user.service";
+import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 function AnimatedHero() {
   const [titleNumber, setTitleNumber] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
+  const { refreshUser } = useWalletAuth();
   const router = useRouter();
   const titles = useMemo(
     () => ["revolutionary", "secure", "transparent", "rewarding", "innovative"],
@@ -26,6 +31,7 @@ function AnimatedHero() {
     try {
       // Connect wallet
       const address = await connectWallet();
+      setWalletAddress(address);
 
       // Check if user exists
       const user = await getUserByWallet(address);
@@ -34,14 +40,25 @@ function AnimatedHero() {
         // User exists, go to dashboard
         router.push("/dashboard");
       } else {
-        // New user, go to signup
-        router.push("/signup");
+        // New user, show onboarding modal
+        setShowOnboarding(true);
       }
     } catch (err: any) {
       setError(err.message || "Failed to connect wallet");
       setTimeout(() => setError(""), 5000);
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const handleOnboardingSubmit = async (name: string, email: string) => {
+    try {
+      await createWalletUser(walletAddress, name, email);
+      setShowOnboarding(false);
+      await refreshUser(); // Refresh user in context
+      router.push("/dashboard");
+    } catch (err: any) {
+      throw new Error(err.message || "Failed to create account");
     }
   };
 
@@ -129,6 +146,12 @@ function AnimatedHero() {
           </div>
         </div>
       </div>
+
+      <UserOnboardingModal
+        isOpen={showOnboarding}
+        walletAddress={walletAddress}
+        onSubmit={handleOnboardingSubmit}
+      />
     </div>
   );
 }

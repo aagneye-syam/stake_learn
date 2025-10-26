@@ -22,12 +22,13 @@ export class ReclaimService {
 
   private async initializeReclaim() {
     try {
-      // Dynamic import to handle ES modules properly
-      const ReclaimSDK = await import('@reclaimprotocol/js-sdk');
+      // Temporarily disabled Reclaim SDK to fix build error
+      // TODO: Install @reclaimprotocol/js-sdk package when needed
+      // const ReclaimSDK = await import('@reclaimprotocol/js-sdk');
+      // this.reclaim = ReclaimSDK;
       
-      // The SDK exports functions directly, not a class
-      this.reclaim = ReclaimSDK;
-      console.log('Reclaim SDK initialized successfully');
+      console.warn('Reclaim SDK temporarily disabled. Using mock mode.');
+      this.reclaim = null;
     } catch (error) {
       console.warn('Failed to initialize Reclaim SDK, using mock mode:', error);
       this.reclaim = null;

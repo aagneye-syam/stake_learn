@@ -418,14 +418,14 @@ export default function DashboardPage() {
     setIsLoading(true);
     setStatus("Verifying your contribution...");
     try {
-      const res = await fetch("/api/verify", {
+      // Use manual verification instead of AI verification
+      const res = await fetch("/api/manual-verify", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ 
           repo, 
           sha, 
-          wallet: address, 
-          expiry: Math.floor(Date.now()/1000)+3600 
+          wallet: address
         }),
       });
       const data = await res.json();
@@ -438,7 +438,7 @@ export default function DashboardPage() {
           tokenURI: data.tokenURI 
         });
         setSignature(data.signature);
-        setStatus("✓ Verified successfully! You can now mint your SBT.");
+        setStatus("✓ Manually verified successfully! You can now mint your SBT.");
       } else {
         setStatus("✗ " + (data.error || "Verification failed. Please check your inputs."));
       }

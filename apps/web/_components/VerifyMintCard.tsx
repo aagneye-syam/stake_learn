@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { ShimmerButton } from "../components/ui/shimmer-button";
 import { Button as MovingBorderButton } from "../components/ui/moving-border";
+import { CommitDetails } from "./CommitDetails";
 
 interface VerifyMintCardProps {
   repo: string;
@@ -28,6 +30,27 @@ export function VerifyMintCard({
   onVerify,
   onMint,
 }: VerifyMintCardProps) {
+  const [showCommitDetails, setShowCommitDetails] = useState(false);
+
+  const handleVerifyClick = () => {
+    if (repo && sha) {
+      setShowCommitDetails(true);
+    } else {
+      onVerify();
+    }
+  };
+
+  const handleCommitVerify = (verified: boolean) => {
+    if (verified) {
+      onVerify();
+    }
+    setShowCommitDetails(false);
+  };
+
+  const handleCommitCancel = () => {
+    setShowCommitDetails(false);
+  };
+
   return (
     <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
       <div className="flex items-center gap-3 mb-6">
@@ -78,7 +101,7 @@ export function VerifyMintCard({
 
         <div className="flex gap-4 items-center justify-center">
           <ShimmerButton
-            onClick={onVerify}
+            onClick={handleVerifyClick}
             disabled={!address || isLoading || !repo || !sha}
             className="w-full"
             background="linear-gradient(135deg, rgb(147, 51, 234) 0%, rgb(59, 130, 246) 100%)"
@@ -148,6 +171,17 @@ export function VerifyMintCard({
             )}
           </MovingBorderButton>
         </div>
+
+        {showCommitDetails && (
+          <div className="border-t border-gray-200 pt-6">
+            <CommitDetails
+              repoUrl={repo.startsWith('http') ? repo : `https://github.com/${repo}`}
+              commitSha={sha}
+              onVerify={handleCommitVerify}
+              onCancel={handleCommitCancel}
+            />
+          </div>
+        )}
 
         {status && (
           <div

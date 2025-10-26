@@ -53,21 +53,21 @@ export function useRecentActivity() {
   const generateActivityDescription = (tx: any): string => {
     switch (tx.type) {
       case 'mint':
-        return `Minted SBT for ${tx.reason || 'contribution'}`;
+        return `SBT Minted`;
       case 'verify':
-        return `Verified contribution in ${tx.courseId || 'repository'}`;
+        return `Contribution Verified`;
       case 'reputation':
-        return `Earned ${tx.amount || '0'} reputation points`;
+        return `Reputation Gained`;
       case 'stake':
-        return `Staked ${tx.amount} ETH for course ${tx.courseId}`;
+        return `Staked for Course ${tx.courseId}`;
       case 'complete':
-        return `Completed course ${tx.courseId}`;
+        return `Completed Course ${tx.courseId}`;
       case 'refund':
-        return `Received ${tx.amount} ETH refund for course ${tx.courseId}`;
+        return `Refund Received`;
       case 'datacoin':
-        return `Earned ${tx.amount} DataCoins for ${tx.reason || 'activity'}`;
+        return `Earned ${tx.amount} DataCoins`;
       default:
-        return `Transaction ${tx.type}`;
+        return `Activity Completed`;
     }
   };
 

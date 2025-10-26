@@ -384,99 +384,165 @@ export default function AdminPage() {
                 </div>
 
                 {/* Repository Details Card */}
-                <div className="bg-gray-50 rounded-xl p-6 mb-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl p-8 mb-8 shadow-sm border border-gray-200">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Repository Info */}
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900 mb-3">Repository Information</h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Owner</span>
-                            <span className="font-medium text-gray-900">{selectedRepository.repoOwner}</span>
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-blue-500 rounded-lg">
+                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <h4 className="text-xl font-bold text-gray-900">Repository Information</h4>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-blue-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-gray-700">Owner</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Language</span>
-                            <span className="font-medium text-gray-900">{selectedRepository.language || 'Unknown'}</span>
+                          <span className="font-semibold text-gray-900">{selectedRepository.repoOwner}</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-blue-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-gray-700">Language</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Stars</span>
-                            <span className="font-medium text-gray-900 flex items-center gap-1">
-                              <Star className="h-4 w-4 text-yellow-500" />
-                              {selectedRepository.stars || 0}
-                            </span>
+                          <span className="font-semibold text-gray-900">{selectedRepository.language || 'Unknown'}</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-blue-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-gray-700">Stars</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Forks</span>
-                            <span className="font-medium text-gray-900 flex items-center gap-1">
-                              <GitFork className="h-4 w-4 text-gray-500" />
-                              {selectedRepository.forks || 0}
-                            </span>
+                          <span className="font-semibold text-gray-900 flex items-center gap-2">
+                            <Star className="h-4 w-4 text-yellow-500" />
+                            {selectedRepository.stars || 0}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-blue-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-gray-700">Forks</span>
                           </div>
+                          <span className="font-semibold text-gray-900 flex items-center gap-2">
+                            <GitFork className="h-4 w-4 text-gray-500" />
+                            {selectedRepository.forks || 0}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     {/* User Information */}
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900 mb-3">Submitter Information</h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Name</span>
-                            <span className="font-medium text-gray-900">{selectedRepository.userName}</span>
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-purple-500 rounded-lg">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <h4 className="text-xl font-bold text-gray-900">Submitter Information</h4>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-purple-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-gray-700">Name</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Email</span>
-                            <span className="font-medium text-gray-900">{selectedRepository.userEmail}</span>
+                          <span className="font-semibold text-gray-900">{selectedRepository.userName}</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-purple-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-gray-700">Email</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">GitHub Username</span>
-                            <span className="font-medium text-gray-900">@{selectedRepository.githubUsername}</span>
+                          <span className="font-semibold text-gray-900 text-sm">{selectedRepository.userEmail}</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-purple-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-gray-700">GitHub Username</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Submitted</span>
-                            <span className="font-medium text-gray-900">
-                              {new Date(selectedRepository.submittedAt.seconds * 1000).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
+                          <span className="font-semibold text-gray-900">@{selectedRepository.githubUsername}</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-purple-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-gray-700">Submitted</span>
                           </div>
+                          <span className="font-semibold text-gray-900 text-sm">
+                            {new Date(selectedRepository.submittedAt.seconds * 1000).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Progress Indicator */}
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-lg font-semibold text-gray-900">Verification Progress</h4>
-                      <span className="text-sm text-gray-600">
-                        {selectedRepository.verifiedCommits}/{selectedRepository.totalCommits} commits verified
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                      <div 
-                        className="bg-gradient-to-r from-purple-500 to-blue-600 h-3 rounded-full transition-all duration-500"
-                        style={{ 
-                          width: `${selectedRepository.totalCommits > 0 ? (selectedRepository.verifiedCommits / selectedRepository.totalCommits) * 100 : 0}%` 
-                        }}
-                      ></div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>
-                        {selectedRepository.totalCommits > 0 
-                          ? `${Math.round((selectedRepository.verifiedCommits / selectedRepository.totalCommits) * 100)}% Complete`
-                          : 'No commits to verify'
-                        }
-                      </span>
-                      <span>
-                        {selectedRepository.dataCoinsEarned} DataCoins earned
-                      </span>
+                  <div className="mt-8 pt-8 border-t border-gray-200">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-100">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-green-500 rounded-lg">
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <h4 className="text-xl font-bold text-gray-900">Verification Progress</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-gray-900 mb-1">
+                            {selectedRepository.verifiedCommits}
+                          </div>
+                          <div className="text-sm text-gray-600">Verified Commits</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-gray-900 mb-1">
+                            {selectedRepository.totalCommits}
+                          </div>
+                          <div className="text-sm text-gray-600">Total Commits</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-purple-600 mb-1">
+                            {selectedRepository.dataCoinsEarned}
+                          </div>
+                          <div className="text-sm text-gray-600">DataCoins Earned</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">Progress</span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {selectedRepository.totalCommits > 0 
+                              ? `${Math.round((selectedRepository.verifiedCommits / selectedRepository.totalCommits) * 100)}% Complete`
+                              : 'No commits to verify'
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-4">
+                          <div 
+                            className="bg-gradient-to-r from-green-500 to-blue-500 h-4 rounded-full transition-all duration-700 shadow-sm"
+                            style={{ 
+                              width: `${selectedRepository.totalCommits > 0 ? (selectedRepository.verifiedCommits / selectedRepository.totalCommits) * 100 : 0}%` 
+                            }}
+                          ></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

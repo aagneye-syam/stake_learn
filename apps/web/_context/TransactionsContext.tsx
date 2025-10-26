@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 
 export interface Transaction {
   hash: string;
-  type: 'stake' | 'complete' | 'refund' | 'datacoin';
+  type: 'stake' | 'complete' | 'refund' | 'datacoin' | 'mint';
   amount: string;
   courseId: string;
   timestamp: number;

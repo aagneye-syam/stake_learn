@@ -11,6 +11,9 @@ import { useProgress } from "@/hooks/useProgress";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
 import { useCertificates } from "@/hooks/useCertificates";
 import { useConsumerData } from "@/hooks/useConsumerData";
+import { useSBT } from "@/hooks/useSBT";
+import { useReputation } from "@/hooks/useReputation";
+import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { NoSSR } from "@/components/NoSSR";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
@@ -210,47 +213,17 @@ export default function DashboardPage() {
   // Consumer data hook
   const { stats: consumerDataStats, hasConnectedSource, getDataCoinsBySource } = useConsumerData();
   
+  // SBT hook
+  const { totalSBTs, recentSBTs, lastMinted, loading: sbtLoading } = useSBT();
+  
+  // Reputation hook
+  const { totalReputation, reputationBreakdown, recentGains, lastGain, loading: reputationLoading } = useReputation();
+  
+  // Recent activity hook
+  const { activities, loading: activityLoading } = useRecentActivity();
+  
   // Consumer data modal state
   const [isConsumerDataModalOpen, setIsConsumerDataModalOpen] = useState(false);
-
-  // Mock activities - replace with real data
-  const [activities] = useState([
-    {
-      id: "1",
-      type: "mint" as const,
-      description: "Minted SBT for commit abc123",
-      timestamp: "2 hours ago",
-      status: "success" as const,
-    },
-    {
-      id: "2",
-      type: "verify" as const,
-      description: "Verified contribution in repo/example",
-      timestamp: "5 hours ago",
-      status: "success" as const,
-    },
-    {
-      id: "3",
-      type: "reputation" as const,
-      description: "Earned 50 reputation points",
-      timestamp: "1 day ago",
-      status: "success" as const,
-    },
-    {
-      id: "4",
-      type: "reputation" as const,
-      description: "Earned 25 DataCoins for course completion",
-      timestamp: "3 days ago",
-      status: "success" as const,
-    },
-    {
-      id: "5",
-      type: "mint" as const,
-      description: "Received certificate for HTML & CSS course",
-      timestamp: "1 week ago",
-      status: "success" as const,
-    },
-  ]);
 
   // Update DataCoin balance when local balance changes
   useEffect(() => {
@@ -723,12 +696,31 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <StatsBentoGrid
-        sbts="12"
-        reputation="850"
+        sbts={sbtLoading ? "..." : totalSBTs.toString()}
+        reputation={reputationLoading ? "..." : totalReputation.toString()}
         dataCoins={dataCoinBalance}
         certificates={certificates.length.toString()}
         onRefreshDataCoins={refetchLocalDataCoinBalance}
       />
+
+      {/* Debug Information - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-gray-100 p-4 rounded-lg text-sm">
+          <h3 className="font-semibold mb-2">Debug Info:</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p><strong>SBTs:</strong> {totalSBTs} (Loading: {sbtLoading ? 'Yes' : 'No'})</p>
+              <p><strong>Reputation:</strong> {totalReputation} (Loading: {reputationLoading ? 'Yes' : 'No'})</p>
+              <p><strong>Activities:</strong> {activities.length} (Loading: {activityLoading ? 'Yes' : 'No'})</p>
+            </div>
+            <div>
+              <p><strong>Recent SBTs:</strong> {recentSBTs.length}</p>
+              <p><strong>Recent Gains:</strong> {recentGains.length}</p>
+              <p><strong>Certificates:</strong> {certificates.length}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

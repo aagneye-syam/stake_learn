@@ -9,6 +9,7 @@ interface WalletConnectButtonProps {
   walletAddress?: string;
   className?: string;
   fullWidth?: boolean;
+  isLoading?: boolean;
 }
 
 export default function WalletConnectButton({
@@ -18,17 +19,19 @@ export default function WalletConnectButton({
   walletAddress,
   className = "",
   fullWidth = false,
+  isLoading: externalLoading = false,
 }: WalletConnectButtonProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [internalLoading, setInternalLoading] = useState(false);
+  const isLoading = externalLoading || internalLoading;
 
   const handleConnect = async () => {
-    setIsLoading(true);
+    setInternalLoading(true);
     try {
       await onConnect();
     } catch (error) {
       console.error("Error connecting wallet:", error);
     } finally {
-      setIsLoading(false);
+      setInternalLoading(false);
     }
   };
 

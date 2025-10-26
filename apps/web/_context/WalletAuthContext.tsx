@@ -42,6 +42,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
 
   const connect = async () => {
     try {
+      setIsLoading(true);
       const address = await connectWallet();
       setWalletAddress(address);
       await loadUser(address);
@@ -49,6 +50,8 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Failed to connect wallet:", error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -5,16 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import WalletConnectButton from "@/_components/WalletConnectButton";
 import UserOnboardingModal from "@/_components/UserOnboardingModal";
-import { connectWallet } from "@/services/wallet-auth.service";
-import { getUserByWallet, createWalletUser } from "@/services/user.service";
+import { createWalletUser } from "@/services/user.service";
 import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { refreshUser } = useWalletAuth();
+  const { connect, user, isLoading: contextLoading, walletAddress } = useWalletAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [walletAddress, setWalletAddress] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const handleWalletConnect = async () => {
@@ -22,24 +20,15 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      // Connect wallet
-      const address = await connectWallet();
-      setWalletAddress(address);
+      // Step 1: Connect wallet using context
+      await connect();
 
-      // Check if user already exists
-      const existingUser = await getUserByWallet(address);
-
-      if (existingUser) {
-        // User exists, redirect to dashboard immediately
-        // Store wallet connection in localStorage
-        localStorage.setItem("walletConnected", "true");
-        
-        // Refresh user context
-        await refreshUser();
-        
+      // Step 2: Check if user exists (context will load user data)
+      if (user) {
+        // Existing user - go directly to dashboard
         router.push("/dashboard");
       } else {
-        // New user, show onboarding modal immediately
+        // New user - show onboarding form
         setShowOnboarding(true);
         setIsLoading(false);
       }
@@ -51,14 +40,16 @@ export default function SignUpPage() {
 
   const handleOnboardingSubmit = async (name: string, email: string) => {
     try {
+      if (!walletAddress) {
+        throw new Error("Wallet not connected");
+      }
+      
       await createWalletUser(walletAddress, name, email);
       
       setShowOnboarding(false);
       
-      // Store wallet connection in localStorage
-      localStorage.setItem("walletConnected", "true");
-      
-      await refreshUser(); // Refresh wallet context
+      // Refresh user context to load the new user data
+      await connect();
       
       router.push("/dashboard");
     } catch (err: any) {
@@ -77,7 +68,7 @@ export default function SignUpPage() {
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-black mb-2">Connect Your Wallet</h1>
           <p className="text-sm sm:text-base text-gray-600">
-            Connect your wallet to get started with Web3 learning
+            Connect your wallet to access your decentralized learning profile
           </p>
         </div>
 
@@ -89,9 +80,9 @@ export default function SignUpPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-medium text-blue-900">Why wallet authentication?</p>
+                  <p className="text-sm font-medium text-blue-900">Decentralized Authentication</p>
                   <p className="text-xs text-blue-700 mt-1">
-                    Your wallet serves as your secure identity. No passwords needed!
+                    Your wallet address is your unique ID. We'll store your name and email in Firebase for a personalized experience.
                   </p>
                 </div>
               </div>
@@ -109,6 +100,7 @@ export default function SignUpPage() {
             <WalletConnectButton
               onConnect={handleWalletConnect}
               fullWidth
+              isLoading={isLoading || contextLoading}
             />
 
             <div className="text-center text-xs text-gray-500 space-y-1">

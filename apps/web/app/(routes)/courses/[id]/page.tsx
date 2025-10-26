@@ -428,12 +428,12 @@ export default function CourseDetailPage() {
                 </button>
               </div>
               
-              {/* Debug Progress - Remove in production */}
+              {/* Debug Progress - Remove in production 
               <DebugProgress 
                 courseId={numericCourseId} 
                 totalModules={course?.modules.length || 0} 
                 onRefresh={refreshProgress}
-              />
+              />*/}
             </div>
           )}
 
@@ -602,12 +602,12 @@ export default function CourseDetailPage() {
                 </NoSSR>
               </div>
 
-              {/* Contract Test - Temporary Debug */}
+              {/* Contract Test - Temporary Debug
               <div className="mb-4">
                 <NoSSR>
                   <ContractTest />
                 </NoSSR>
-              </div>
+              </div> */}
 
               {/* Action Buttons */}
               <div className="space-y-3 mb-6">

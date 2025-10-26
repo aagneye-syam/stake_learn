@@ -28,15 +28,15 @@ export default function SignUpPage() {
       const existingUser = await getUserByWallet(address);
 
       if (existingUser) {
-        // User exists, redirect to dashboard
+        // User exists, redirect to dashboard immediately
         router.push("/dashboard");
       } else {
-        // New user, show onboarding modal
+        // New user, show onboarding modal immediately
         setShowOnboarding(true);
+        setIsLoading(false);
       }
     } catch (err: any) {
       setError(err.message || "Failed to connect wallet. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };

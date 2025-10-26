@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { getReclaimService } from '@/utils/reclaim';
+import { getReclaimService } from '@/_utils/reclaim';
 
 export interface ConsumerDataStats {
   totalContributions: number;

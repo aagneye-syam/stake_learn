@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import { DataCoinABI } from '@/abis/DataCoinABI';
-import { getReclaimService } from '@/utils/reclaim';
+import { getReclaimService } from '@/_utils/reclaim';
 
 // In-memory storage for consumer data contributions
 declare global {
@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
     const contribution = {
       userAddress,
       dataSource,
-      proofCid: verification.proofHash,
+      proofCid: verification.proofHash || '',
       zkProof,
-      dataHash: verification.dataHash || '',
+      dataHash: (verification as any).dataHash || '',
       timestamp: Math.floor(Date.now() / 1000),
       dataCoinsEarned: totalDataCoins,
       verified: true,

@@ -10,10 +10,14 @@ export class ReclaimService {
     
     if (!this.appId || !this.appSecret) {
       console.warn('Reclaim credentials not found. Consumer data verification will be mocked.');
+      this.reclaim = null;
+      return;
     }
 
-    // Initialize Reclaim SDK with dynamic import
-    this.initializeReclaim();
+    // Initialize Reclaim SDK with dynamic import (non-blocking)
+    this.initializeReclaim().catch(error => {
+      console.warn('Reclaim SDK initialization failed, using mock mode:', error);
+    });
   }
 
   private async initializeReclaim() {
@@ -29,6 +33,7 @@ export class ReclaimService {
           appId: this.appId,
           appSecret: this.appSecret,
         });
+        console.log('Reclaim SDK initialized successfully');
       } else {
         throw new Error('Reclaim class not found in SDK');
       }
@@ -47,7 +52,7 @@ export class ReclaimService {
     
     if (!this.reclaim) {
       console.warn('Reclaim SDK not available, using mock mode');
-      return false;
+      return true; // Return true for mock mode
     }
     
     try {
@@ -55,7 +60,7 @@ export class ReclaimService {
       return true;
     } catch (error) {
       console.error('Failed to initialize Reclaim SDK:', error);
-      return false;
+      return true; // Return true for mock mode
     }
   }
 

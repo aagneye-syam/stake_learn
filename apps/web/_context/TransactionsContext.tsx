@@ -42,7 +42,7 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
     address: null
   });
   
-  const CACHE_DURATION = 5000; // 5 seconds cache
+  const CACHE_DURATION = 60000; // 60 seconds cache (increased from 5 seconds)
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchTransactions = useCallback(async (forceRefresh = false) => {

@@ -25,18 +25,9 @@ export class ReclaimService {
       // Dynamic import to handle ES modules properly
       const ReclaimSDK = await import('@reclaimprotocol/js-sdk');
       
-      // Handle different export patterns
-      const ReclaimClass = ReclaimSDK.Reclaim || ReclaimSDK.default?.Reclaim || ReclaimSDK.default;
-      
-      if (typeof ReclaimClass === 'function') {
-        this.reclaim = new ReclaimClass({
-          appId: this.appId,
-          appSecret: this.appSecret,
-        });
-        console.log('Reclaim SDK initialized successfully');
-      } else {
-        throw new Error('Reclaim class not found in SDK');
-      }
+      // The SDK exports functions directly, not a class
+      this.reclaim = ReclaimSDK;
+      console.log('Reclaim SDK initialized successfully');
     } catch (error) {
       console.warn('Failed to initialize Reclaim SDK, using mock mode:', error);
       this.reclaim = null;

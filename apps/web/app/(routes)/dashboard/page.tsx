@@ -10,6 +10,7 @@ import { useLocalDataCoin } from "@/hooks/useLocalDataCoin";
 import { useProgress } from "@/hooks/useProgress";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
 import { useCertificates } from "@/hooks/useCertificates";
+import { useConsumerData } from "@/hooks/useConsumerData";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { NoSSR } from "@/components/NoSSR";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
@@ -18,6 +19,7 @@ import { DailyStreak } from "@/components/DailyStreak";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatsBentoGrid } from "@/_components/StatsBentoGrid";
 import { VerifyMintCard } from "@/_components/VerifyMintCard";
+import { ConsumerDataModal } from "@/components/ConsumerDataModal";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -204,6 +206,12 @@ export default function DashboardPage() {
   
   // Certificates hook
   const { certificates, getTotalDataCoinsEarned } = useCertificates();
+  
+  // Consumer data hook
+  const { stats: consumerDataStats, hasConnectedSource, getDataCoinsBySource } = useConsumerData();
+  
+  // Consumer data modal state
+  const [isConsumerDataModalOpen, setIsConsumerDataModalOpen] = useState(false);
 
   // Mock activities - replace with real data
   const [activities] = useState([
@@ -268,6 +276,45 @@ export default function DashboardPage() {
       }
     }
   };
+
+  // RPC status and optimization info
+  const [rpcStatus, setRpcStatus] = useState({
+    provider: 'Unknown',
+    status: 'checking',
+    optimizations: 0
+  });
+
+  useEffect(() => {
+    // Check RPC status
+    const checkRPCStatus = async () => {
+      try {
+        const response = await fetch('/api/transactions?userAddress=' + address);
+        if (response.ok) {
+          setRpcStatus({
+            provider: 'Connected',
+            status: 'healthy',
+            optimizations: 3 // Caching, batching, fallback
+          });
+        } else {
+          setRpcStatus({
+            provider: 'Limited',
+            status: 'rate_limited',
+            optimizations: 2 // Caching, batching
+          });
+        }
+      } catch (error) {
+        setRpcStatus({
+          provider: 'Error',
+          status: 'failed',
+          optimizations: 1 // Local storage only
+        });
+      }
+    };
+
+    if (address) {
+      checkRPCStatus();
+    }
+  }, [address]);
 
   // Learning tasks
   const learningTasks = [
@@ -571,34 +618,70 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* RPC Limitation Warning */}
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
+      {/* RPC Status Banner */}
+      <div className={`border-l-4 p-6 rounded-lg ${
+        rpcStatus.status === 'healthy' ? 'bg-green-50 border-green-400' :
+        rpcStatus.status === 'rate_limited' ? 'bg-yellow-50 border-yellow-400' :
+        'bg-red-50 border-red-400'
+      }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
+              {rpcStatus.status === 'healthy' ? (
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : rpcStatus.status === 'rate_limited' ? (
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              )}
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                RPC Provider Limitation Notice
+              <h3 className={`text-sm font-medium ${
+                rpcStatus.status === 'healthy' ? 'text-green-800' :
+                rpcStatus.status === 'rate_limited' ? 'text-yellow-800' :
+                'text-red-800'
+              }`}>
+                RPC Status: {rpcStatus.provider} ({rpcStatus.optimizations} optimizations active)
               </h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>
-                  Your RPC provider has free tier limitations for blockchain event queries. 
-                  This doesn't affect your DataCoin balance, certificates, or transaction tracking - 
-                  everything is working perfectly with our local system.
-                </p>
+              <div className={`mt-2 text-sm ${
+                rpcStatus.status === 'healthy' ? 'text-green-700' :
+                rpcStatus.status === 'rate_limited' ? 'text-yellow-700' :
+                'text-red-700'
+              }`}>
+                {rpcStatus.status === 'healthy' ? (
+                  <p>✅ All systems optimized! Using caching, batching, and multi-provider fallback.</p>
+                ) : rpcStatus.status === 'rate_limited' ? (
+                  <p>⚠️ Rate limited but working! Using caching and batching to reduce RPC calls.</p>
+                ) : (
+                  <p>❌ RPC issues detected. Using local storage and cached data.</p>
+                )}
               </div>
             </div>
           </div>
-          <button
-            onClick={handleRefreshData}
-            className="ml-4 px-3 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-sm font-medium transition-colors"
-          >
-            🔄 Refresh Data
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleRefreshData}
+              className="px-3 py-2 bg-white hover:bg-gray-50 text-gray-800 rounded-lg text-sm font-medium transition-colors border"
+            >
+              🔄 Refresh
+            </button>
+            <button
+              onClick={() => {
+                // Clear cache and refresh
+                fetch('/api/transactions?clearCache=true');
+                handleRefreshData();
+              }}
+              className="px-3 py-2 bg-white hover:bg-gray-50 text-gray-800 rounded-lg text-sm font-medium transition-colors border"
+            >
+              🗑️ Clear Cache
+            </button>
+          </div>
         </div>
       </div>
 
@@ -723,6 +806,162 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Consumer Data Section */}
+      <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-black mb-2">🔗 Consumer Data</h2>
+            <p className="text-gray-600">
+              Connect your real-world data sources to earn additional DataCoins
+            </p>
+          </div>
+          <button
+            onClick={() => setIsConsumerDataModalOpen(true)}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+          >
+            Connect Data Sources
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* GitHub */}
+          <div className={`p-6 rounded-xl border-2 transition-all ${
+            hasConnectedSource('github')
+              ? 'border-green-200 bg-green-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 rounded-lg bg-gradient-to-r from-gray-800 to-gray-600 text-white">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">GitHub</h3>
+                <p className="text-sm text-gray-600">Code contributions</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Status</span>
+                <span className={`font-medium ${
+                  hasConnectedSource('github') ? 'text-green-600' : 'text-gray-500'
+                }`}>
+                  {hasConnectedSource('github') ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">DataCoins</span>
+                <span className="font-semibold text-purple-600">
+                  {getDataCoinsBySource('github')} earned
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Reward</span>
+                <span className="text-gray-500">10 per batch</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Uber */}
+          <div className={`p-6 rounded-xl border-2 transition-all ${
+            hasConnectedSource('uber')
+              ? 'border-green-200 bg-green-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 rounded-lg bg-gradient-to-r from-black to-gray-800 text-white">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M0 24h24V0H0v24z" fill="none"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Uber</h3>
+                <p className="text-sm text-gray-600">Ride history</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Status</span>
+                <span className={`font-medium ${
+                  hasConnectedSource('uber') ? 'text-green-600' : 'text-gray-500'
+                }`}>
+                  {hasConnectedSource('uber') ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">DataCoins</span>
+                <span className="font-semibold text-purple-600">
+                  {getDataCoinsBySource('uber')} earned
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Reward</span>
+                <span className="text-gray-500">5 per month</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Amazon */}
+          <div className={`p-6 rounded-xl border-2 transition-all ${
+            hasConnectedSource('amazon')
+              ? 'border-green-200 bg-green-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M7.77 6.76L6.23 8.3c-.45.45-.45 1.18 0 1.63l1.54 1.54c.45.45 1.18.45 1.63 0l1.54-1.54c.45-.45.45-1.18 0-1.63L9.4 6.76c-.45-.45-1.18-.45-1.63 0zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Amazon</h3>
+                <p className="text-sm text-gray-600">Purchase history</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Status</span>
+                <span className={`font-medium ${
+                  hasConnectedSource('amazon') ? 'text-green-600' : 'text-gray-500'
+                }`}>
+                  {hasConnectedSource('amazon') ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">DataCoins</span>
+                <span className="font-semibold text-purple-600">
+                  {getDataCoinsBySource('amazon')} earned
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Reward</span>
+                <span className="text-gray-500">5 per month</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold text-gray-900">Total Consumer DataCoins</h4>
+              <p className="text-sm text-gray-600">
+                {consumerDataStats.totalContributions} connected sources
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-purple-600">
+                {consumerDataStats.totalDataCoins}
+              </p>
+              <p className="text-sm text-gray-600">DataCoins earned</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Learning Tasks Section */}
       <div className="space-y-6">
         {/* Section Header */}
@@ -823,6 +1062,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Consumer Data Modal */}
+      <ConsumerDataModal
+        isOpen={isConsumerDataModalOpen}
+        onClose={() => setIsConsumerDataModalOpen(false)}
+      />
     </div>
   );
 }

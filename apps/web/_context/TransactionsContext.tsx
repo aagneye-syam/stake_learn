@@ -63,6 +63,27 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
       return;
     }
 
+    // Try to load from localStorage first
+    if (!forceRefresh) {
+      try {
+        const storedData = localStorage.getItem(`transactions_${address}`);
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          if (parsedData.timestamp > now - CACHE_DURATION) {
+            setTransactions(parsedData.transactions);
+            cacheRef.current = {
+              data: parsedData.transactions,
+              timestamp: parsedData.timestamp,
+              address: address
+            };
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load from localStorage:', err);
+      }
+    }
+
     // Clear any pending fetch timeout
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
@@ -85,6 +106,16 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
           timestamp: now,
           address: address
         };
+
+        // Save to localStorage for persistence
+        try {
+          localStorage.setItem(`transactions_${address}`, JSON.stringify({
+            transactions: fetchedTransactions,
+            timestamp: now
+          }));
+        } catch (err) {
+          console.warn('Failed to save to localStorage:', err);
+        }
       } else {
         setError(data.error || 'Failed to fetch transactions');
       }
@@ -117,6 +148,18 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
       if (response.ok) {
         // Force refresh after adding transaction
         await fetchTransactions(true);
+        
+        // Also save to localStorage immediately
+        try {
+          const currentTransactions = [...transactions, data.transaction];
+          localStorage.setItem(`transactions_${address}`, JSON.stringify({
+            transactions: currentTransactions,
+            timestamp: Date.now()
+          }));
+        } catch (err) {
+          console.warn('Failed to save new transaction to localStorage:', err);
+        }
+        
         return data.transaction;
       } else {
         throw new Error(data.error || 'Failed to add transaction');

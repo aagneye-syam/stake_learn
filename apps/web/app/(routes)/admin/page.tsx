@@ -19,6 +19,7 @@ import {
   Coins,
   RefreshCw
 } from "lucide-react";
+import { CommitDetailsModal } from "@/_components/CommitDetailsModal";
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
@@ -26,6 +27,9 @@ export default function AdminPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+  const [selectedCommit, setSelectedCommit] = useState<any>(null);
+  const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
+  const [isVerifyingCommit, setIsVerifyingCommit] = useState(false);
   const [stats, setStats] = useState({
     totalRepositories: 0,
     pendingRepositories: 0,
@@ -95,12 +99,22 @@ export default function AdminPage() {
   ) => {
     if (!address) return;
     
+    setIsVerifyingCommit(true);
     try {
       await verifyCommit(repoId, commitSha, status, address, dataCoinsEarned, verificationNotes);
       await refetch();
+      setIsCommitModalOpen(false);
+      setSelectedCommit(null);
     } catch (error) {
       console.error('Error verifying commit:', error);
+    } finally {
+      setIsVerifyingCommit(false);
     }
+  };
+
+  const handleCommitClick = (commit: any) => {
+    setSelectedCommit(commit);
+    setIsCommitModalOpen(true);
   };
 
   const getStatusIcon = (status: string) => {
@@ -297,7 +311,7 @@ export default function AdminPage() {
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
-                            {repo.userName}
+                            {repo.userName} (@{repo.githubUsername})
                           </span>
                           <span className="flex items-center gap-1">
                             <GitCommit className="h-3 w-3" />
@@ -400,7 +414,8 @@ export default function AdminPage() {
                       {selectedRepository.commits.map((commit) => (
                         <div
                           key={commit.sha}
-                          className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                          className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={() => handleCommitClick(commit)}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -435,12 +450,12 @@ export default function AdminPage() {
                                 <span>{commit.filesChanged.length} files</span>
                               </div>
                               
-                              {/* Files Changed */}
+                              {/* Files Changed Preview */}
                               {commit.filesChanged.length > 0 && (
                                 <div className="mt-2">
                                   <p className="text-xs text-gray-600 mb-1">Files changed:</p>
                                   <div className="flex flex-wrap gap-1">
-                                    {commit.filesChanged.slice(0, 5).map((file, index) => (
+                                    {commit.filesChanged.slice(0, 3).map((file, index) => (
                                       <span
                                         key={index}
                                         className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
@@ -448,30 +463,17 @@ export default function AdminPage() {
                                         {file}
                                       </span>
                                     ))}
-                                    {commit.filesChanged.length > 5 && (
+                                    {commit.filesChanged.length > 3 && (
                                       <span className="text-xs text-gray-500 px-2 py-1">
-                                        +{commit.filesChanged.length - 5} more
+                                        +{commit.filesChanged.length - 3} more
                                       </span>
                                     )}
                                   </div>
                                 </div>
                               )}
                             </div>
-                            <div className="flex gap-1 ml-4">
-                              <button
-                                onClick={() => handleCommitVerification(selectedRepository.id, commit.sha, 'verified', 5)}
-                                className="p-2 text-green-600 hover:bg-green-100 rounded transition-colors"
-                                title="Verify commit (+5 DataCoins)"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleCommitVerification(selectedRepository.id, commit.sha, 'rejected')}
-                                className="p-2 text-red-600 hover:bg-red-100 rounded transition-colors"
-                                title="Reject commit"
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </button>
+                            <div className="ml-4 text-gray-400">
+                              <ExternalLink className="h-4 w-4" />
                             </div>
                           </div>
                         </div>
@@ -488,6 +490,27 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Commit Details Modal */}
+      {selectedCommit && selectedRepository && (
+        <CommitDetailsModal
+          isOpen={isCommitModalOpen}
+          onClose={() => {
+            setIsCommitModalOpen(false);
+            setSelectedCommit(null);
+          }}
+          commit={selectedCommit}
+          repository={{
+            repoOwner: selectedRepository.repoOwner,
+            repoName: selectedRepository.repoName,
+            githubUsername: selectedRepository.githubUsername
+          }}
+          onVerify={(sha, status, dataCoins, notes) => 
+            handleCommitVerification(selectedRepository.id, sha, status, dataCoins, notes)
+          }
+          isVerifying={isVerifyingCommit}
+        />
+      )}
     </div>
   );
 }

@@ -18,26 +18,34 @@ export default function SignUpPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const handleWalletConnect = async () => {
+    console.log("🔵 handleWalletConnect called");
     setIsLoading(true);
     setError("");
 
     try {
       // Connect wallet
+      console.log("🔵 Calling connectWallet...");
       const address = await connectWallet();
+      console.log("🟢 Wallet connected:", address);
       setWalletAddress(address);
 
       // Check if user already exists
+      console.log("🔵 Checking if user exists...");
       const existingUser = await getUserByWallet(address);
+      console.log("🟢 User lookup result:", existingUser);
 
       if (existingUser) {
         // User exists, redirect to dashboard immediately
+        console.log("🟢 Existing user found, redirecting to dashboard");
         router.push("/dashboard");
       } else {
         // New user, show onboarding modal immediately
+        console.log("🟡 New user, showing onboarding modal");
         setShowOnboarding(true);
         setIsLoading(false);
       }
     } catch (err: any) {
+      console.error("🔴 Error in handleWalletConnect:", err);
       setError(err.message || "Failed to connect wallet. Please try again.");
       setIsLoading(false);
     }

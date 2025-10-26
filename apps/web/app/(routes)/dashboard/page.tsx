@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
-import { mintSBT } from "@/sdk/index";
 import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
 import { DynamicWalletButton } from "@/components/DynamicWalletButton";
@@ -21,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { DailyStreak } from "@/components/DailyStreak";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatsBentoGrid } from "@/_components/StatsBentoGrid";
-import { VerifyMintCard } from "@/_components/VerifyMintCard";
+import { RepositorySubmissionCard } from "@/_components/RepositorySubmissionCard";
 import { ConsumerDataModal } from "@/components/ConsumerDataModal";
 import { CompactProgressRewards } from "@/_components/CompactProgressRewards";
 import { useWalletAuth } from "@/_context/WalletAuthContext";
@@ -194,12 +193,6 @@ export default function DashboardPage() {
   
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const [mounted, setMounted] = useState(false);
-  const [repo, setRepo] = useState("");
-  const [sha, setSha] = useState("");
-  const [permit, setPermit] = useState<Record<string, unknown> | null>(null);
-  const [signature, setSignature] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
   const [dataCoinBalance, setDataCoinBalance] = useState("0");
 
   // DataCoin balance hook (local tracking)
@@ -432,71 +425,6 @@ export default function DashboardPage() {
     },
   ];
 
-  async function onVerify() {
-    setIsLoading(true);
-    setStatus("Verifying your contribution...");
-    try {
-      // Use manual verification instead of AI verification
-      const res = await fetch("/api/manual-verify", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ 
-          repo, 
-          sha, 
-          wallet: address
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setPermit({ 
-          to: data.to, 
-          commitHash: data.commitHash, 
-          reputation: data.reputation, 
-          expiry: data.expiry, 
-          tokenURI: data.tokenURI 
-        });
-        setSignature(data.signature);
-        setStatus("✓ Manually verified successfully! You can now mint your SBT.");
-      } else {
-        setStatus("✗ " + (data.error || "Verification failed. Please check your inputs."));
-      }
-    } catch {
-      setStatus("✗ Network error. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function onMint() {
-    if (!permit || !signature) return;
-    setIsLoading(true);
-    setStatus("Minting your Soulbound Token...");
-    try {
-      const res = await fetch("/api/mint", { 
-        method: "POST", 
-        headers: { "content-type": "application/json" }, 
-        body: JSON.stringify({ permit, signature }) 
-      });
-      const data = await res.json();
-      if (!res.ok) { 
-        setStatus("✗ " + (data.error || "Mint failed")); 
-        setIsLoading(false);
-        return; 
-      }
-      const contract = process.env.NEXT_PUBLIC_SBT_ADDRESS as `0x${string}`;
-      const tx = await mintSBT(contract, { ...permit, signature } as any);
-      setStatus(`✓ Success! Transaction: ${tx}`);
-      // Reset form
-      setRepo("");
-      setSha("");
-      setPermit(null);
-      setSignature("");
-    } catch {
-      setStatus("✗ Minting failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   if (!mounted) {
     return (
@@ -772,19 +700,13 @@ export default function DashboardPage() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Verify & Mint Card */}
+        {/* Repository Submission Card */}
         <div className="lg:col-span-2">
-          <VerifyMintCard
-            repo={repo}
-            sha={sha}
-            isLoading={isLoading}
-            permit={permit}
-            status={status}
-            address={address}
-            onRepoChange={setRepo}
-            onShaChange={setSha}
-            onVerify={onVerify}
-            onMint={onMint}
+          <RepositorySubmissionCard
+            onRepositoryAdded={() => {
+              // Refresh DataCoin balance when repository is added
+              refetchLocalDataCoinBalance();
+            }}
           />
         </div>
 

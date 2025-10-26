@@ -26,7 +26,12 @@ const PROGRESS_REWARDS = {
   'github_contribution': '10',  // Per verified commit/PR batch
   'uber_ride_data': '5',        // Per month of ride data
   'amazon_purchase_data': '5',  // Per month of purchase data
-  'consumer_data_verified': '20' // Bonus for first verification
+  'consumer_data_verified': '20', // Bonus for first verification
+  
+  // Repository submission rewards
+  'repository_submission': '10', // 10 DataCoins for submitting a repository
+  'commit_verification': '5',    // 5 DataCoins per verified commit
+  'repository_approval': '50'    // 50 DataCoins when repository is approved
 } as const;
 
 export async function POST(request: NextRequest) {

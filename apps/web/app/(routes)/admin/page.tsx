@@ -2,24 +2,45 @@
 
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
-import { mintSBT } from "@/sdk/index";
-import { VerifyMintCard } from "@/_components/VerifyMintCard";
+import { useRepositories, Repository, Commit } from "@/hooks/useRepositories";
 import { useWalletAuth } from "@/_context/WalletAuthContext";
 import { useRouter } from "next/navigation";
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  ExternalLink, 
+  GitCommit, 
+  Star, 
+  GitFork,
+  User,
+  Calendar,
+  Coins,
+  RefreshCw
+} from "lucide-react";
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
   const { isConnected: isWalletAuthConnected, isLoading: isAuthLoading } = useWalletAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalRepositories: 0,
+    pendingRepositories: 0,
+    approvedRepositories: 0,
+    totalCommits: 0,
+    verifiedCommits: 0,
+    totalDataCoinsEarned: 0
+  });
 
-  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
-  const [repo, setRepo] = useState("");
-  const [sha, setSha] = useState("");
-  const [permit, setPermit] = useState<Record<string, unknown> | null>(null);
-  const [signature, setSignature] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { 
+    repositories, 
+    loading, 
+    updateRepositoryStatus, 
+    verifyCommit, 
+    refetch 
+  } = useRepositories(true); // Admin view
 
   // ALL useEffect HOOKS MUST BE CALLED BEFORE CONDITIONAL RETURNS
   useEffect(() => {
@@ -33,11 +54,95 @@ export default function AdminPage() {
     }
   }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
 
-  // Manual refresh function for testing
-  const handleRefreshData = async () => {
-    if (isConnected && address) {
-      // Refresh any data if needed
-      console.log("Refreshing admin data...");
+  // Fetch stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/repositories/stats');
+        const data = await response.json();
+        if (response.ok) {
+          setStats(data.stats);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+    fetchStats();
+  }, [repositories]);
+
+  const handleRepositoryStatusUpdate = async (
+    repoId: string, 
+    status: 'pending' | 'approved' | 'rejected',
+    dataCoinsEarned: number = 0
+  ) => {
+    if (!address) return;
+    
+    try {
+      await updateRepositoryStatus(repoId, status, address, dataCoinsEarned);
+      await refetch();
+    } catch (error) {
+      console.error('Error updating repository status:', error);
+    }
+  };
+
+  const handleCommitVerification = async (
+    repoId: string,
+    commitSha: string,
+    status: 'verified' | 'rejected',
+    dataCoinsEarned: number = 0,
+    verificationNotes?: string
+  ) => {
+    if (!address) return;
+    
+    try {
+      await verifyCommit(repoId, commitSha, status, address, dataCoinsEarned, verificationNotes);
+      await refetch();
+    } catch (error) {
+      console.error('Error verifying commit:', error);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'rejected':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    }
+  };
+
+  const getCommitStatusIcon = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'rejected':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+    }
+  };
+
+  const getCommitStatusColor = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     }
   };
 
@@ -64,71 +169,7 @@ export default function AdminPage() {
     );
   }
 
-  async function onVerify() {
-    setIsLoading(true);
-    setStatus("Verifying your contribution...");
-    try {
-      // Use manual verification instead of AI verification
-      const res = await fetch("/api/manual-verify", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ 
-          repo, 
-          sha, 
-          wallet: address
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setPermit({ 
-          to: data.to, 
-          commitHash: data.commitHash, 
-          reputation: data.reputation, 
-          expiry: data.expiry, 
-          tokenURI: data.tokenURI 
-        });
-        setSignature(data.signature);
-        setStatus("✓ Manually verified successfully! You can now mint your SBT.");
-      } else {
-        setStatus("✗ " + (data.error || "Verification failed. Please check your inputs."));
-      }
-    } catch {
-      setStatus("✗ Network error. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function onMint() {
-    if (!permit || !signature) return;
-    setIsLoading(true);
-    setStatus("Minting your Soulbound Token...");
-    try {
-      const res = await fetch("/api/mint", { 
-        method: "POST", 
-        headers: { "content-type": "application/json" }, 
-        body: JSON.stringify({ permit, signature }) 
-      });
-      const data = await res.json();
-      if (!res.ok) { 
-        setStatus("✗ " + (data.error || "Mint failed")); 
-        setIsLoading(false);
-        return; 
-      }
-      const contract = process.env.NEXT_PUBLIC_SBT_ADDRESS as `0x${string}`;
-      const tx = await mintSBT(contract, { ...permit, signature } as any);
-      setStatus(`✓ Success! Transaction: ${tx}`);
-      // Reset form
-      setRepo("");
-      setSha("");
-      setPermit(null);
-      setSignature("");
-    } catch {
-      setStatus("✗ Minting failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const selectedRepository = selectedRepo ? repositories.find(r => r.id === selectedRepo) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
@@ -141,7 +182,7 @@ export default function AdminPage() {
                 Admin Panel
               </h1>
               <p className="text-gray-600">
-                Manage and test SBT verification and minting
+                Manage repository submissions and verify commits
               </p>
             </div>
             <div className="flex gap-4">
@@ -152,10 +193,11 @@ export default function AdminPage() {
                 ← Back to Dashboard
               </button>
               <button
-                onClick={handleRefreshData}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                onClick={() => refetch()}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
               >
-                🔄 Refresh
+                <RefreshCw className="h-4 w-4" />
+                Refresh
               </button>
             </div>
           </div>
@@ -166,27 +208,23 @@ export default function AdminPage() {
           <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <GitCommit className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Verifications</h3>
-                <p className="text-2xl font-bold text-purple-600">0</p>
+                <h3 className="text-lg font-semibold text-gray-900">Total Repos</h3>
+                <p className="text-2xl font-bold text-purple-600">{stats.totalRepositories}</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="p-3 rounded-lg bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+                <Clock className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">SBTs Minted</h3>
-                <p className="text-2xl font-bold text-blue-600">0</p>
+                <h3 className="text-lg font-semibold text-gray-900">Pending</h3>
+                <p className="text-2xl font-bold text-yellow-600">{stats.pendingRepositories}</p>
               </div>
             </div>
           </div>
@@ -194,28 +232,23 @@ export default function AdminPage() {
           <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7H7v6h6V7z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2z" />
-                </svg>
+                <CheckCircle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Active Users</h3>
-                <p className="text-2xl font-bold text-green-600">1</p>
+                <h3 className="text-lg font-semibold text-gray-900">Approved</h3>
+                <p className="text-2xl font-bold text-green-600">{stats.approvedRepositories}</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+              <div className="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <Coins className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Total DataCoins</h3>
-                <p className="text-2xl font-bold text-orange-600">0</p>
+                <h3 className="text-lg font-semibold text-gray-900">DataCoins</h3>
+                <p className="text-2xl font-bold text-blue-600">{stats.totalDataCoinsEarned}</p>
               </div>
             </div>
           </div>
@@ -223,95 +256,197 @@ export default function AdminPage() {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Verify & Mint SBT Card */}
-          <div className="lg:col-span-2">
-            <VerifyMintCard
-              repo={repo}
-              sha={sha}
-              isLoading={isLoading}
-              permit={permit}
-              status={status}
-              address={address}
-              onRepoChange={setRepo}
-              onShaChange={setSha}
-              onVerify={onVerify}
-              onMint={onMint}
-            />
+          {/* Repository List */}
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Submitted Repositories</h3>
+            
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <span className="ml-2 text-gray-600">Loading repositories...</span>
+              </div>
+            ) : repositories.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No repositories submitted yet
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {repositories.map((repo) => (
+                  <div
+                    key={repo.id}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      selectedRepo === repo.id 
+                        ? 'border-purple-300 bg-purple-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => setSelectedRepo(repo.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-semibold text-gray-900">{repo.repoName}</h4>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(repo.status)}`}>
+                            {getStatusIcon(repo.status)}
+                            <span className="ml-1 capitalize">{repo.status}</span>
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {repo.repoOwner} • {repo.language || 'Unknown'} • ⭐ {repo.stars || 0}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {repo.userName}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <GitCommit className="h-3 w-3" />
+                            {repo.verifiedCommits}/{repo.totalCommits}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Coins className="h-3 w-3" />
+                            {repo.dataCoinsEarned}
+                          </span>
+                        </div>
+                      </div>
+                      <a
+                        href={repo.repoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Quick Actions */}
+          {/* Repository Details & Commit Management */}
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h3>
-            <div className="space-y-4">
-              <button
-                onClick={() => {
-                  setRepo("aagneye-syam/stake_learn");
-                  setSha("f63d6603567a18f82b812f8f9ceb105758f28142");
-                }}
-                className="w-full p-4 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-              >
-                <div className="font-medium text-gray-900">Load Test Repository</div>
-                <div className="text-sm text-gray-600">aagneye-syam/stake_learn</div>
-              </button>
-              
-              <button
-                onClick={() => {
-                  setRepo("");
-                  setSha("");
-                  setPermit(null);
-                  setSignature("");
-                  setStatus("");
-                }}
-                className="w-full p-4 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-              >
-                <div className="font-medium text-gray-900">Clear Form</div>
-                <div className="text-sm text-gray-600">Reset all fields</div>
-              </button>
+            {selectedRepository ? (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {selectedRepository.repoName}
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleRepositoryStatusUpdate(selectedRepository.id, 'approved', 50)}
+                      className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm hover:bg-green-200 transition-colors"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleRepositoryStatusUpdate(selectedRepository.id, 'rejected')}
+                      className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200 transition-colors"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
 
-              <button
-                onClick={() => router.push('/transactions')}
-                className="w-full p-4 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-              >
-                <div className="font-medium text-gray-900">View Transactions</div>
-                <div className="text-sm text-gray-600">Check transaction history</div>
-              </button>
-            </div>
-          </div>
+                <div className="space-y-4 mb-6">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Owner:</span>
+                      <span className="ml-2 font-medium">{selectedRepository.repoOwner}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Language:</span>
+                      <span className="ml-2 font-medium">{selectedRepository.language || 'Unknown'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Stars:</span>
+                      <span className="ml-2 font-medium">{selectedRepository.stars || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Forks:</span>
+                      <span className="ml-2 font-medium">{selectedRepository.forks || 0}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm">
+                    <span className="text-gray-600">Submitted by:</span>
+                    <span className="ml-2 font-medium">{selectedRepository.userName}</span>
+                    <span className="ml-2 text-gray-500">({selectedRepository.userEmail})</span>
+                  </div>
+                  
+                  <div className="text-sm">
+                    <span className="text-gray-600">Submitted:</span>
+                    <span className="ml-2 font-medium">
+                      {new Date(selectedRepository.submittedAt.seconds * 1000).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
 
-          {/* System Status */}
-          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">System Status</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Wallet Connection</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                }`}>
-                  {isConnected ? 'Connected' : 'Disconnected'}
-                </span>
+                {/* Commits */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Commits</h4>
+                  {selectedRepository.commits.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No commits available</p>
+                  ) : (
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {selectedRepository.commits.map((commit) => (
+                        <div
+                          key={commit.sha}
+                          className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-mono text-xs text-gray-500">
+                                  {commit.sha.slice(0, 8)}
+                                </span>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getCommitStatusColor(commit.status)}`}>
+                                  {getCommitStatusIcon(commit.status)}
+                                  <span className="ml-1 capitalize">{commit.status}</span>
+                                </span>
+                              </div>
+                              <p className="text-sm font-medium text-gray-900 mb-1">
+                                {commit.message}
+                              </p>
+                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                                <span>{commit.author}</span>
+                                <span>+{commit.additions} -{commit.deletions}</span>
+                                <span>{commit.filesChanged.length} files</span>
+                                {commit.dataCoinsEarned > 0 && (
+                                  <span className="text-green-600 font-medium">
+                                    +{commit.dataCoinsEarned} DataCoins
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleCommitVerification(selectedRepository.id, commit.sha, 'verified', 5)}
+                                className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                                title="Verify commit"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleCommitVerification(selectedRepository.id, commit.sha, 'rejected')}
+                                className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                                title="Reject commit"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Manual Verification API</span>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                  Active
-                </span>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                Select a repository to view details and manage commits
               </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">GitHub API</span>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                  Active
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">SBT Contract</span>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                  Deployed
-                </span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

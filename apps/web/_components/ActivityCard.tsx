@@ -13,19 +13,20 @@ interface ActivityItem {
 
 interface ActivityCardProps {
   activities: ActivityItem[];
+  onViewAll?: () => void;
 }
 
-export default function ActivityCard({ activities }: ActivityCardProps) {
+export default function ActivityCard({ activities, onViewAll }: ActivityCardProps) {
   // Filter and prioritize activities - show only the most important ones
   const getFilteredActivities = (activities: ActivityItem[]) => {
     // Group similar activities and show only unique/important ones
     const filtered = activities.filter((activity, index, arr) => {
-      // Remove duplicate "Earned X DataCoins" entries
+      // Remove duplicate "Earned X DataCoins" entries within the same time period
       if (activity.description.includes('Earned') && activity.description.includes('DataCoins')) {
         const isDuplicate = arr.slice(0, index).some(prev => 
           prev.description.includes('Earned') && 
           prev.description.includes('DataCoins') &&
-          prev.timestamp === activity.timestamp
+          prev.timestamp === activity.timestamp // Same timestamp
         );
         return !isDuplicate;
       }
@@ -105,7 +106,10 @@ export default function ActivityCard({ activities }: ActivityCardProps) {
         <h3 className="text-xl font-bold text-black">
           Recent Activity
         </h3>
-        <button className="text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors">
+        <button 
+          onClick={onViewAll}
+          className="text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
+        >
           View All
         </button>
       </div>

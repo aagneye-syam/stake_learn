@@ -154,7 +154,7 @@ export function useReputation() {
 
   return {
     ...reputationStats,
-    loading,
+    loading: loading && transactions.length === 0, // Only show loading if no transactions yet
     refetch: calculateReputationStats,
   };
 }

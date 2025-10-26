@@ -50,7 +50,7 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
   const { courseProgress } = useModuleProgress(numericCourseId, task.modules?.length || 4);
 
   // Format stake amount for display
-  const fallbackAmount = "0.0001";
+  const fallbackAmount = "0.00001";
   const displayStakeAmount = stakeAmount 
     ? (Number(stakeAmount) / 1e18).toFixed(6) 
     : fallbackAmount;
@@ -742,7 +742,10 @@ export default function DashboardPage() {
 
         {/* Activity Card */}
         <div className="lg:col-span-1">
-          <ActivityCard activities={activities} />
+          <ActivityCard 
+            activities={activities} 
+            onViewAll={() => router.push('/transactions')}
+          />
         </div>
       </div>
 

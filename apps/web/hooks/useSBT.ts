@@ -87,7 +87,7 @@ export function useSBT() {
 
   return {
     ...sbtStats,
-    loading,
+    loading: loading && transactions.length === 0, // Only show loading if no transactions yet
     refetch: calculateSBTStats,
   };
 }

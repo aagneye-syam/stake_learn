@@ -168,7 +168,7 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
       console.error('Error adding transaction:', err);
       throw err;
     }
-  }, [address, fetchTransactions]);
+  }, [address]); // Remove fetchTransactions from dependencies
 
   // Debounced fetch on address change
   useEffect(() => {
@@ -192,7 +192,7 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
         clearTimeout(fetchTimeoutRef.current);
       }
     };
-  }, [address, fetchTransactions]);
+  }, [address]); // Remove fetchTransactions from dependencies
 
   const value: TransactionsContextType = {
     transactions,

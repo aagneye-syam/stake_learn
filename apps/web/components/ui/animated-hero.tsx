@@ -5,34 +5,60 @@ import { motion } from "framer-motion";
 import { MoveRight, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import SignInModal from "@/_components/SignInModal";
 import { useRouter } from "next/navigation";
-import { signInWithEmail } from "@/services/auth.service";
+import UserOnboardingModal from "@/_components/UserOnboardingModal";
+import { connectWallet } from "@/services/wallet-auth.service";
+import { getUserByWallet, createWalletUser } from "@/services/user.service";
+import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 function AnimatedHero() {
   const [titleNumber, setTitleNumber] = useState(0);
-  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
+  const { refreshUser } = useWalletAuth();
   const router = useRouter();
   const titles = useMemo(
     () => ["revolutionary", "secure", "transparent", "rewarding", "innovative"],
     []
   );
 
-  const handleSignIn = async (email: string, password: string) => {
+  const handleGoToDashboard = async () => {
     setError("");
-    setIsLoading(true);
+    setIsConnecting(true);
 
     try {
-      await signInWithEmail(email, password);
-      // Success - close modal and redirect
-      setIsSignInModalOpen(false);
-      setIsLoading(false);
+      // Connect wallet
+      const address = await connectWallet();
+      setWalletAddress(address);
+
+      // Check if user exists
+      const user = await getUserByWallet(address);
+
+      if (user) {
+        // User exists, go to dashboard
+        router.push("/dashboard");
+      } else {
+        // New user, show onboarding modal
+        setShowOnboarding(true);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to connect wallet");
+      setTimeout(() => setError(""), 5000);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleOnboardingSubmit = async (name: string, email: string) => {
+    try {
+      await createWalletUser(walletAddress, name, email);
+      setShowOnboarding(false);
+      await refreshUser(); // Refresh user in context
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Failed to sign in. Please check your credentials.");
-      setIsLoading(false);
+      throw new Error(err.message || "Failed to create account");
     }
   };
 
@@ -93,28 +119,38 @@ function AnimatedHero() {
               your commitment is rewarded with knowledge and proof of achievement.
             </p>
           </div>
+
+          {error && (
+            <div className="max-w-md mx-auto p-4 rounded-xl bg-red-50 border-2 border-red-200 flex items-start gap-3" role="alert">
+              <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+          )}
+
           <div className="flex flex-row gap-3">
             <Link href="/signup">
               <Button size="lg" className="gap-4" variant="outline">
                 Sign Up <Rocket className="w-4 h-4" />
               </Button>
             </Link>
-            <Button size="lg" className="gap-4" onClick={() => setIsSignInModalOpen(true)}>
-              Go to Dashboard <MoveRight className="w-4 h-4" />
+            <Button 
+              size="lg" 
+              className="gap-4" 
+              onClick={handleGoToDashboard}
+              disabled={isConnecting}
+            >
+              {isConnecting ? "Connecting..." : "Go to Dashboard"} <MoveRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      <SignInModal
-        isOpen={isSignInModalOpen}
-        onClose={() => {
-          setIsSignInModalOpen(false);
-          setError("");
-        }}
-        onSignIn={handleSignIn}
-        isLoading={isLoading}
-        error={error}
+      <UserOnboardingModal
+        isOpen={showOnboarding}
+        walletAddress={walletAddress}
+        onSubmit={handleOnboardingSubmit}
       />
     </div>
   );

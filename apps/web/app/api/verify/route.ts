@@ -3,7 +3,7 @@ import { uploadJsonToPinata } from "@/../../apps/web/_utils/pinata";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const aiUrl = process.env.AI_SERVICE_URL as string;
+  const aiUrl = process.env.AI_SERVICE_URL || 'https://ai-verifier.vercel.app';
   const chainId = Number(process.env.CHAIN_ID || 11155111);
   const verifyingContract = process.env.SBT_ADDRESS as string;
   // Build basic metadata and upload to IPFS first so AI signs with final tokenURI

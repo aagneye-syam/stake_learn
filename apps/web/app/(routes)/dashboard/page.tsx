@@ -11,6 +11,9 @@ import { useProgress } from "@/hooks/useProgress";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
 import { useCertificates } from "@/hooks/useCertificates";
 import { useConsumerData } from "@/hooks/useConsumerData";
+import { useSBT } from "@/hooks/useSBT";
+import { useReputation } from "@/hooks/useReputation";
+import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { NoSSR } from "@/components/NoSSR";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
@@ -20,6 +23,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { StatsBentoGrid } from "@/_components/StatsBentoGrid";
 import { VerifyMintCard } from "@/_components/VerifyMintCard";
 import { ConsumerDataModal } from "@/components/ConsumerDataModal";
+import { CompactProgressRewards } from "@/_components/CompactProgressRewards";
 import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 // Client-only wrapper to prevent hydration issues
@@ -48,7 +52,7 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
   const { courseProgress } = useModuleProgress(numericCourseId, task.modules?.length || 4);
 
   // Format stake amount for display
-  const fallbackAmount = "0.0001";
+  const fallbackAmount = "0.00001";
   const displayStakeAmount = stakeAmount 
     ? (Number(stakeAmount) / 1e18).toFixed(6) 
     : fallbackAmount;
@@ -187,42 +191,9 @@ export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const { isConnected: isWalletAuthConnected, isLoading: isAuthLoading, user } = useWalletAuth();
   const router = useRouter();
+  
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Redirect to signup if not authenticated
-  useEffect(() => {
-    if (mounted && !isAuthLoading && !isWalletAuthConnected) {
-      router.push("/signup");
-    }
-  }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
-
-  // Show loading while checking auth
-  if (!mounted || isAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking wallet connection...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show nothing while redirecting to signup
-  if (!isWalletAuthConnected) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <p className="text-gray-600">Redirecting to signup...</p>
-        </div>
-      </div>
-    );
-  }
-
   const [repo, setRepo] = useState("");
   const [sha, setSha] = useState("");
   const [permit, setPermit] = useState<Record<string, unknown> | null>(null);
@@ -243,47 +214,36 @@ export default function DashboardPage() {
   // Consumer data hook
   const { stats: consumerDataStats, hasConnectedSource, getDataCoinsBySource } = useConsumerData();
   
+  // SBT hook
+  const { totalSBTs, recentSBTs, lastMinted, loading: sbtLoading } = useSBT();
+  
+  // Reputation hook
+  const { totalReputation, reputationBreakdown, recentGains, lastGain, loading: reputationLoading } = useReputation();
+  
+  // Recent activity hook
+  const { activities, loading: activityLoading } = useRecentActivity();
+  
   // Consumer data modal state
   const [isConsumerDataModalOpen, setIsConsumerDataModalOpen] = useState(false);
 
-  // Mock activities - replace with real data
-  const [activities] = useState([
-    {
-      id: "1",
-      type: "mint" as const,
-      description: "Minted SBT for commit abc123",
-      timestamp: "2 hours ago",
-      status: "success" as const,
-    },
-    {
-      id: "2",
-      type: "verify" as const,
-      description: "Verified contribution in repo/example",
-      timestamp: "5 hours ago",
-      status: "success" as const,
-    },
-    {
-      id: "3",
-      type: "reputation" as const,
-      description: "Earned 50 reputation points",
-      timestamp: "1 day ago",
-      status: "success" as const,
-    },
-    {
-      id: "4",
-      type: "reputation" as const,
-      description: "Earned 25 DataCoins for course completion",
-      timestamp: "3 days ago",
-      status: "success" as const,
-    },
-    {
-      id: "5",
-      type: "mint" as const,
-      description: "Received certificate for HTML & CSS course",
-      timestamp: "1 week ago",
-      status: "success" as const,
-    },
-  ]);
+  // RPC status and optimization info
+  const [rpcStatus, setRpcStatus] = useState({
+    provider: 'Unknown',
+    status: 'checking',
+    optimizations: 0
+  });
+
+  // ALL useEffect HOOKS MUST BE CALLED BEFORE CONDITIONAL RETURNS
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Redirect to signup if not authenticated
+  useEffect(() => {
+    if (mounted && !isAuthLoading && !isWalletAuthConnected) {
+      router.push("/signup");
+    }
+  }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
 
   // Update DataCoin balance when local balance changes
   useEffect(() => {
@@ -297,25 +257,7 @@ export default function DashboardPage() {
     if (isConnected && address) {
       refetchLocalDataCoinBalance();
     }
-  }, [isConnected, address, refetchLocalDataCoinBalance]);
-
-  // Manual refresh function for testing
-  const handleRefreshData = async () => {
-    if (isConnected && address) {
-      await refetchLocalDataCoinBalance();
-      // Also refresh certificates
-      if (certificates && typeof certificates === 'object' && 'fetchCertificates' in certificates) {
-        await (certificates as any).fetchCertificates();
-      }
-    }
-  };
-
-  // RPC status and optimization info
-  const [rpcStatus, setRpcStatus] = useState({
-    provider: 'Unknown',
-    status: 'checking',
-    optimizations: 0
-  });
+  }, [isConnected, address]); // Remove refetchLocalDataCoinBalance from dependencies
 
   useEffect(() => {
     // Check RPC status
@@ -348,6 +290,52 @@ export default function DashboardPage() {
       checkRPCStatus();
     }
   }, [address]);
+
+  // Wallet authentication useEffects
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Redirect to signup if not authenticated
+  useEffect(() => {
+    if (mounted && !isAuthLoading && !isWalletAuthConnected) {
+      router.push("/signup");
+    }
+  }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
+
+  // Manual refresh function for testing
+  const handleRefreshData = async () => {
+    if (isConnected && address) {
+      await refetchLocalDataCoinBalance();
+      // Also refresh certificates
+      if (certificates && typeof certificates === 'object' && 'fetchCertificates' in certificates) {
+        await (certificates as any).fetchCertificates();
+      }
+    }
+  };
+
+  // Show loading while checking auth
+  if (!mounted || isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking wallet connection...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show nothing while redirecting to signup
+  if (!isWalletAuthConnected) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting to signup...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Learning tasks
   const learningTasks = [
@@ -756,12 +744,31 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <StatsBentoGrid
-        sbts="12"
-        reputation="850"
+        sbts={sbtLoading ? "..." : totalSBTs.toString()}
+        reputation={reputationLoading ? "..." : totalReputation.toString()}
         dataCoins={dataCoinBalance}
         certificates={certificates.length.toString()}
         onRefreshDataCoins={refetchLocalDataCoinBalance}
       />
+
+      {/* Debug Information - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-gray-100 p-4 rounded-lg text-sm">
+          <h3 className="font-semibold mb-2">Debug Info:</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p><strong>SBTs:</strong> {totalSBTs} (Loading: {sbtLoading ? 'Yes' : 'No'})</p>
+              <p><strong>Reputation:</strong> {totalReputation} (Loading: {reputationLoading ? 'Yes' : 'No'})</p>
+              <p><strong>Activities:</strong> {activities.length} (Loading: {activityLoading ? 'Yes' : 'No'})</p>
+            </div>
+            <div>
+              <p><strong>Recent SBTs:</strong> {recentSBTs.length}</p>
+              <p><strong>Recent Gains:</strong> {recentGains.length}</p>
+              <p><strong>Certificates:</strong> {certificates.length}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -783,61 +790,15 @@ export default function DashboardPage() {
 
         {/* Activity Card */}
         <div className="lg:col-span-1">
-          <ActivityCard activities={activities} />
+          <ActivityCard 
+            activities={activities} 
+            onViewAll={() => router.push('/transactions')}
+          />
         </div>
       </div>
 
-      {/* DataCoin Rewards Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Daily Streak */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-          <h3 className="text-xl font-bold text-black mb-4">🔥 Daily Streak</h3>
-          <NoSSR>
-            <DailyStreak />
-          </NoSSR>
-        </div>
-
-        {/* Progress Rewards */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-          <h3 className="text-xl font-bold text-black mb-4">🎯 Progress Rewards</h3>
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
-              <h4 className="font-semibold text-black mb-2">Earn DataCoins by Learning</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Daily Login</span>
-                  <span className="text-blue-600 font-medium">+5 DataCoins</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Course Progress (25%)</span>
-                  <span className="text-blue-600 font-medium">+3 DataCoins</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Course Milestone</span>
-                  <span className="text-blue-600 font-medium">+8 DataCoins</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">7-Day Streak</span>
-                  <span className="text-orange-600 font-medium">+15 DataCoins</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">30-Day Streak</span>
-                  <span className="text-green-600 font-medium">+50 DataCoins</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <button 
-                onClick={() => router.push('/courses')}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
-              >
-                Start Learning & Earning
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Compact Progress Rewards */}
+      <CompactProgressRewards />
 
       {/* Consumer Data Section */}
       <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">

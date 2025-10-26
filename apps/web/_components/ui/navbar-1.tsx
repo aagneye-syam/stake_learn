@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X, User } from "lucide-react"
 import Link from "next/link"
 import { WalletButton } from "../WalletButton"
+import { CompactDailyStreak } from "../CompactDailyStreak"
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -74,13 +75,16 @@ const Navbar1 = () => {
             ))}
           </nav>
 
-        {/* Desktop Wallet Connection */}
+        {/* Desktop Wallet Connection and Daily Streak */}
         <motion.div
-          className="hidden md:block"
+          className="hidden md:flex items-center gap-4"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
+          <ClientOnly>
+            <CompactDailyStreak />
+          </ClientOnly>
           <ClientOnly>
             <WalletButton />
           </ClientOnly>
@@ -134,7 +138,10 @@ const Navbar1 = () => {
                 exit={{ opacity: 0, y: 20 }}
                 className="pt-6"
               >
-                <div className="px-4">
+                <div className="px-4 space-y-4">
+                  <ClientOnly>
+                    <CompactDailyStreak />
+                  </ClientOnly>
                   <ClientOnly>
                     <WalletButton />
                   </ClientOnly>

@@ -24,7 +24,7 @@ export function useNetworkRPC(chainId?: number) {
     if (chainId) {
       fetchNetworkRPC(chainId);
     }
-  }, [chainId, fetchNetworkRPC]);
+  }, [chainId]); // Remove fetchNetworkRPC from dependencies
 
   return {
     networkRPC,

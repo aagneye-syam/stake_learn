@@ -7,9 +7,11 @@ import WalletConnectButton from "@/_components/WalletConnectButton";
 import UserOnboardingModal from "@/_components/UserOnboardingModal";
 import { connectWallet } from "@/services/wallet-auth.service";
 import { getUserByWallet, createWalletUser } from "@/services/user.service";
+import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { refreshUser } = useWalletAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
@@ -44,6 +46,8 @@ export default function SignUpPage() {
   const handleOnboardingSubmit = async (name: string, email: string) => {
     try {
       await createWalletUser(walletAddress, name, email);
+      setShowOnboarding(false);
+      await refreshUser(); // Refresh wallet context
       router.push("/dashboard");
     } catch (err: any) {
       throw new Error(err.message || "Failed to create account");

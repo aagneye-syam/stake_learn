@@ -8,6 +8,11 @@ interface SignUpFormProps {
   error?: string;
 }
 
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +26,11 @@ export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormPro
     // Basic validation
     if (!email || !password || !confirmPassword) {
       setFormError("All fields are required");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setFormError("Please enter a valid email address");
       return;
     }
 

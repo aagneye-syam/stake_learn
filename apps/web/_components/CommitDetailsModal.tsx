@@ -186,9 +186,9 @@ export function CommitDetailsModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-600 text-white">
               <GitCommit className="h-5 w-5" />
@@ -209,7 +209,7 @@ export function CommitDetailsModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
@@ -330,9 +330,9 @@ export function CommitDetailsModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="border-t border-gray-200 p-6 flex-shrink-0 bg-white">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
               <span className="text-sm text-gray-600">
                 GitHub User: <span className="font-medium">{repository.githubUsername}</span>
               </span>
@@ -343,24 +343,24 @@ export function CommitDetailsModal({
               )}
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
               {!showNotes && (
                 <button
                   onClick={() => setShowNotes(true)}
-                  className="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors text-sm"
+                  className="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors text-sm self-start"
                 >
                   Add Notes
                 </button>
               )}
               
               {showNotes && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                   <input
                     type="text"
                     placeholder="Verification notes..."
                     value={verificationNotes}
                     onChange={(e) => setVerificationNotes(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent flex-1 sm:flex-none sm:w-48"
                   />
                   <button
                     onClick={() => setShowNotes(false)}
@@ -371,23 +371,25 @@ export function CommitDetailsModal({
                 </div>
               )}
               
-              <button
-                onClick={() => handleVerify('rejected')}
-                disabled={isVerifying}
-                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                Reject
-              </button>
-              
-              <button
-                onClick={() => handleVerify('verified')}
-                disabled={isVerifying}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                Verify (+5 DataCoins)
-              </button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => handleVerify('rejected')}
+                  disabled={isVerifying}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                  Reject
+                </button>
+                
+                <button
+                  onClick={() => handleVerify('verified')}
+                  disabled={isVerifying}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                  Verify (+5 DataCoins)
+                </button>
+              </div>
             </div>
           </div>
         </div>

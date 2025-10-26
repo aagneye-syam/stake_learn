@@ -40,14 +40,14 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-black mb-2">Create Account</h1>
-          <p className="text-gray-600">Join us and start your learning journey</p>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-black mb-2">Create Account</h1>
+          <p className="text-sm sm:text-base text-gray-600">Join us and start your learning journey</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg border border-gray-200">
           {success ? (
             <div className="p-6 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">

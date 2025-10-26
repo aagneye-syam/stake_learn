@@ -87,6 +87,7 @@ export default function SignUpForm({ onSubmit, isLoading, error }: SignUpFormPro
           required
           aria-required="true"
           aria-describedby="email-hint"
+          autoFocus
         />
       </div>
 

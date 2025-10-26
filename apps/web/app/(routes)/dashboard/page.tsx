@@ -705,7 +705,7 @@ export default function DashboardPage() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Repository Submission Card */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2" data-repo-submission>
           <RepositorySubmissionCard
             onRepositoryAdded={() => {
               // Refresh DataCoin balance when repository is added
@@ -727,7 +727,16 @@ export default function DashboardPage() {
       <CompactProgressRewards />
 
       {/* Repository Status Section */}
-      {repositories && repositories.length > 0 && (
+      {repositoriesLoading ? (
+        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading your repository submissions...</p>
+            </div>
+          </div>
+        </div>
+      ) : repositories && repositories.length > 0 ? (
         <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -736,12 +745,20 @@ export default function DashboardPage() {
                 Track the status and progress of your submitted repositories
               </p>
             </div>
-            <button
-              onClick={() => router.push('/admin')}
-              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
-            >
-              View All
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all shadow-sm"
+              >
+                🔄 Refresh
+              </button>
+              <button
+                onClick={() => router.push('/admin')}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+              >
+                View All
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -858,6 +875,32 @@ export default function DashboardPage() {
                 <div className="text-sm text-gray-600">Total DataCoins</div>
               </div>
             </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Repository Submissions Yet</h3>
+            <p className="text-gray-600 mb-6">
+              Submit your first repository to start earning DataCoins and building your reputation
+            </p>
+            <button
+              onClick={() => {
+                // Scroll to repository submission card
+                const element = document.querySelector('[data-repo-submission]');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+            >
+              Submit Repository
+            </button>
           </div>
         </div>
       )}

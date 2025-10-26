@@ -165,12 +165,12 @@ export async function POST(request: NextRequest) {
       // Check if we have a valid private key
       if (!process.env.DEPLOYER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY === '') {
         throw new Error('No private key configured, using mock transaction');
-      }
+    }
 
-      // Connect to the DataCoin contract
-      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
-      const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY as string, provider);
-      const dataCoinContract = new ethers.Contract(dataCoinContractAddress, DataCoinABI, wallet);
+    // Connect to the DataCoin contract
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+    const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY as string, provider);
+    const dataCoinContract = new ethers.Contract(dataCoinContractAddress, DataCoinABI, wallet);
 
       // Get current gas price and add buffer
       const gasPrice = await provider.getFeeData();
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
           );
           
           console.log(`Transaction submitted (attempt ${retryCount + 1}): ${tx.hash}`);
-          await tx.wait();
+    await tx.wait();
           txHash = tx.hash;
           console.log(`Transaction confirmed: ${txHash}`);
           break; // Success, exit retry loop

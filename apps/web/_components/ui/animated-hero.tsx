@@ -130,16 +130,21 @@ function AnimatedHero() {
           )}
 
           <div className="flex flex-row gap-3">
-            <Link href="/signup">
-              <Button size="lg" className="gap-4" variant="outline">
+            <Link href="/signup" className="group">
+              <Button
+                size="lg"
+                className="gap-4 bg-background border-2 border-primary text-primary group-hover:bg-primary group-hover:text-background transition-colors"
+                variant="outline"
+              >
                 Sign Up <Rocket className="w-4 h-4" />
               </Button>
             </Link>
             <Button 
               size="lg" 
-              className="gap-4" 
+              className="gap-4 bg-primary text-background border-2 border-primary hover:bg-background hover:text-primary transition-colors"
               onClick={handleGoToDashboard}
               disabled={isConnecting}
+              variant="default"
             >
               {isConnecting ? "Connecting..." : "Go to Dashboard"} <MoveRight className="w-4 h-4" />
             </Button>

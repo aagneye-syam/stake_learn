@@ -192,34 +192,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Redirect to signup if not authenticated
-  useEffect(() => {
-    if (mounted && !isAuthLoading && !isWalletAuthConnected) {
-      router.push("/signup");
-    }
-  }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
-
-  // Show loading while checking auth
-  if (!mounted || isAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show nothing while redirecting
-  if (!isWalletAuthConnected) {
-    return null;
-  }
-
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const [repo, setRepo] = useState("");
   const [sha, setSha] = useState("");
   const [permit, setPermit] = useState<Record<string, unknown> | null>(null);
@@ -252,6 +225,25 @@ export default function DashboardPage() {
   // Consumer data modal state
   const [isConsumerDataModalOpen, setIsConsumerDataModalOpen] = useState(false);
 
+  // RPC status and optimization info
+  const [rpcStatus, setRpcStatus] = useState({
+    provider: 'Unknown',
+    status: 'checking',
+    optimizations: 0
+  });
+
+  // ALL useEffect HOOKS MUST BE CALLED BEFORE CONDITIONAL RETURNS
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Redirect to signup if not authenticated
+  useEffect(() => {
+    if (mounted && !isAuthLoading && !isWalletAuthConnected) {
+      router.push("/signup");
+    }
+  }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
+
   // Update DataCoin balance when local balance changes
   useEffect(() => {
     if (localDataCoinBalance !== undefined) {
@@ -265,24 +257,6 @@ export default function DashboardPage() {
       refetchLocalDataCoinBalance();
     }
   }, [isConnected, address]); // Remove refetchLocalDataCoinBalance from dependencies
-
-  // Manual refresh function for testing
-  const handleRefreshData = async () => {
-    if (isConnected && address) {
-      await refetchLocalDataCoinBalance();
-      // Also refresh certificates
-      if (certificates && typeof certificates === 'object' && 'fetchCertificates' in certificates) {
-        await (certificates as any).fetchCertificates();
-      }
-    }
-  };
-
-  // RPC status and optimization info
-  const [rpcStatus, setRpcStatus] = useState({
-    provider: 'Unknown',
-    status: 'checking',
-    optimizations: 0
-  });
 
   useEffect(() => {
     // Check RPC status
@@ -315,6 +289,34 @@ export default function DashboardPage() {
       checkRPCStatus();
     }
   }, [address]);
+
+  // Manual refresh function for testing
+  const handleRefreshData = async () => {
+    if (isConnected && address) {
+      await refetchLocalDataCoinBalance();
+      // Also refresh certificates
+      if (certificates && typeof certificates === 'object' && 'fetchCertificates' in certificates) {
+        await (certificates as any).fetchCertificates();
+      }
+    }
+  };
+
+  // Show loading while checking auth
+  if (!mounted || isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show nothing while redirecting
+  if (!isWalletAuthConnected) {
+    return null;
+  }
 
   // Learning tasks
   const learningTasks = [

@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { reclaimService, ConsumerDataContribution, ProofRequest, ProofVerification } from '@/_utils/reclaim';
+import { ReclaimService, ConsumerDataContribution, ProofRequest, ProofVerification } from '@/_utils/reclaim';
+
+// Lazy initialization of Reclaim service
+let reclaimService: ReclaimService | null = null;
+
+const getReclaimService = () => {
+  if (!reclaimService) {
+    reclaimService = new ReclaimService();
+  }
+  return reclaimService;
+};
 
 export interface ConsumerDataStats {
   totalContributions: number;
@@ -27,7 +37,8 @@ export function useConsumerData() {
     
     setLoading(true);
     try {
-      const success = await reclaimService.initialize();
+      const service = getReclaimService();
+      const success = await service.initialize();
       setIsInitialized(success);
       return success;
     } catch (err) {
@@ -96,16 +107,17 @@ export function useConsumerData() {
     try {
       let result: ProofRequest;
       
-      switch (dataSource) {
-        case 'github':
-          result = await reclaimService.requestGitHubProof(address);
-          break;
-        case 'uber':
-          result = await reclaimService.requestUberProof(address);
-          break;
-        case 'amazon':
-          result = await reclaimService.requestAmazonProof(address);
-          break;
+        const service = getReclaimService();
+        switch (dataSource) {
+          case 'github':
+            result = await service.requestGitHubProof(address);
+            break;
+          case 'uber':
+            result = await service.requestUberProof(address);
+            break;
+          case 'amazon':
+            result = await service.requestAmazonProof(address);
+            break;
         default:
           result = { success: false, error: 'Unsupported data source' };
       }
@@ -190,7 +202,8 @@ export function useConsumerData() {
     setError(null);
 
     try {
-      const verification = await reclaimService.mockVerifyProof(dataSource);
+      const service = getReclaimService();
+      const verification = await service.mockVerifyProof(dataSource);
       
       if (verification.success) {
         // Submit the mock proof

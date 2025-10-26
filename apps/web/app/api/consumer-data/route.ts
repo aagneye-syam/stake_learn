@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
-import { reclaimService, ConsumerDataContribution } from '@/_utils/reclaim';
+import { ReclaimService, ConsumerDataContribution } from '@/_utils/reclaim';
 import { uploadEncryptedJson } from '@/_utils/lighthouse';
+
+// Lazy initialization of Reclaim service
+let reclaimService: ReclaimService | null = null;
+
+const getReclaimService = () => {
+  if (!reclaimService) {
+    reclaimService = new ReclaimService();
+  }
+  return reclaimService;
+};
 
 // Global storage for consumer data contributions
 declare global {
@@ -31,7 +41,8 @@ export async function POST(request: Request) {
     }
 
     // Verify the proof using Reclaim SDK
-    const verification = await reclaimService.verifyProof(proofData, dataSource);
+    const service = getReclaimService();
+    const verification = await service.verifyProof(proofData, dataSource);
     
     if (!verification.success) {
       return NextResponse.json({ 
@@ -40,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     // Calculate DataCoins based on verified data
-    const dataCoinsEarned = reclaimService.calculateDataCoins(verification.data, dataSource);
+    const dataCoinsEarned = service.calculateDataCoins(verification.data, dataSource);
     
     if (dataCoinsEarned <= 0) {
       return NextResponse.json({ 

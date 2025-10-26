@@ -1,5 +1,3 @@
-import * as ReclaimSDK from '@reclaimprotocol/js-sdk';
-
 // Reclaim Protocol SDK wrapper for consumer data verification
 export class ReclaimService {
   private reclaim: any;
@@ -14,12 +12,26 @@ export class ReclaimService {
       console.warn('Reclaim credentials not found. Consumer data verification will be mocked.');
     }
 
-    // Initialize Reclaim SDK with proper import
+    // Initialize Reclaim SDK with dynamic import
+    this.initializeReclaim();
+  }
+
+  private async initializeReclaim() {
     try {
-      this.reclaim = new (ReclaimSDK as any).Reclaim({
-        appId: this.appId,
-        appSecret: this.appSecret,
-      });
+      // Dynamic import to handle ES modules properly
+      const ReclaimSDK = await import('@reclaimprotocol/js-sdk');
+      
+      // Handle different export patterns
+      const ReclaimClass = ReclaimSDK.Reclaim || ReclaimSDK.default?.Reclaim || ReclaimSDK.default;
+      
+      if (typeof ReclaimClass === 'function') {
+        this.reclaim = new ReclaimClass({
+          appId: this.appId,
+          appSecret: this.appSecret,
+        });
+      } else {
+        throw new Error('Reclaim class not found in SDK');
+      }
     } catch (error) {
       console.warn('Failed to initialize Reclaim SDK, using mock mode:', error);
       this.reclaim = null;
@@ -28,6 +40,11 @@ export class ReclaimService {
 
   // Initialize Reclaim SDK for frontend
   async initialize() {
+    // Ensure Reclaim SDK is initialized
+    if (!this.reclaim) {
+      await this.initializeReclaim();
+    }
+    
     if (!this.reclaim) {
       console.warn('Reclaim SDK not available, using mock mode');
       return false;
@@ -44,6 +61,11 @@ export class ReclaimService {
 
   // Request GitHub contribution proof
   async requestGitHubProof(userAddress: string) {
+    // Ensure Reclaim SDK is initialized
+    if (!this.reclaim) {
+      await this.initializeReclaim();
+    }
+    
     if (!this.reclaim) {
       return {
         success: false,
@@ -80,6 +102,11 @@ export class ReclaimService {
 
   // Request Uber ride data proof
   async requestUberProof(userAddress: string) {
+    // Ensure Reclaim SDK is initialized
+    if (!this.reclaim) {
+      await this.initializeReclaim();
+    }
+    
     if (!this.reclaim) {
       return {
         success: false,
@@ -115,6 +142,11 @@ export class ReclaimService {
 
   // Request Amazon purchase data proof
   async requestAmazonProof(userAddress: string) {
+    // Ensure Reclaim SDK is initialized
+    if (!this.reclaim) {
+      await this.initializeReclaim();
+    }
+    
     if (!this.reclaim) {
       return {
         success: false,
@@ -150,6 +182,11 @@ export class ReclaimService {
 
   // Verify submitted proof
   async verifyProof(proofData: string, dataSource: 'github' | 'uber' | 'amazon') {
+    // Ensure Reclaim SDK is initialized
+    if (!this.reclaim) {
+      await this.initializeReclaim();
+    }
+    
     if (!this.reclaim) {
       return {
         success: false,

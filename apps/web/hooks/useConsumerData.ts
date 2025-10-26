@@ -1,22 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { ReclaimService, ConsumerDataContribution, ProofRequest, ProofVerification } from '@/_utils/reclaim';
-
-// Lazy initialization of Reclaim service
-let reclaimService: ReclaimService | null = null;
-
-const getReclaimService = () => {
-  if (!reclaimService) {
-    reclaimService = new ReclaimService();
-  }
-  return reclaimService;
-};
+import { getReclaimService } from '@/utils/reclaim';
 
 export interface ConsumerDataStats {
   totalContributions: number;
   totalDataCoins: number;
-  bySource: Record<string, ConsumerDataContribution[]>;
-  lastContribution?: ConsumerDataContribution;
+  bySource: {
+    github: number;
+    uber: number;
+    amazon: number;
+  };
+  lastContribution: number | null;
+}
+
+export interface ConsumerDataContribution {
+  userAddress: string;
+  dataSource: 'github' | 'uber' | 'amazon';
+  proofCid: string;
+  zkProof: string;
+  dataHash: string;
+  timestamp: number;
+  dataCoinsEarned: number;
+  verified: boolean;
+  data: any;
+  isFirstVerification: boolean;
 }
 
 export function useConsumerData() {
@@ -25,125 +32,90 @@ export function useConsumerData() {
   const [stats, setStats] = useState<ConsumerDataStats>({
     totalContributions: 0,
     totalDataCoins: 0,
-    bySource: {},
+    bySource: { github: 0, uber: 0, amazon: 0 },
+    lastContribution: null
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize Reclaim SDK
-  const initializeReclaim = useCallback(async () => {
-    if (isInitialized) return true;
-    
-    setLoading(true);
-    try {
-      const service = getReclaimService();
-      const success = await service.initialize();
-      setIsInitialized(success);
-      return success;
-    } catch (err) {
-      console.error('Failed to initialize Reclaim SDK:', err);
-      setError('Failed to initialize Reclaim Protocol');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [isInitialized]);
-
-  // Fetch user's consumer data contributions
+  // Fetch consumer data contributions
   const fetchContributions = useCallback(async () => {
-    if (!address || !isConnected) {
-      setContributions([]);
-      setStats({
-        totalContributions: 0,
-        totalDataCoins: 0,
-        bySource: {},
-      });
-      return;
-    }
+    if (!address || !isConnected) return;
 
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`/api/consumer-data?userAddress=${address}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setContributions(data.contributions);
-        setStats({
-          totalContributions: data.count,
-          totalDataCoins: data.totalDataCoins,
-          bySource: data.bySource,
-          lastContribution: data.contributions[data.contributions.length - 1],
-        });
-      } else {
-        setError(data.error || 'Failed to fetch contributions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch consumer data');
       }
+
+      const data = await response.json();
+      setContributions(data.contributions || []);
+      setStats(data.stats || {
+        totalContributions: 0,
+        totalDataCoins: 0,
+        bySource: { github: 0, uber: 0, amazon: 0 },
+        lastContribution: null
+      });
     } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
       console.error('Error fetching consumer data:', err);
-      setError('Network error or server unreachable');
     } finally {
       setLoading(false);
     }
   }, [address, isConnected]);
 
-  // Request proof for a specific data source
-  const requestProof = useCallback(async (dataSource: 'github' | 'uber' | 'amazon'): Promise<ProofRequest> => {
-    if (!address) {
-      return { success: false, error: 'Wallet not connected' };
+  // Initialize Reclaim service
+  const initializeReclaim = useCallback(async () => {
+    try {
+      const reclaimService = getReclaimService();
+      await reclaimService.initialize();
+    } catch (err) {
+      console.warn('Failed to initialize Reclaim service:', err);
     }
+  }, []);
 
-    if (!isInitialized) {
-      const initialized = await initializeReclaim();
-      if (!initialized) {
-        return { success: false, error: 'Failed to initialize Reclaim SDK' };
-      }
-    }
-
-    setLoading(true);
-    setError(null);
+  // Request proof for specific data source
+  const requestProof = useCallback(async (dataSource: 'github' | 'uber' | 'amazon') => {
+    if (!address) return { success: false, error: 'No wallet connected' };
 
     try {
-      let result: ProofRequest;
+      const reclaimService = getReclaimService();
       
-        const service = getReclaimService();
-        switch (dataSource) {
-          case 'github':
-            result = await service.requestGitHubProof(address);
-            break;
-          case 'uber':
-            result = await service.requestUberProof(address);
-            break;
-          case 'amazon':
-            result = await service.requestAmazonProof(address);
-            break;
+      let proofRequest;
+      switch (dataSource) {
+        case 'github':
+          proofRequest = await reclaimService.requestGitHubProof(address);
+          break;
+        case 'uber':
+          proofRequest = await reclaimService.requestUberProof(address);
+          break;
+        case 'amazon':
+          proofRequest = await reclaimService.requestAmazonProof(address);
+          break;
         default:
-          result = { success: false, error: 'Unsupported data source' };
+          return { success: false, error: 'Invalid data source' };
       }
 
-      if (result.success) {
-        // Store the request ID for later verification
-        localStorage.setItem(`reclaim_request_${dataSource}`, result.requestId || '');
-      }
-
-      return result;
+      return proofRequest;
     } catch (err) {
       console.error('Error requesting proof:', err);
-      return { success: false, error: 'Failed to request proof' };
-    } finally {
-      setLoading(false);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
     }
-  }, [address, isInitialized, initializeReclaim]);
+  }, [address]);
 
-  // Submit proof for verification
+  // Submit proof and verify data
   const submitProof = useCallback(async (
     dataSource: 'github' | 'uber' | 'amazon',
-    proofData: string
-  ): Promise<{ success: boolean; dataCoinsEarned?: number; error?: string }> => {
-    if (!address) {
-      return { success: false, error: 'Wallet not connected' };
-    }
+    proofData: string,
+    zkProof: string
+  ) => {
+    if (!address) return { success: false, error: 'No wallet connected' };
 
     setLoading(true);
     setError(null);
@@ -151,118 +123,69 @@ export function useConsumerData() {
     try {
       const response = await fetch('/api/consumer-data', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userAddress: address,
           dataSource,
           proofData,
-          requestId: localStorage.getItem(`reclaim_request_${dataSource}`),
-        }),
+          zkProof
+        })
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        // Refresh contributions after successful submission
-        await fetchContributions();
-        
-        // Clear the stored request ID
-        localStorage.removeItem(`reclaim_request_${dataSource}`);
-        
-        return {
-          success: true,
-          dataCoinsEarned: data.dataCoinsEarned,
-        };
-      } else {
-        return {
-          success: false,
-          error: data.error || 'Failed to submit proof',
-        };
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit proof');
       }
-    } catch (err) {
-      console.error('Error submitting proof:', err);
+
+      // Refresh contributions after successful submission
+      await fetchContributions();
+
       return {
-        success: false,
-        error: 'Network error or server unreachable',
+        success: true,
+        contribution: data.contribution,
+        dataCoinsEarned: data.dataCoinsEarned,
+        transactionHash: data.transactionHash
       };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
   }, [address, fetchContributions]);
 
-  // Mock verification for development/testing
-  const mockVerify = useCallback(async (dataSource: 'github' | 'uber' | 'amazon') => {
-    if (!address) {
-      return { success: false, error: 'Wallet not connected' };
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const service = getReclaimService();
-      const verification = await service.mockVerifyProof(dataSource);
-      
-      if (verification.success) {
-        // Submit the mock proof
-        const result = await submitProof(dataSource, JSON.stringify(verification.data));
-        return result;
-      } else {
-        return { success: false, error: 'Mock verification failed' };
-      }
-    } catch (err) {
-      console.error('Error with mock verification:', err);
-      return { success: false, error: 'Mock verification failed' };
-    } finally {
-      setLoading(false);
-    }
-  }, [address, submitProof]);
-
-  // Get contributions by source
-  const getContributionsBySource = useCallback((source: 'github' | 'uber' | 'amazon') => {
-    return contributions.filter(contrib => contrib.dataSource === source);
-  }, [contributions]);
-
-  // Get total DataCoins from a specific source
-  const getDataCoinsBySource = useCallback((source: 'github' | 'uber' | 'amazon') => {
-    return contributions
-      .filter(contrib => contrib.dataSource === source)
-      .reduce((sum, contrib) => sum + contrib.dataCoinsEarned, 0);
-  }, [contributions]);
-
   // Check if user has connected a specific data source
   const hasConnectedSource = useCallback((source: 'github' | 'uber' | 'amazon') => {
-    return contributions.some(contrib => contrib.dataSource === source);
+    return contributions.some(c => c.dataSource === source && c.verified);
   }, [contributions]);
 
-  // Initialize on mount
+  // Get DataCoins earned from specific source
+  const getDataCoinsBySource = useCallback((source: 'github' | 'uber' | 'amazon') => {
+    return contributions
+      .filter(c => c.dataSource === source && c.verified)
+      .reduce((sum, c) => sum + c.dataCoinsEarned, 0);
+  }, [contributions]);
+
+  // Load contributions on mount and when address changes
   useEffect(() => {
-    if (isConnected && address) {
-      initializeReclaim();
+    if (address && isConnected) {
       fetchContributions();
+      initializeReclaim();
     }
-  }, [isConnected, address]); // Remove initializeReclaim and fetchContributions from dependencies
+  }, [address, isConnected, fetchContributions, initializeReclaim]);
 
   return {
-    // State
     contributions,
     stats,
     loading,
     error,
-    isInitialized,
-    
-    // Actions
+    fetchContributions,
     requestProof,
     submitProof,
-    mockVerify,
-    fetchContributions,
-    initializeReclaim,
-    
-    // Utilities
-    getContributionsBySource,
-    getDataCoinsBySource,
     hasConnectedSource,
+    getDataCoinsBySource,
+    initializeReclaim
   };
 }

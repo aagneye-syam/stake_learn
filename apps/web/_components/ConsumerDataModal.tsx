@@ -1,289 +1,357 @@
 "use client";
+
 import { useState, useEffect } from 'react';
 import { useConsumerData } from '@/hooks/useConsumerData';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Github, Car, ShoppingBag, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ConsumerDataModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedSource?: 'github' | 'uber' | 'amazon';
 }
 
-export function ConsumerDataModal({ isOpen, onClose, selectedSource }: ConsumerDataModalProps) {
-  const [currentStep, setCurrentStep] = useState<'select' | 'requesting' | 'verifying' | 'success' | 'error'>('select');
-  const [selectedDataSource, setSelectedDataSource] = useState<'github' | 'uber' | 'amazon' | null>(selectedSource || null);
-  const [proofUrl, setProofUrl] = useState<string>('');
-  const [dataCoinsEarned, setDataCoinsEarned] = useState<number>(0);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [proofData, setProofData] = useState<string>('');
+const DATA_SOURCES = [
+  {
+    id: 'github',
+    name: 'GitHub',
+    description: 'Verify your code contributions',
+    icon: Github,
+    color: 'from-gray-800 to-gray-600',
+    reward: '10 DataCoins per batch',
+    features: ['Commits', 'Pull Requests', 'Issues', 'Repositories']
+  },
+  {
+    id: 'uber',
+    name: 'Uber',
+    description: 'Verify your ride history',
+    icon: Car,
+    color: 'from-black to-gray-800',
+    reward: '5 DataCoins per month',
+    features: ['Ride Count', 'Total Distance', 'Spending Patterns']
+  },
+  {
+    id: 'amazon',
+    name: 'Amazon',
+    description: 'Verify your purchase history',
+    icon: ShoppingBag,
+    color: 'from-orange-500 to-orange-600',
+    reward: '5 DataCoins per month',
+    features: ['Order History', 'Categories', 'Spending Analysis']
+  }
+] as const;
 
-  const {
-    requestProof,
-    submitProof,
-    mockVerify,
-    loading,
-    error,
+type DataSource = typeof DATA_SOURCES[number]['id'];
+
+export function ConsumerDataModal({ isOpen, onClose }: ConsumerDataModalProps) {
+  const { 
+    stats, 
+    loading, 
+    error, 
+    requestProof, 
+    submitProof, 
     hasConnectedSource,
-    getDataCoinsBySource,
+    getDataCoinsBySource 
   } = useConsumerData();
 
-  // Reset state when modal opens/closes
+  const [selectedSource, setSelectedSource] = useState<DataSource | null>(null);
+  const [proofData, setProofData] = useState<string>('');
+  const [zkProof, setZkProof] = useState<string>('');
+  const [step, setStep] = useState<'select' | 'request' | 'submit' | 'success'>('select');
+  const [requestUrl, setRequestUrl] = useState<string>('');
+
+  // Reset modal state when opened
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep('select');
-      setSelectedDataSource(selectedSource || null);
-      setProofUrl('');
-      setDataCoinsEarned(0);
-      setErrorMessage('');
+      setStep('select');
+      setSelectedSource(null);
       setProofData('');
+      setZkProof('');
+      setRequestUrl('');
     }
-  }, [isOpen, selectedSource]);
+  }, [isOpen]);
 
-  const dataSources = [
-    {
-      id: 'github' as const,
-      name: 'GitHub',
-      description: 'Verify your code contributions, commits, and pull requests',
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-        </svg>
-      ),
-      reward: '10 DataCoins per contribution batch',
-      color: 'from-gray-800 to-gray-600',
-    },
-    {
-      id: 'uber' as const,
-      name: 'Uber',
-      description: 'Verify your ride history and transportation data',
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M0 24h24V0H0v24z" fill="none"/>
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-        </svg>
-      ),
-      reward: '5 DataCoins per month of data',
-      color: 'from-black to-gray-800',
-    },
-    {
-      id: 'amazon' as const,
-      name: 'Amazon',
-      description: 'Verify your purchase history and shopping patterns',
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M7.77 6.76L6.23 8.3c-.45.45-.45 1.18 0 1.63l1.54 1.54c.45.45 1.18.45 1.63 0l1.54-1.54c.45-.45.45-1.18 0-1.63L9.4 6.76c-.45-.45-1.18-.45-1.63 0zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-        </svg>
-      ),
-      reward: '5 DataCoins per month of data',
-      color: 'from-orange-500 to-orange-600',
-    },
-  ];
-
-  const handleSourceSelect = (source: 'github' | 'uber' | 'amazon') => {
-    setSelectedDataSource(source);
-    setCurrentStep('requesting');
-    setErrorMessage('');
+  const handleSourceSelect = (source: DataSource) => {
+    setSelectedSource(source);
+    setStep('request');
   };
 
   const handleRequestProof = async () => {
-    if (!selectedDataSource) return;
+    if (!selectedSource) return;
 
-    setCurrentStep('requesting');
-    setErrorMessage('');
-
-    try {
-      const result = await requestProof(selectedDataSource);
-      
-      if (result.success && result.url) {
-        setProofUrl(result.url);
-        setCurrentStep('verifying');
-        
-        // In a real implementation, you would open the URL in a popup
-        // and wait for the user to complete the verification
-        // For now, we'll simulate the process
-        setTimeout(() => {
-          handleMockVerification();
-        }, 2000);
-      } else {
-        setErrorMessage(result.error || 'Failed to request proof');
-        setCurrentStep('error');
-      }
-    } catch (err) {
-      setErrorMessage('An unexpected error occurred');
-      setCurrentStep('error');
+    const result = await requestProof(selectedSource);
+    
+    if (result.success && result.url) {
+      setRequestUrl(result.url);
+      setStep('submit');
+    } else {
+      console.error('Failed to request proof:', result.error);
     }
   };
 
-  const handleMockVerification = async () => {
-    if (!selectedDataSource) return;
+  const handleSubmitProof = async () => {
+    if (!selectedSource || !proofData || !zkProof) return;
 
-    try {
-      const result = await mockVerify(selectedDataSource);
-      
-      if (result.success) {
-        setDataCoinsEarned(result.dataCoinsEarned || 0);
-        setCurrentStep('success');
-      } else {
-        setErrorMessage(result.error || 'Verification failed');
-        setCurrentStep('error');
-      }
-    } catch (err) {
-      setErrorMessage('Verification failed');
-      setCurrentStep('error');
+    const result = await submitProof(selectedSource, proofData, zkProof);
+    
+    if (result.success) {
+      setStep('success');
+    } else {
+      console.error('Failed to submit proof:', result.error);
     }
   };
 
   const handleClose = () => {
-    setCurrentStep('select');
-    setSelectedDataSource(null);
-    setProofUrl('');
-    setDataCoinsEarned(0);
-    setErrorMessage('');
+    setStep('select');
+    setSelectedSource(null);
     setProofData('');
+    setZkProof('');
+    setRequestUrl('');
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Connect Consumer Data</h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={handleClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Connect Consumer Data</h2>
+              <p className="text-gray-600">Verify your real-world data to earn DataCoins</p>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-500" />
+            </button>
+          </div>
 
-        {/* Content */}
-        <div className="p-6">
-          {currentStep === 'select' && (
-            <div className="space-y-4">
-              <p className="text-gray-600 mb-6">
-                Connect your data sources to earn DataCoins. Your data is verified using zero-knowledge proofs 
-                and stored securely on IPFS.
-              </p>
-              
-              {dataSources.map((source) => (
-                <div
-                  key={source.id}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    hasConnectedSource(source.id)
-                      ? 'border-green-200 bg-green-50'
-                      : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
-                  }`}
-                  onClick={() => handleSourceSelect(source.id)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-lg bg-gradient-to-r ${source.color} text-white`}>
-                      {source.icon}
+          {/* Content */}
+          <div className="p-6">
+            {step === 'select' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {DATA_SOURCES.map((source) => {
+                    const Icon = source.icon;
+                    const isConnected = hasConnectedSource(source.id);
+                    const dataCoinsEarned = getDataCoinsBySource(source.id);
+
+                    return (
+                      <motion.button
+                        key={source.id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleSourceSelect(source.id)}
+                        className={`p-6 rounded-xl border-2 transition-all text-left ${
+                          isConnected 
+                            ? 'border-green-200 bg-green-50' 
+                            : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className={`p-3 rounded-lg bg-gradient-to-r ${source.color} text-white`}>
+                            <Icon className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{source.name}</h3>
+                            <p className="text-sm text-gray-600">{source.description}</p>
+                          </div>
+                          {isConnected && (
+                            <CheckCircle className="w-5 h-5 text-green-600 ml-auto" />
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Reward</span>
+                            <span className="font-medium text-purple-600">{source.reward}</span>
+                          </div>
+                          {isConnected && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Earned</span>
+                              <span className="font-medium text-green-600">{dataCoinsEarned} DataCoins</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-3">
+                          <div className="text-xs text-gray-500 mb-2">Verifies:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {source.features.map((feature) => (
+                              <span
+                                key={feature}
+                                className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs"
+                              >
+                                {feature}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                {/* Stats Summary */}
+                <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Total Consumer DataCoins</h4>
+                      <p className="text-sm text-gray-600">
+                        {stats.totalContributions} connected sources
+                      </p>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900">{source.name}</h3>
-                        {hasConnectedSource(source.id) && (
-                          <span className="text-green-600 text-sm">✓ Connected</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">{source.description}</p>
-                      <p className="text-sm text-purple-600 font-medium mt-1">{source.reward}</p>
-                      {hasConnectedSource(source.id) && (
-                        <p className="text-sm text-green-600 mt-1">
-                          Earned: {getDataCoinsBySource(source.id)} DataCoins
-                        </p>
-                      )}
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-purple-600">
+                        {stats.totalDataCoins}
+                      </p>
+                      <p className="text-sm text-gray-600">DataCoins earned</p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
 
-          {currentStep === 'requesting' && (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Requesting Proof</h3>
-              <p className="text-gray-600">
-                Initializing Reclaim Protocol for {selectedDataSource} verification...
-              </p>
-            </div>
-          )}
-
-          {currentStep === 'verifying' && (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Verifying Data</h3>
-              <p className="text-gray-600 mb-4">
-                Verifying your {selectedDataSource} data using zero-knowledge proofs...
-              </p>
-              {proofUrl && (
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    In a real implementation, you would complete verification at:
-                  </p>
-                  <p className="text-xs text-blue-600 font-mono break-all mt-1">{proofUrl}</p>
+            {step === 'request' && selectedSource && (
+              <div className="text-center space-y-6">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">🔗</span>
                 </div>
-              )}
-            </div>
-          )}
-
-          {currentStep === 'success' && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Verification Successful!</h3>
-              <p className="text-gray-600 mb-4">
-                Your {selectedDataSource} data has been verified and stored securely.
-              </p>
-              <div className="bg-green-50 rounded-lg p-4 mb-6">
-                <p className="text-green-800 font-semibold">
-                  🪙 Earned {dataCoinsEarned} DataCoins!
-                </p>
-              </div>
-              <button
-                onClick={handleClose}
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Continue
-              </button>
-            </div>
-          )}
-
-          {currentStep === 'error' && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Verification Failed</h3>
-              <p className="text-gray-600 mb-4">{errorMessage}</p>
-              <div className="flex gap-3">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Connect {DATA_SOURCES.find(s => s.id === selectedSource)?.name}
+                  </h3>
+                  <p className="text-gray-600">
+                    Click below to generate a secure proof of your data
+                  </p>
+                </div>
                 <button
-                  onClick={() => setCurrentStep('select')}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  onClick={handleRequestProof}
+                  disabled={loading}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50"
                 >
-                  Try Again
+                  {loading ? 'Generating Proof...' : 'Generate Proof'}
                 </button>
+              </div>
+            )}
+
+            {step === 'submit' && selectedSource && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Submit Your Proof
+                  </h3>
+                  <p className="text-gray-600">
+                    Copy the proof data from the Reclaim Protocol window and paste it below
+                  </p>
+                </div>
+
+                {requestUrl && (
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800 mb-2">
+                      If the Reclaim window didn't open automatically:
+                    </p>
+                    <a
+                      href={requestUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Click here to open Reclaim Protocol
+                    </a>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Proof Data
+                    </label>
+                    <textarea
+                      value={proofData}
+                      onChange={(e) => setProofData(e.target.value)}
+                      placeholder="Paste the proof data here..."
+                      className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ZK Proof (optional)
+                    </label>
+                    <textarea
+                      value={zkProof}
+                      onChange={(e) => setZkProof(e.target.value)}
+                      placeholder="Paste the ZK proof here (if available)..."
+                      className="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep('select')}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleSubmitProof}
+                    disabled={!proofData || loading}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50"
+                  >
+                    {loading ? 'Verifying...' : 'Submit Proof'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 'success' && (
+              <div className="text-center space-y-6">
+                <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Data Verified Successfully!
+                  </h3>
+                  <p className="text-gray-600">
+                    Your consumer data has been verified and DataCoins have been minted
+                  </p>
+                </div>
                 <button
                   onClick={handleClose}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all"
                 >
-                  Close
+                  Continue
                 </button>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+            )}
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <span className="text-red-800">{error}</span>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

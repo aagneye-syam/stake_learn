@@ -733,7 +733,7 @@ export default function DashboardPage() {
         onRefreshDataCoins={refetchLocalDataCoinBalance}
       />
 
-      {/* Debug Information - Remove in production */}
+      {/* Debug Information - Remove in production 
       {process.env.NODE_ENV === 'development' && (
         <div className="bg-gray-100 p-4 rounded-lg text-sm">
           <h3 className="font-semibold mb-2">Debug Info:</h3>
@@ -750,7 +750,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      )}
+      )}*/}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

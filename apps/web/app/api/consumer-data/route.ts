@@ -1,247 +1,205 @@
-import { NextResponse } from 'next/server';
-import { ReclaimService, ConsumerDataContribution } from '@/_utils/reclaim';
-import { uploadEncryptedJson } from '@/_utils/lighthouse';
+import { NextRequest, NextResponse } from 'next/server';
+import { ethers } from 'ethers';
+import { DataCoinABI } from '@/abis/DataCoinABI';
+import { getReclaimService } from '@/utils/reclaim';
 
-// Lazy initialization of Reclaim service
-let reclaimService: ReclaimService | null = null;
-
-const getReclaimService = () => {
-  if (!reclaimService) {
-    reclaimService = new ReclaimService();
-  }
-  return reclaimService;
-};
-
-// Global storage for consumer data contributions
+// In-memory storage for consumer data contributions
 declare global {
-  var consumerDataStorage: Map<string, ConsumerDataContribution[]> | undefined;
+  var consumerDataStorage: Map<string, any[]> | undefined;
 }
 
 if (!global.consumerDataStorage) {
-  global.consumerDataStorage = new Map<string, ConsumerDataContribution[]>();
+  global.consumerDataStorage = new Map<string, any[]>();
 }
 
 const consumerDataStorage = global.consumerDataStorage;
 
-// POST /api/consumer-data - Submit zkTLS proof and mint DataCoins
-export async function POST(request: Request) {
+// Consumer data reward amounts
+const CONSUMER_DATA_REWARDS = {
+  'github_contribution': 10,  // Per verified contribution batch
+  'uber_ride_data': 5,        // Per month of ride data
+  'amazon_purchase_data': 5,  // Per month of purchase data
+  'consumer_data_verified': 20 // Bonus for first verification
+} as const;
+
+export async function POST(request: NextRequest) {
   try {
-    const { userAddress, dataSource, proofData, requestId } = await request.json();
+    const body = await request.json();
+    const { 
+      userAddress, 
+      dataSource, 
+      proofData, 
+      zkProof 
+    } = body;
 
+    // Validate required fields
     if (!userAddress || !dataSource || !proofData) {
-      return NextResponse.json({ 
-        error: 'Missing required fields: userAddress, dataSource, proofData' 
-      }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
-    if (!['github', 'uber', 'amazon'].includes(dataSource)) {
-      return NextResponse.json({ 
-        error: 'Invalid dataSource. Must be github, uber, or amazon' 
-      }, { status: 400 });
+    // Validate data source
+    const validSources = ['github', 'uber', 'amazon'];
+    if (!validSources.includes(dataSource)) {
+      return NextResponse.json(
+        { error: 'Invalid data source' },
+        { status: 400 }
+      );
     }
 
+    // Get Reclaim service
+    const reclaimService = getReclaimService();
+    
     // Verify the proof using Reclaim SDK
-    const service = getReclaimService();
-    const verification = await service.verifyProof(proofData, dataSource);
+    const verification = await reclaimService.verifyProof(proofData, dataSource);
     
     if (!verification.success) {
-      return NextResponse.json({ 
-        error: `Proof verification failed: ${verification.error}` 
-      }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Proof verification failed', details: verification.error },
+        { status: 400 }
+      );
     }
 
     // Calculate DataCoins based on verified data
-    const dataCoinsEarned = service.calculateDataCoins(verification.data, dataSource);
+    const dataCoinsEarned = reclaimService.calculateDataCoins(verification.data, dataSource);
     
-    if (dataCoinsEarned <= 0) {
-      return NextResponse.json({ 
-        error: 'No DataCoins earned from this data. Try contributing more data.' 
-      }, { status: 400 });
-    }
+    // Check if this is user's first consumer data verification
+    const userContributions = consumerDataStorage.get(userAddress) || [];
+    const isFirstVerification = userContributions.length === 0;
+    
+    // Add bonus for first verification
+    const totalDataCoins = dataCoinsEarned + (isFirstVerification ? CONSUMER_DATA_REWARDS.consumer_data_verified : 0);
 
-    // Store proof on Lighthouse
-    const proofMetadata = {
+    // Create contribution record
+    const contribution = {
       userAddress,
       dataSource,
-      verifiedData: verification.data,
-      proofHash: verification.proofHash,
-      timestamp: Date.now(),
-      requestId,
-    };
-
-    let proofCid: string;
-    try {
-      // Upload proof metadata to Lighthouse
-      proofCid = await uploadEncryptedJson(proofMetadata, userAddress, [
-        {
-          contractAddress: "", // No specific contract requirement
-          standardContractType: "",
-          chain: "ethereum",
-          method: "",
-          parameters: [":userAddress"],
-          returnValueTest: {
-            comparator: "=",
-            value: userAddress,
-          },
-        },
-      ]);
-    } catch (lighthouseError) {
-      console.error('Lighthouse upload failed, using fallback:', lighthouseError);
-      // Fallback to mock CID if Lighthouse fails
-      proofCid = `Qm${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
-    }
-
-    // Create consumer data contribution record
-    const contribution: ConsumerDataContribution = {
-      userAddress,
-      dataSource,
-      proofCid,
-      zkProof: proofData,
-      dataHash: verification.proofHash || `hash_${Date.now()}`,
-      timestamp: Date.now(),
-      dataCoinsEarned,
+      proofCid: verification.proofHash,
+      zkProof,
+      dataHash: verification.dataHash || '',
+      timestamp: Math.floor(Date.now() / 1000),
+      dataCoinsEarned: totalDataCoins,
       verified: true,
       data: verification.data,
+      isFirstVerification
     };
 
-    // Store in global storage
-    const userContributions = consumerDataStorage.get(userAddress) || [];
+    // Store contribution
     userContributions.push(contribution);
     consumerDataStorage.set(userAddress, userContributions);
 
+    // Mint DataCoins using existing contract logic
+    let txHash = `mock-consumer-data-${Date.now()}`;
+    
+    try {
+      // Check if we have contract configuration
+      const dataCoinContractAddress = process.env.NEXT_PUBLIC_DATACOIN_CONTRACT_ADDRESS_SEPOLIA;
+      
+      if (dataCoinContractAddress && process.env.DEPLOYER_PRIVATE_KEY && process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL) {
+        // Connect to the DataCoin contract
+        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+        const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY as string, provider);
+        const dataCoinContract = new ethers.Contract(dataCoinContractAddress, DataCoinABI, wallet);
+
+        // Get current gas price and add buffer
+        const gasPrice = await provider.getFeeData();
+        const gasPriceWithBuffer = gasPrice.gasPrice ? gasPrice.gasPrice * BigInt(120) / BigInt(100) : undefined;
+
+        // Mint DataCoins for consumer data
+        const tx = await dataCoinContract.mint(
+          userAddress, 
+          ethers.parseUnits(totalDataCoins.toString(), 18), 
+          `Consumer data verification: ${dataSource}`,
+          {
+            gasPrice: gasPriceWithBuffer,
+            gasLimit: 200000
+          }
+        );
+        
+        await tx.wait();
+        txHash = tx.hash;
+        console.log(`Consumer data DataCoins minted: ${txHash}`);
+      } else {
+        console.log('Contract not configured, using mock transaction for consumer data');
+      }
+    } catch (contractError) {
+      console.error('Contract interaction failed for consumer data:', contractError);
+      // Continue with mock transaction
+    }
+
     // Track transaction
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/transactions`, {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/transactions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userAddress: userAddress,
+          userAddress,
           type: 'consumer_data',
-          amount: dataCoinsEarned.toString(),
-          courseId: dataSource, // Use dataSource as identifier
-          hash: `0x${Math.random().toString(16).substring(2, 66)}`,
+          amount: totalDataCoins.toString(),
+          courseId: '0',
+          hash: txHash,
           timestamp: Math.floor(Date.now() / 1000),
           status: 'success',
-          reason: `${dataSource} data verification reward`,
-          proofCid: proofCid,
+          reason: `Verified ${dataSource} data`,
+          dataSource
         }),
       });
     } catch (error) {
       console.error('Failed to track consumer data transaction:', error);
     }
 
-    // Mint DataCoins using existing minting logic
-    try {
-      const mintResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/progress`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userAddress: userAddress,
-          courseId: 0, // Special course ID for consumer data
-          moduleId: 0,
-          totalModules: 1,
-          rewardType: 'consumer_data_verified',
-          rewardAmount: dataCoinsEarned.toString(),
-          dataSource: dataSource,
-        }),
-      });
-
-      if (!mintResponse.ok) {
-        console.error('Failed to mint DataCoins for consumer data');
-      }
-    } catch (error) {
-      console.error('Failed to mint DataCoins:', error);
-    }
-
     return NextResponse.json({
       success: true,
       contribution,
-      dataCoinsEarned,
-      proofCid,
-      message: `Successfully verified ${dataSource} data and earned ${dataCoinsEarned} DataCoins!`,
+      dataCoinsEarned: totalDataCoins,
+      transactionHash: txHash,
+      message: `Successfully verified ${dataSource} data and earned ${totalDataCoins} DataCoins`
     });
 
   } catch (error) {
     console.error('Error processing consumer data:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error' 
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to process consumer data' },
+      { status: 500 }
+    );
   }
 }
 
-// GET /api/consumer-data - Retrieve user's consumer data contributions
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userAddress = searchParams.get('userAddress');
 
     if (!userAddress) {
-      return NextResponse.json({ 
-        error: 'Missing userAddress parameter' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'User address required' }, { status: 400 });
     }
 
     const contributions = consumerDataStorage.get(userAddress) || [];
     
-    // Calculate total DataCoins earned from consumer data
-    const totalDataCoins = contributions.reduce((sum, contrib) => sum + contrib.dataCoinsEarned, 0);
-    
-    // Group by data source
-    const bySource = contributions.reduce((acc, contrib) => {
-      if (!acc[contrib.dataSource]) {
-        acc[contrib.dataSource] = [];
-      }
-      acc[contrib.dataSource].push(contrib);
-      return acc;
-    }, {} as Record<string, ConsumerDataContribution[]>);
+    // Calculate total stats
+    const stats = {
+      totalContributions: contributions.length,
+      totalDataCoins: contributions.reduce((sum, c) => sum + c.dataCoinsEarned, 0),
+      bySource: {
+        github: contributions.filter(c => c.dataSource === 'github').length,
+        uber: contributions.filter(c => c.dataSource === 'uber').length,
+        amazon: contributions.filter(c => c.dataSource === 'amazon').length,
+      },
+      lastContribution: contributions.length > 0 ? contributions[contributions.length - 1].timestamp : null
+    };
 
     return NextResponse.json({
-      success: true,
       contributions,
-      totalDataCoins,
-      bySource,
-      count: contributions.length,
+      stats
     });
 
   } catch (error) {
     console.error('Error fetching consumer data:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error' 
-    }, { status: 500 });
-  }
-}
-
-// DELETE /api/consumer-data - Remove a specific contribution (for testing)
-export async function DELETE(request: Request) {
-  try {
-    const { userAddress, contributionId } = await request.json();
-
-    if (!userAddress || !contributionId) {
-      return NextResponse.json({ 
-        error: 'Missing userAddress or contributionId' 
-      }, { status: 400 });
-    }
-
-    const contributions = consumerDataStorage.get(userAddress) || [];
-    const filteredContributions = contributions.filter(
-      (contrib, index) => index.toString() !== contributionId
+    return NextResponse.json(
+      { error: 'Failed to fetch consumer data' },
+      { status: 500 }
     );
-    
-    consumerDataStorage.set(userAddress, filteredContributions);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Contribution removed successfully',
-    });
-
-  } catch (error) {
-    console.error('Error removing consumer data:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error' 
-    }, { status: 500 });
   }
 }

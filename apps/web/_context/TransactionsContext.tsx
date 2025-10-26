@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 
 export interface Transaction {
   hash: string;
-  type: 'stake' | 'complete' | 'refund' | 'datacoin' | 'mint';
+  type: 'stake' | 'complete' | 'refund' | 'datacoin' | 'mint' | 'consumer_data';
   amount: string;
   courseId: string;
   timestamp: number;
@@ -13,6 +13,7 @@ export interface Transaction {
   blockNumber: number;
   certificateCID?: string;
   reason?: string;
+  dataSource?: 'github' | 'uber' | 'amazon';
 }
 
 interface TransactionsContextType {

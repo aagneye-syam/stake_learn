@@ -34,8 +34,19 @@ export class ReclaimService {
     }
   }
 
+  // Check if we're in a browser environment
+  private isBrowserEnvironment(): boolean {
+    return typeof window !== 'undefined' && typeof window.document !== 'undefined';
+  }
+
   // Initialize Reclaim SDK for frontend
   async initialize() {
+    // Check if we're in a browser environment
+    if (!this.isBrowserEnvironment()) {
+      console.warn('Not in browser environment, using mock mode');
+      return true;
+    }
+
     // Ensure Reclaim SDK is initialized
     if (!this.reclaim) {
       await this.initializeReclaim();
@@ -47,7 +58,10 @@ export class ReclaimService {
     }
     
     try {
-      await this.reclaim.init();
+      // Check if init method exists before calling
+      if (typeof this.reclaim.init === 'function') {
+        await this.reclaim.init();
+      }
       return true;
     } catch (error) {
       console.error('Failed to initialize Reclaim SDK:', error);
@@ -57,6 +71,14 @@ export class ReclaimService {
 
   // Request GitHub contribution proof
   async requestGitHubProof(userAddress: string) {
+    // Check browser environment
+    if (!this.isBrowserEnvironment()) {
+      return {
+        success: false,
+        error: 'Reclaim SDK requires browser environment',
+      };
+    }
+
     // Ensure Reclaim SDK is initialized
     if (!this.reclaim) {
       await this.initializeReclaim();
@@ -70,6 +92,11 @@ export class ReclaimService {
     }
 
     try {
+      // Check if requestProof method exists
+      if (typeof this.reclaim.requestProof !== 'function') {
+        throw new Error('requestProof method not available in Reclaim SDK');
+      }
+
       const proofRequest = await this.reclaim.requestProof({
         provider: 'github',
         data: {
@@ -98,6 +125,14 @@ export class ReclaimService {
 
   // Request Uber ride data proof
   async requestUberProof(userAddress: string) {
+    // Check browser environment
+    if (!this.isBrowserEnvironment()) {
+      return {
+        success: false,
+        error: 'Reclaim SDK requires browser environment',
+      };
+    }
+
     // Ensure Reclaim SDK is initialized
     if (!this.reclaim) {
       await this.initializeReclaim();
@@ -111,6 +146,11 @@ export class ReclaimService {
     }
 
     try {
+      // Check if requestProof method exists
+      if (typeof this.reclaim.requestProof !== 'function') {
+        throw new Error('requestProof method not available in Reclaim SDK');
+      }
+
       const proofRequest = await this.reclaim.requestProof({
         provider: 'uber',
         data: {
@@ -138,6 +178,14 @@ export class ReclaimService {
 
   // Request Amazon purchase data proof
   async requestAmazonProof(userAddress: string) {
+    // Check browser environment
+    if (!this.isBrowserEnvironment()) {
+      return {
+        success: false,
+        error: 'Reclaim SDK requires browser environment',
+      };
+    }
+
     // Ensure Reclaim SDK is initialized
     if (!this.reclaim) {
       await this.initializeReclaim();
@@ -151,6 +199,11 @@ export class ReclaimService {
     }
 
     try {
+      // Check if requestProof method exists
+      if (typeof this.reclaim.requestProof !== 'function') {
+        throw new Error('requestProof method not available in Reclaim SDK');
+      }
+
       const proofRequest = await this.reclaim.requestProof({
         provider: 'amazon',
         data: {
@@ -178,6 +231,14 @@ export class ReclaimService {
 
   // Verify submitted proof
   async verifyProof(proofData: string, dataSource: 'github' | 'uber' | 'amazon') {
+    // Check browser environment
+    if (!this.isBrowserEnvironment()) {
+      return {
+        success: false,
+        error: 'Reclaim SDK requires browser environment',
+      };
+    }
+
     // Ensure Reclaim SDK is initialized
     if (!this.reclaim) {
       await this.initializeReclaim();
@@ -191,6 +252,11 @@ export class ReclaimService {
     }
 
     try {
+      // Check if verifyProof method exists
+      if (typeof this.reclaim.verifyProof !== 'function') {
+        throw new Error('verifyProof method not available in Reclaim SDK');
+      }
+
       const verification = await this.reclaim.verifyProof(proofData);
       
       if (!verification.isValid) {
@@ -306,8 +372,18 @@ export class ReclaimService {
   }
 }
 
-// Export singleton instance
-export const reclaimService = new ReclaimService();
+// Singleton pattern to prevent multiple instances
+let reclaimServiceInstance: ReclaimService | null = null;
+
+export function getReclaimService(): ReclaimService {
+  if (!reclaimServiceInstance) {
+    reclaimServiceInstance = new ReclaimService();
+  }
+  return reclaimServiceInstance;
+}
+
+// Export singleton instance for backward compatibility
+export const reclaimService = getReclaimService();
 
 // Export types
 export interface ConsumerDataContribution {

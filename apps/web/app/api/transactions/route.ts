@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 
 // In-memory transaction storage (in production, use a database)
-const transactionStorage = new Map<string, any[]>();
+// Use global variable to persist across Next.js API route reloads in development
+declare global {
+  var transactionStorage: Map<string, any[]> | undefined;
+}
+
+if (!global.transactionStorage) {
+  global.transactionStorage = new Map<string, any[]>();
+}
+
+const transactionStorage = global.transactionStorage;
 
 // Contract addresses
 const STAKING_MANAGER_ADDRESS = process.env.NEXT_PUBLIC_STAKING_CONTRACT_ADDRESS_SEPOLIA;

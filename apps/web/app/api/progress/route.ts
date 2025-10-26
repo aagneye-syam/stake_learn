@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     
     // Check if we have the required environment variables for real minting
     if (!dataCoinContractAddress || dataCoinContractAddress === '0x0000000000000000000000000000000000000000' || 
-        !process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL || !process.env.DEPLOYER_PRIVATE_KEY) {
+        !process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL) {
       console.log('DataCoin contract not configured, using mock transaction');
       // Return mock success for development
       const reward = {
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
       // Track the transaction
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions`, {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/transactions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

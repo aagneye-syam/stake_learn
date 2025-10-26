@@ -26,11 +26,12 @@ function AnimatedHero() {
 
     try {
       await signInWithEmail(email, password);
+      // Success - close modal and redirect
       setIsSignInModalOpen(false);
+      setIsLoading(false);
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to sign in. Please check your credentials.");
-    } finally {
       setIsLoading(false);
     }
   };

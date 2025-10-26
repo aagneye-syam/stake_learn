@@ -5,13 +5,36 @@ import { motion } from "framer-motion";
 import { MoveRight, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import SignInModal from "@/_components/SignInModal";
+import { useRouter } from "next/navigation";
+import { signInWithEmail } from "@/services/auth.service";
 
 function AnimatedHero() {
   const [titleNumber, setTitleNumber] = useState(0);
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
   const titles = useMemo(
     () => ["revolutionary", "secure", "transparent", "rewarding", "innovative"],
     []
   );
+
+  const handleSignIn = async (email: string, password: string) => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      await signInWithEmail(email, password);
+      // Success - close modal and redirect
+      setIsSignInModalOpen(false);
+      setIsLoading(false);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Failed to sign in. Please check your credentials.");
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -71,19 +94,28 @@ function AnimatedHero() {
             </p>
           </div>
           <div className="flex flex-row gap-3">
-            <Link href="/courses">
+            <Link href="/signup">
               <Button size="lg" className="gap-4" variant="outline">
-                Browse Courses <Rocket className="w-4 h-4" />
+                Sign Up <Rocket className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href="/dashboard">
-              <Button size="lg" className="gap-4">
-                Go to Dashboard <MoveRight className="w-4 h-4" />
-              </Button>
-            </Link>
+            <Button size="lg" className="gap-4" onClick={() => setIsSignInModalOpen(true)}>
+              Go to Dashboard <MoveRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>
+
+      <SignInModal
+        isOpen={isSignInModalOpen}
+        onClose={() => {
+          setIsSignInModalOpen(false);
+          setError("");
+        }}
+        onSignIn={handleSignIn}
+        isLoading={isLoading}
+        error={error}
+      />
     </div>
   );
 }

@@ -157,6 +157,11 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      // Check if we have a valid private key
+      if (!process.env.DEPLOYER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY === '') {
+        throw new Error('No private key configured, using mock transaction');
+      }
+
       // Connect to the DataCoin contract
       const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
       const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY as string, provider);

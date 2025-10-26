@@ -188,8 +188,92 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
       }
 
       // Debounce the fetch by 300ms
-      fetchTimeoutRef.current = setTimeout(() => {
-        fetchTransactions();
+      fetchTimeoutRef.current = setTimeout(async () => {
+        // Call fetchTransactions directly without dependency
+        if (!address) {
+          setTransactions([]);
+          return;
+        }
+
+        // Check cache
+        const now = Date.now();
+        const isCacheValid = 
+          cacheRef.current.address === address &&
+          cacheRef.current.timestamp > now - CACHE_DURATION;
+
+        if (isCacheValid) {
+          setTransactions(cacheRef.current.data);
+          return;
+        }
+
+        // Try to load from localStorage first
+        try {
+          const storedData = localStorage.getItem(`transactions_${address}`);
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            if (parsedData.timestamp > now - CACHE_DURATION) {
+              setTransactions(parsedData.transactions);
+              cacheRef.current = {
+                data: parsedData.transactions,
+                timestamp: parsedData.timestamp,
+                address: address
+              };
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to load from localStorage:', err);
+        }
+
+        // Prevent duplicate fetches
+        if (isFetchingRef.current) {
+          console.log('Already fetching transactions, skipping');
+          return;
+        }
+
+        // Clear any pending fetch timeout
+        if (fetchTimeoutRef.current) {
+          clearTimeout(fetchTimeoutRef.current);
+        }
+
+        isFetchingRef.current = true;
+        setLoading(true);
+        setError(null);
+
+        try {
+          const response = await fetch(`/api/transactions?userAddress=${address}`);
+          const data = await response.json();
+
+          if (response.ok) {
+            const fetchedTransactions = data.transactions || [];
+            setTransactions(fetchedTransactions);
+            
+            // Update cache
+            cacheRef.current = {
+              data: fetchedTransactions,
+              timestamp: now,
+              address: address
+            };
+
+            // Save to localStorage for persistence
+            try {
+              localStorage.setItem(`transactions_${address}`, JSON.stringify({
+                transactions: fetchedTransactions,
+                timestamp: now
+              }));
+            } catch (err) {
+              console.warn('Failed to save to localStorage:', err);
+            }
+          } else {
+            setError(data.error || 'Failed to fetch transactions');
+          }
+        } catch (err) {
+          setError('Network error');
+          console.error('Error fetching transactions:', err);
+        } finally {
+          setLoading(false);
+          isFetchingRef.current = false;
+        }
       }, 300);
     } else {
       setTransactions([]);
@@ -201,7 +285,7 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
         clearTimeout(fetchTimeoutRef.current);
       }
     };
-  }, [address]); // Remove fetchTransactions from dependencies to prevent infinite loop
+  }, [address]); // Only depend on address
 
   const value: TransactionsContextType = {
     transactions,

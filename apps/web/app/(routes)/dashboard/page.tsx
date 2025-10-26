@@ -13,6 +13,7 @@ import { useConsumerData } from "@/hooks/useConsumerData";
 import { useSBT } from "@/hooks/useSBT";
 import { useReputation } from "@/hooks/useReputation";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
+import { useRepositories } from "@/hooks/useRepositories";
 import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { NoSSR } from "@/components/NoSSR";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
@@ -215,6 +216,9 @@ export default function DashboardPage() {
   
   // Recent activity hook
   const { activities, loading: activityLoading } = useRecentActivity();
+  
+  // Repository hook (user's submitted repositories)
+  const { repositories, loading: repositoriesLoading } = useRepositories(false); // User view
   
   // Consumer data modal state
   const [isConsumerDataModalOpen, setIsConsumerDataModalOpen] = useState(false);
@@ -721,6 +725,142 @@ export default function DashboardPage() {
 
       {/* Compact Progress Rewards */}
       <CompactProgressRewards />
+
+      {/* Repository Status Section */}
+      {repositories && repositories.length > 0 && (
+        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-black mb-2">📁 My Repository Submissions</h2>
+              <p className="text-gray-600">
+                Track the status and progress of your submitted repositories
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/admin')}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+            >
+              View All
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {repositories.map((repo) => (
+              <div
+                key={repo.id}
+                className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">{repo.repoName}</h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {repo.repoOwner} • {repo.language || 'Unknown'}
+                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        repo.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        repo.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {repo.status === 'approved' ? '✅ Approved' :
+                         repo.status === 'rejected' ? '❌ Rejected' :
+                         '⏳ Pending'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {repo.verifiedCommits}/{repo.totalCommits} commits
+                      </span>
+                    </div>
+                  </div>
+                  <a
+                    href={repo.repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                    <span>Verification Progress</span>
+                    <span>
+                      {repo.totalCommits > 0 
+                        ? `${Math.round((repo.verifiedCommits / repo.totalCommits) * 100)}%`
+                        : '0%'
+                      }
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${repo.totalCommits > 0 ? (repo.verifiedCommits / repo.totalCommits) * 100 : 0}%` 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-bold text-purple-600">{repo.dataCoinsEarned}</div>
+                    <div className="text-xs text-gray-500">DataCoins</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-blue-600">{repo.stars || 0}</div>
+                    <div className="text-xs text-gray-500">Stars</div>
+                  </div>
+                </div>
+
+                {/* Submission Date */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500">
+                    Submitted: {new Date(repo.submittedAt.seconds * 1000).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Summary Stats */}
+          <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {repositories.length}
+                </div>
+                <div className="text-sm text-gray-600">Total Repos</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-green-600">
+                  {repositories.filter(r => r.status === 'approved').length}
+                </div>
+                <div className="text-sm text-gray-600">Approved</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {repositories.filter(r => r.status === 'pending').length}
+                </div>
+                <div className="text-sm text-gray-600">Pending</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {repositories.reduce((sum, r) => sum + r.dataCoinsEarned, 0)}
+                </div>
+                <div className="text-sm text-gray-600">Total DataCoins</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Consumer Data Section */}
       <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">

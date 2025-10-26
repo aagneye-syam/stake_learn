@@ -21,6 +21,12 @@ const PROGRESS_REWARDS = {
   'milestone': '8', // 8 DataCoins for course milestones
   'weekly_streak': '15', // 15 DataCoins for 7-day streak
   'monthly_streak': '50', // 50 DataCoins for 30-day streak
+  
+  // Consumer data rewards
+  'github_contribution': '10',  // Per verified commit/PR batch
+  'uber_ride_data': '5',        // Per month of ride data
+  'amazon_purchase_data': '5',  // Per month of purchase data
+  'consumer_data_verified': '20' // Bonus for first verification
 } as const;
 
 export async function POST(request: NextRequest) {

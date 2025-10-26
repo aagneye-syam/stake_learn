@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { injected, walletConnect, coinbaseWallet } from "wagmi/connectors";
 import { ThemeProvider } from "next-themes";
+import { TransactionsProvider } from "./TransactionsContext";
 
 const config = createConfig({
   chains: [sepolia],
@@ -36,7 +37,9 @@ export function Providers({ children }: { children: ReactNode }) {
     >
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          {children}
+          <TransactionsProvider>
+            {children}
+          </TransactionsProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>

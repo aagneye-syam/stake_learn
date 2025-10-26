@@ -161,6 +161,25 @@ export default function AdminPage() {
     }
   };
 
+  const formatCommitDate = (date: { seconds: number; nanoseconds?: number }) => {
+    try {
+      const timestamp = date.seconds * 1000;
+      const commitDate = new Date(timestamp);
+      if (isNaN(commitDate.getTime())) {
+        return 'Invalid Date';
+      }
+      return commitDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
   // Show loading while checking auth
   if (!mounted || isAuthLoading) {
     return (
@@ -414,66 +433,79 @@ export default function AdminPage() {
                       {selectedRepository.commits.map((commit) => (
                         <div
                           key={commit.sha}
-                          className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                          className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-all duration-200 cursor-pointer group"
                           onClick={() => handleCommitClick(commit)}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                              <div className="flex items-center gap-3 mb-3">
+                                <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded border">
                                   {commit.sha.slice(0, 8)}
                                 </span>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getCommitStatusColor(commit.status)}`}>
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${getCommitStatusColor(commit.status)} flex items-center gap-1`}>
                                   {getCommitStatusIcon(commit.status)}
-                                  <span className="ml-1 capitalize">{commit.status}</span>
+                                  <span className="capitalize">{commit.status}</span>
                                 </span>
                                 {commit.dataCoinsEarned > 0 && (
-                                  <span className="text-green-600 font-medium text-xs bg-green-100 px-2 py-1 rounded">
+                                  <span className="text-green-700 font-semibold text-xs bg-green-100 px-3 py-1 rounded-full border border-green-200 flex items-center gap-1">
+                                    <Coins className="h-3 w-3" />
                                     +{commit.dataCoinsEarned} DataCoins
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm font-medium text-gray-900 mb-2">
+                              
+                              <p className="text-sm font-medium text-gray-900 mb-3 line-clamp-2">
                                 {commit.message}
                               </p>
-                              <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                              
+                              <div className="flex items-center gap-6 text-xs text-gray-600 mb-3">
                                 <span className="flex items-center gap-1">
                                   <User className="h-3 w-3" />
                                   {commit.author}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {new Date(commit.date.seconds * 1000).toLocaleDateString()}
+                                  {formatCommitDate(commit.date)}
                                 </span>
-                                <span className="text-green-600">+{commit.additions}</span>
-                                <span className="text-red-600">-{commit.deletions}</span>
-                                <span>{commit.filesChanged.length} files</span>
+                                <span className="flex items-center gap-1">
+                                  <span className="text-green-600 font-medium">+{commit.additions}</span>
+                                  <span className="text-red-600 font-medium">-{commit.deletions}</span>
+                                </span>
+                                <span className="text-gray-500">
+                                  {commit.filesChanged.length} files
+                                </span>
                               </div>
                               
                               {/* Files Changed Preview */}
                               {commit.filesChanged.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs text-gray-600 mb-1">Files changed:</p>
+                                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                  <p className="text-xs text-gray-600 mb-2 font-medium">Files changed:</p>
                                   <div className="flex flex-wrap gap-1">
-                                    {commit.filesChanged.slice(0, 3).map((file, index) => (
+                                    {commit.filesChanged.slice(0, 4).map((file, index) => (
                                       <span
                                         key={index}
-                                        className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                                        className="text-xs bg-white text-gray-700 px-2 py-1 rounded border"
                                       >
                                         {file}
                                       </span>
                                     ))}
-                                    {commit.filesChanged.length > 3 && (
-                                      <span className="text-xs text-gray-500 px-2 py-1">
-                                        +{commit.filesChanged.length - 3} more
+                                    {commit.filesChanged.length > 4 && (
+                                      <span className="text-xs text-gray-500 px-2 py-1 bg-white rounded border">
+                                        +{commit.filesChanged.length - 4} more
                                       </span>
                                     )}
                                   </div>
                                 </div>
                               )}
                             </div>
-                            <div className="ml-4 text-gray-400">
-                              <ExternalLink className="h-4 w-4" />
+                            
+                            <div className="ml-4 flex items-center gap-2">
+                              <div className="text-gray-400 group-hover:text-gray-600 transition-colors">
+                                <ExternalLink className="h-4 w-4" />
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Click to view
+                              </div>
                             </div>
                           </div>
                         </div>

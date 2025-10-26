@@ -4,7 +4,7 @@ import { useTransactionsContext } from '@/_context/TransactionsContext';
 
 export interface Activity {
   id: string;
-  type: 'mint' | 'verify' | 'reputation' | 'stake' | 'complete' | 'refund' | 'datacoin';
+  type: 'mint' | 'verify' | 'reputation';
   description: string;
   timestamp: string;
   status: 'success' | 'pending' | 'failed';
@@ -12,6 +12,23 @@ export interface Activity {
   amount?: string;
   courseId?: string;
 }
+
+// Map transaction types to ActivityCard supported types
+const mapToActivityCardType = (txType: string): 'mint' | 'verify' | 'reputation' => {
+  switch (txType) {
+    case 'mint':
+    case 'complete':
+      return 'mint';
+    case 'stake':
+    case 'verify':
+      return 'verify';
+    case 'datacoin':
+    case 'refund':
+    case 'reputation':
+    default:
+      return 'reputation';
+  }
+};
 
 export function useRecentActivity() {
   const { address } = useAccount();
@@ -56,7 +73,12 @@ export function useRecentActivity() {
 
   const calculateRecentActivities = useCallback(() => {
     if (!transactions || transactions.length === 0) {
-      setActivities([]);
+      setActivities(prev => {
+        if (prev.length === 0) {
+          return prev; // No change needed
+        }
+        return [];
+      });
       return;
     }
 
@@ -64,9 +86,9 @@ export function useRecentActivity() {
     const sortedTransactions = [...transactions].sort((a, b) => b.timestamp - a.timestamp);
 
     // Convert transactions to activities
-    const activities: Activity[] = sortedTransactions.slice(0, 10).map((tx, index) => ({
+    const newActivities: Activity[] = sortedTransactions.slice(0, 10).map((tx, index) => ({
       id: tx.hash || `activity-${index}`,
-      type: tx.type as Activity['type'],
+      type: mapToActivityCardType(tx.type),
       description: generateActivityDescription(tx),
       timestamp: formatTimestamp(tx.timestamp),
       status: tx.status as Activity['status'],
@@ -75,11 +97,23 @@ export function useRecentActivity() {
       courseId: tx.courseId,
     }));
 
-    setActivities(activities);
+    setActivities(prev => {
+      // Only update if data actually changed
+      if (prev.length === newActivities.length && 
+          prev[0]?.id === newActivities[0]?.id &&
+          prev[0]?.timestamp === newActivities[0]?.timestamp) {
+        return prev;
+      }
+      return newActivities;
+    });
   }, [transactions]);
 
   useEffect(() => {
-    calculateRecentActivities();
+    const timeoutId = setTimeout(() => {
+      calculateRecentActivities();
+    }, 100); // Debounce by 100ms
+
+    return () => clearTimeout(timeoutId);
   }, [calculateRecentActivities]);
 
   return {

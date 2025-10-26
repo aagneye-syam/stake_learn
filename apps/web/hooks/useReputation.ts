@@ -40,15 +40,20 @@ export function useReputation() {
 
   const calculateReputationStats = useCallback(() => {
     if (!transactions || transactions.length === 0) {
-      setReputationStats({
-        totalReputation: 0,
-        reputationBreakdown: {
-          courseCompletion: 0,
-          dataCoins: 0,
-          certificates: 0,
-          contributions: 0,
-        },
-        recentGains: [],
+      setReputationStats(prev => {
+        if (prev.totalReputation === 0 && prev.recentGains.length === 0) {
+          return prev; // No change needed
+        }
+        return {
+          totalReputation: 0,
+          reputationBreakdown: {
+            courseCompletion: 0,
+            dataCoins: 0,
+            certificates: 0,
+            contributions: 0,
+          },
+          recentGains: [],
+        };
       });
       return;
     }
@@ -121,16 +126,30 @@ export function useReputation() {
     // Sort by timestamp (newest first)
     const sortedGains = recentGains.sort((a, b) => b.timestamp - a.timestamp);
 
-    setReputationStats({
+    const newStats = {
       totalReputation,
       reputationBreakdown: breakdown,
       recentGains: sortedGains.slice(0, 10), // Last 10 gains
       lastGain: sortedGains.length > 0 ? sortedGains[0] : undefined,
+    };
+
+    setReputationStats(prev => {
+      // Only update if data actually changed
+      if (prev.totalReputation === newStats.totalReputation && 
+          prev.recentGains.length === newStats.recentGains.length &&
+          prev.recentGains[0]?.timestamp === newStats.recentGains[0]?.timestamp) {
+        return prev;
+      }
+      return newStats;
     });
   }, [transactions]);
 
   useEffect(() => {
-    calculateReputationStats();
+    const timeoutId = setTimeout(() => {
+      calculateReputationStats();
+    }, 100); // Debounce by 100ms
+
+    return () => clearTimeout(timeoutId);
   }, [calculateReputationStats]);
 
   return {

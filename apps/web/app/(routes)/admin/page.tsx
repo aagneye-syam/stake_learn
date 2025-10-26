@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [selectedCommit, setSelectedCommit] = useState<any>(null);
   const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
   const [isVerifyingCommit, setIsVerifyingCommit] = useState(false);
+  const [viewMode, setViewMode] = useState<'repositories' | 'users'>('repositories');
   const [stats, setStats] = useState({
     totalRepositories: 0,
     pendingRepositories: 0,
@@ -180,6 +181,44 @@ export default function AdminPage() {
     }
   };
 
+  // Group repositories by user
+  const repositoriesByUser = repositories.reduce((acc, repo) => {
+    const userKey = `${repo.userName} (${repo.userEmail})`;
+    if (!acc[userKey]) {
+      acc[userKey] = {
+        user: {
+          name: repo.userName,
+          email: repo.userEmail,
+          githubUsername: repo.githubUsername,
+          walletAddress: repo.userAddress
+        },
+        repositories: []
+      };
+    }
+    acc[userKey].repositories.push(repo as any);
+    return acc;
+  }, {} as Record<string, { user: any; repositories: any[] }>);
+
+  // Calculate user stats
+  const getUserStats = (userRepos: any[]) => {
+    const totalRepos = userRepos.length;
+    const pendingRepos = userRepos.filter(r => r.status === 'pending').length;
+    const approvedRepos = userRepos.filter(r => r.status === 'approved').length;
+    const totalCommits = userRepos.reduce((sum, r) => sum + r.totalCommits, 0);
+    const verifiedCommits = userRepos.reduce((sum, r) => sum + r.verifiedCommits, 0);
+    const totalDataCoins = userRepos.reduce((sum, r) => sum + r.dataCoinsEarned, 0);
+    
+    return {
+      totalRepos,
+      pendingRepos,
+      approvedRepos,
+      totalCommits,
+      verifiedCommits,
+      totalDataCoins,
+      completionRate: totalCommits > 0 ? Math.round((verifiedCommits / totalCommits) * 100) : 0
+    };
+  };
+
   // Show loading while checking auth
   if (!mounted || isAuthLoading) {
     return (
@@ -288,11 +327,42 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* View Toggle */}
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
+          <div className="flex items-center gap-4">
+            <h3 className="text-lg font-semibold text-gray-900">View Mode:</h3>
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('repositories')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'repositories'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                By Repository
+              </button>
+              <button
+                onClick={() => setViewMode('users')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'users'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                By User
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Repository List */}
+          {/* Repository/User List */}
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Submitted Repositories</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-6">
+              {viewMode === 'repositories' ? 'Submitted Repositories' : 'Users & Their Repositories'}
+            </h3>
             
             {loading ? (
               <div className="flex items-center justify-center py-8">
@@ -303,7 +373,7 @@ export default function AdminPage() {
               <div className="text-center py-8 text-gray-500">
                 No repositories submitted yet
               </div>
-            ) : (
+            ) : viewMode === 'repositories' ? (
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {repositories.map((repo) => (
                   <div
@@ -354,6 +424,83 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="space-y-6 max-h-96 overflow-y-auto">
+                {Object.entries(repositoriesByUser).map(([userKey, userData]) => {
+                  const userStats = getUserStats(userData.repositories);
+                  return (
+                    <div key={userKey} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{userData.user.name}</h4>
+                          <p className="text-sm text-gray-600">{userData.user.email}</p>
+                          <p className="text-xs text-gray-500">@{userData.user.githubUsername}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-gray-900">
+                            {userStats.completionRate}% Complete
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {userStats.verifiedCommits}/{userStats.totalCommits} commits
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4 mb-4 text-center">
+                        <div>
+                          <div className="text-lg font-bold text-blue-600">{userStats.totalRepos}</div>
+                          <div className="text-xs text-gray-500">Repositories</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-green-600">{userStats.approvedRepos}</div>
+                          <div className="text-xs text-gray-500">Approved</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-purple-600">{userStats.totalDataCoins}</div>
+                          <div className="text-xs text-gray-500">DataCoins</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {userData.repositories.map((repo) => (
+                          <div
+                            key={repo.id}
+                            className={`p-3 rounded border cursor-pointer transition-all ${
+                              selectedRepo === repo.id 
+                                ? 'border-purple-300 bg-purple-50' 
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => setSelectedRepo(repo.id)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h5 className="font-medium text-gray-900">{repo.repoName}</h5>
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(repo.status)}`}>
+                                    {repo.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                  {repo.verifiedCommits}/{repo.totalCommits} commits • {repo.dataCoinsEarned} DataCoins
+                                </p>
+                              </div>
+                              <a
+                                href={repo.repoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1 text-gray-400 hover:text-gray-600"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

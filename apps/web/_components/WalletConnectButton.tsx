@@ -22,14 +22,11 @@ export default function WalletConnectButton({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleConnect = async () => {
-    console.log("🟣 WalletConnectButton: handleConnect clicked");
     setIsLoading(true);
     try {
-      console.log("🟣 WalletConnectButton: calling onConnect prop");
       await onConnect();
-      console.log("🟣 WalletConnectButton: onConnect completed successfully");
     } catch (error) {
-      console.error("🔴 WalletConnectButton: onConnect error:", error);
+      console.error("Error connecting wallet:", error);
     } finally {
       setIsLoading(false);
     }

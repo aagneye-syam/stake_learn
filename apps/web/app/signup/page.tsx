@@ -18,26 +18,19 @@ export default function SignUpPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const handleWalletConnect = async () => {
-    console.log("🔵 handleWalletConnect called");
     setIsLoading(true);
     setError("");
 
     try {
       // Connect wallet
-      console.log("🔵 Calling connectWallet...");
       const address = await connectWallet();
-      console.log("🟢 Wallet connected:", address);
       setWalletAddress(address);
 
       // Check if user already exists
-      console.log("🔵 Checking if user exists...");
       const existingUser = await getUserByWallet(address);
-      console.log("🟢 User lookup result:", existingUser);
 
       if (existingUser) {
         // User exists, redirect to dashboard immediately
-        console.log("🟢 Existing user found, redirecting to dashboard");
-        
         // Store wallet connection in localStorage
         localStorage.setItem("walletConnected", "true");
         
@@ -47,12 +40,10 @@ export default function SignUpPage() {
         router.push("/dashboard");
       } else {
         // New user, show onboarding modal immediately
-        console.log("🟡 New user, showing onboarding modal");
         setShowOnboarding(true);
         setIsLoading(false);
       }
     } catch (err: any) {
-      console.error("🔴 Error in handleWalletConnect:", err);
       setError(err.message || "Failed to connect wallet. Please try again.");
       setIsLoading(false);
     }
@@ -60,22 +51,17 @@ export default function SignUpPage() {
 
   const handleOnboardingSubmit = async (name: string, email: string) => {
     try {
-      console.log("🔵 Creating new user in Firebase...");
       await createWalletUser(walletAddress, name, email);
-      console.log("🟢 User created successfully");
       
       setShowOnboarding(false);
       
       // Store wallet connection in localStorage
       localStorage.setItem("walletConnected", "true");
       
-      console.log("🔵 Refreshing user context...");
       await refreshUser(); // Refresh wallet context
       
-      console.log("🟢 Redirecting to dashboard...");
       router.push("/dashboard");
     } catch (err: any) {
-      console.error("🔴 Error creating user:", err);
       throw new Error(err.message || "Failed to create account");
     }
   };

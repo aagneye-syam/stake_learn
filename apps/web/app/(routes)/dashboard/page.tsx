@@ -58,7 +58,7 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
       return {
         status: "completed",
         text: "Completed",
-        color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
+        color: "bg-green-100 text-green-800 border-green-200",
         icon: "✅",
         buttonText: "View Certificate",
         buttonColor: "bg-green-600 hover:bg-green-700",
@@ -68,7 +68,7 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
       return {
         status: "started",
         text: "In Progress",
-        color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
+        color: "bg-blue-100 text-blue-800 border-blue-200",
         icon: "🎓",
         buttonText: "Continue Learning",
         buttonColor: "bg-blue-600 hover:bg-blue-700",
@@ -78,7 +78,7 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
       return {
         status: "not-started",
         text: "Not Started",
-        color: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600",
+        color: "bg-gray-100 text-gray-800 border-gray-200",
         icon: "📚",
         buttonText: "Start Learning",
         buttonColor: "bg-purple-600 hover:bg-purple-700",
@@ -90,14 +90,14 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
   const statusInfo = getStatusInfo();
 
   return (
-    <div className="relative overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 group h-full flex flex-col">
+    <div className="relative overflow-hidden rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 group h-full flex flex-col">
       {/* Background Gradient */}
       <div 
         className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity"
         style={{ background: task.gradient }}
       />
       
-      <div className="relative p-6 bg-white dark:bg-gray-800 flex flex-col h-full">
+      <div className="relative p-6 bg-white flex flex-col h-full">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -106,35 +106,35 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
             </div>
             <div>
               <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                task.difficulty === "Beginner" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                task.difficulty === "Intermediate" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                task.difficulty === "Beginner" ? "bg-green-100 text-green-700" :
+                task.difficulty === "Intermediate" ? "bg-yellow-100 text-yellow-700" :
+                "bg-red-100 text-red-700"
               }`}>
                 {task.difficulty}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500 dark:text-gray-400">{task.duration}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">{task.category}</p>
+            <p className="text-sm text-gray-500">{task.duration}</p>
+            <p className="text-xs text-gray-400">{task.category}</p>
           </div>
         </div>
 
         {/* Course Info - Fixed height section */}
         <div className="mb-4 flex-shrink-0">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+          <h3 className="text-xl font-bold text-black mb-2 line-clamp-2">
             {task.title}
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3 min-h-[3.75rem]">
+          <p className="text-gray-600 text-sm line-clamp-3 min-h-[3.75rem]">
             {task.description}
           </p>
         </div>
 
         {/* Stake Amount */}
-        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex-shrink-0">
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg flex-shrink-0">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Required Stake</span>
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+            <span className="text-sm text-gray-600">Required Stake</span>
+            <span className="text-sm font-semibold text-black">
               {displayStakeAmount} ETH
             </span>
           </div>
@@ -463,7 +463,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl blur-xl"></div>
-            <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 shadow-lg opacity-50">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -479,7 +479,7 @@ export default function DashboardPage() {
 
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl blur-xl"></div>
-            <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg opacity-50">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -495,7 +495,7 @@ export default function DashboardPage() {
 
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl blur-xl"></div>
-            <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-green-700 shadow-lg opacity-50">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -514,10 +514,10 @@ export default function DashboardPage() {
         <div id="learning" className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <h2 className="text-2xl font-bold text-black mb-2">
                 🎓 Learning Paths
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600">
                 Start learning today - no wallet connection required!
               </p>
             </div>
@@ -541,12 +541,12 @@ export default function DashboardPage() {
         </div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-2xl p-8 border border-purple-100 dark:border-purple-800">
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-8 border border-purple-100">
           <div className="text-center max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h3 className="text-2xl font-bold text-black mb-4">
               Ready to track your progress?
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-gray-600 mb-6">
               Connect your wallet to verify contributions, earn reputation, and mint Soulbound Tokens
             </p>
             <div className="transform hover:scale-105 transition-transform">
@@ -655,39 +655,39 @@ export default function DashboardPage() {
       {/* DataCoin Rewards Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Daily Streak */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🔥 Daily Streak</h3>
+        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <h3 className="text-xl font-bold text-black mb-4">🔥 Daily Streak</h3>
           <NoSSR>
             <DailyStreak />
           </NoSSR>
         </div>
 
         {/* Progress Rewards */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🎯 Progress Rewards</h3>
+        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <h3 className="text-xl font-bold text-black mb-4">🎯 Progress Rewards</h3>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Earn DataCoins by Learning</h4>
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
+              <h4 className="font-semibold text-black mb-2">Earn DataCoins by Learning</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Daily Login</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">+5 DataCoins</span>
+                  <span className="text-gray-600">Daily Login</span>
+                  <span className="text-blue-600 font-medium">+5 DataCoins</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Course Progress (25%)</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">+3 DataCoins</span>
+                  <span className="text-gray-600">Course Progress (25%)</span>
+                  <span className="text-blue-600 font-medium">+3 DataCoins</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Course Milestone</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">+8 DataCoins</span>
+                  <span className="text-gray-600">Course Milestone</span>
+                  <span className="text-blue-600 font-medium">+8 DataCoins</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">7-Day Streak</span>
-                  <span className="text-orange-600 dark:text-orange-400 font-medium">+15 DataCoins</span>
+                  <span className="text-gray-600">7-Day Streak</span>
+                  <span className="text-orange-600 font-medium">+15 DataCoins</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">30-Day Streak</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">+50 DataCoins</span>
+                  <span className="text-gray-600">30-Day Streak</span>
+                  <span className="text-green-600 font-medium">+50 DataCoins</span>
                 </div>
               </div>
             </div>
@@ -712,7 +712,7 @@ export default function DashboardPage() {
             <h2 className="text-2xl font-bold mb-2" style={{ color: '#4B2995' }}>
               🎓 Learning Paths
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600">
               Master new skills and earn reputation while learning
             </p>
           </div>
@@ -738,13 +738,13 @@ export default function DashboardPage() {
 
       {/* Certificates Section */}
       {certificates.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">🏆 Your Certificates</h2>
+        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+          <h2 className="text-2xl font-bold text-black mb-6">🏆 Your Certificates</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {certificates.map((cert, index) => (
               <div
                 key={index}
-                className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all"
+                className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-200 hover:shadow-lg transition-all"
               >
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
@@ -753,10 +753,10 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                    <h3 className="font-semibold text-black">
                       {cert.courseName} Certificate
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-600">
                       Completed {cert.completionDate}
                     </p>
                   </div>
@@ -764,20 +764,20 @@ export default function DashboardPage() {
                 
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Modules</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <span className="text-gray-600">Modules</span>
+                    <span className="font-semibold text-black">
                       {cert.modules?.length || 0} completed
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">DataCoins</span>
-                    <span className="font-semibold text-purple-600 dark:text-purple-400">
+                    <span className="text-gray-600">DataCoins</span>
+                    <span className="font-semibold text-purple-600">
                       +{(cert.modules?.length || 0) * 3} earned
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Lighthouse CID</span>
-                    <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-gray-600">Lighthouse CID</span>
+                    <span className="font-mono text-xs text-gray-500">
                       {cert.cid.slice(0, 8)}...
                     </span>
                   </div>
@@ -794,7 +794,7 @@ export default function DashboardPage() {
                     href={cert.lighthouseUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                   >
                     IPFS
                   </a>

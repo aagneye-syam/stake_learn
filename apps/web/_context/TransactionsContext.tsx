@@ -44,6 +44,7 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
   
   const CACHE_DURATION = 60000; // 60 seconds cache (increased from 5 seconds)
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isFetchingRef = useRef<boolean>(false);
 
   const fetchTransactions = useCallback(async (forceRefresh = false) => {
     if (!address) {
@@ -84,11 +85,18 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
       }
     }
 
+    // Prevent duplicate fetches
+    if (isFetchingRef.current) {
+      console.log('Already fetching transactions, skipping');
+      return;
+    }
+
     // Clear any pending fetch timeout
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
     }
 
+    isFetchingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -124,8 +132,9 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
       console.error('Error fetching transactions:', err);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [address]);
+  }, [address]); // Keep only address dependency
 
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'hash' | 'timestamp' | 'blockNumber'>) => {
     if (!address) return;
@@ -170,7 +179,7 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
     }
   }, [address]); // Remove fetchTransactions from dependencies
 
-  // Debounced fetch on address change
+  // Fetch transactions when address changes
   useEffect(() => {
     if (address) {
       // Clear any existing timeout
@@ -192,7 +201,7 @@ export function TransactionsProvider({ children }: { children: React.ReactNode }
         clearTimeout(fetchTimeoutRef.current);
       }
     };
-  }, [address]); // Remove fetchTransactions from dependencies
+  }, [address]); // Remove fetchTransactions from dependencies to prevent infinite loop
 
   const value: TransactionsContextType = {
     transactions,

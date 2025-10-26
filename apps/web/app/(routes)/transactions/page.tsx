@@ -13,11 +13,8 @@ export default function TransactionsPage() {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (address) {
-      fetchTransactions();
-    }
-  }, [address]); // Removed fetchTransactions from deps to prevent infinite loops
+  // Transactions are automatically fetched by the context when address changes
+  // No need to manually call fetchTransactions here
 
   if (!mounted) {
     return (

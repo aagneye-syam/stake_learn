@@ -6,6 +6,7 @@ import { ReactNode } from "react";
 import { injected, walletConnect, coinbaseWallet } from "wagmi/connectors";
 import { ThemeProvider } from "next-themes";
 import { TransactionsProvider } from "./TransactionsContext";
+import { WalletAuthProvider } from "./WalletAuthContext";
 
 const config = createConfig({
   chains: [sepolia],
@@ -37,9 +38,11 @@ export function Providers({ children }: { children: ReactNode }) {
     >
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <TransactionsProvider>
-            {children}
-          </TransactionsProvider>
+          <WalletAuthProvider>
+            <TransactionsProvider>
+              {children}
+            </TransactionsProvider>
+          </WalletAuthProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>

@@ -5,13 +5,45 @@ import { motion } from "framer-motion";
 import { MoveRight, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { connectWallet } from "@/services/wallet-auth.service";
+import { getUserByWallet } from "@/services/user.service";
 
 function AnimatedHero() {
   const [titleNumber, setTitleNumber] = useState(0);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
   const titles = useMemo(
     () => ["revolutionary", "secure", "transparent", "rewarding", "innovative"],
     []
   );
+
+  const handleGoToDashboard = async () => {
+    setError("");
+    setIsConnecting(true);
+
+    try {
+      // Connect wallet
+      const address = await connectWallet();
+
+      // Check if user exists
+      const user = await getUserByWallet(address);
+
+      if (user) {
+        // User exists, go to dashboard
+        router.push("/dashboard");
+      } else {
+        // New user, go to signup
+        router.push("/signup");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to connect wallet");
+      setTimeout(() => setError(""), 5000);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -70,17 +102,30 @@ function AnimatedHero() {
               your commitment is rewarded with knowledge and proof of achievement.
             </p>
           </div>
+
+          {error && (
+            <div className="max-w-md mx-auto p-4 rounded-xl bg-red-50 border-2 border-red-200 flex items-start gap-3" role="alert">
+              <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+          )}
+
           <div className="flex flex-row gap-3">
-            <Link href="/courses">
+            <Link href="/signup">
               <Button size="lg" className="gap-4" variant="outline">
-                Browse Courses <Rocket className="w-4 h-4" />
+                Sign Up <Rocket className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href="/dashboard">
-              <Button size="lg" className="gap-4">
-                Go to Dashboard <MoveRight className="w-4 h-4" />
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              className="gap-4" 
+              onClick={handleGoToDashboard}
+              disabled={isConnecting}
+            >
+              {isConnecting ? "Connecting..." : "Go to Dashboard"} <MoveRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>

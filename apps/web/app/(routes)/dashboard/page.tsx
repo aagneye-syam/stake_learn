@@ -23,6 +23,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { StatsBentoGrid } from "@/_components/StatsBentoGrid";
 import { VerifyMintCard } from "@/_components/VerifyMintCard";
 import { ConsumerDataModal } from "@/components/ConsumerDataModal";
+import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -187,12 +188,38 @@ function DynamicLearningTaskCard({ task, userAddress }: { task: any; userAddress
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
+  const { isConnected: isWalletAuthConnected, isLoading: isAuthLoading, user } = useWalletAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Redirect to signup if not authenticated
+  useEffect(() => {
+    if (mounted && !isAuthLoading && !isWalletAuthConnected) {
+      router.push("/signup");
+    }
+  }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
+
+  // Show loading while checking auth
+  if (!mounted || isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show nothing while redirecting
+  if (!isWalletAuthConnected) {
+    return null;
+  }
+
   const [repo, setRepo] = useState("");
   const [sha, setSha] = useState("");
   const [permit, setPermit] = useState<Record<string, unknown> | null>(null);

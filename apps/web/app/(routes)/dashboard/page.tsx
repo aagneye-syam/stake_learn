@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { mintSBT } from "@/sdk/index";
-import StatsCard from "@/components/StatsCard";
 import ActivityCard from "@/components/ActivityCard";
 import LearningTaskCard from "@/components/LearningTaskCard";
 import { DynamicWalletButton } from "@/components/DynamicWalletButton";
@@ -17,6 +16,8 @@ import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { useRouter } from "next/navigation";
 import { DailyStreak } from "@/components/DailyStreak";
 import { ProgressBar } from "@/components/ProgressBar";
+import { StatsBentoGrid } from "@/_components/StatsBentoGrid";
+import { VerifyMintCard } from "@/_components/VerifyMintCard";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -619,170 +620,30 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total SBTs"
-          value="12"
-          icon={
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-          trend={{ value: "+3 this week", isPositive: true }}
-          gradientFrom="#9333ea"
-          gradientTo="#7c3aed"
-        />
-        
-        <StatsCard
-          title="Reputation Score"
-          value="850"
-          icon={
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-            </svg>
-          }
-          trend={{ value: "+120 points", isPositive: true }}
-          gradientFrom="#2563eb"
-          gradientTo="#3b82f6"
-        />
-        
-        <div className="relative group">
-          <StatsCard
-            title="DataCoins Earned"
-            value={dataCoinBalance}
-            icon={
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            }
-            trend={{ value: `+${getTotalDataCoinsEarned()} from certificates`, isPositive: true }}
-            gradientFrom="#f59e0b"
-            gradientTo="#f97316"
-          />
-          <button
-            onClick={() => refetchLocalDataCoinBalance()}
-            className="absolute top-2 right-2 p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-all opacity-0 group-hover:opacity-100"
-            title="Refresh DataCoin Balance"
-          >
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        </div>
-        
-        <StatsCard
-          title="Certificates"
-          value={certificates.length.toString()}
-          icon={
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-          trend={{ value: "+1 this month", isPositive: true }}
-          gradientFrom="#059669"
-          gradientTo="#10b981"
-        />
-      </div>
+      <StatsBentoGrid
+        sbts="12"
+        reputation="850"
+        dataCoins={dataCoinBalance}
+        certificates={certificates.length.toString()}
+        onRefreshDataCoins={refetchLocalDataCoinBalance}
+      />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Verify & Mint Card */}
         <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Verify & Mint SBT
-              </h2>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Repository
-                </label>
-                <input
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900 transition-all outline-none"
-                  placeholder="e.g., owner/repo-name"
-                  value={repo}
-                  onChange={(e) => setRepo(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Commit SHA
-                </label>
-                <input
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900 transition-all outline-none"
-                  placeholder="e.g., abc123def456..."
-                  value={sha}
-                  onChange={(e) => setSha(e.target.value)}
-                />
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
-                  onClick={onVerify}
-                  disabled={!address || isLoading || !repo || !sha}
-                >
-                  {isLoading && !permit ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Verifying...
-                    </span>
-                  ) : (
-                    "Verify Contribution"
-                  )}
-                </button>
-                <button
-                  className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
-                  onClick={onMint}
-                  disabled={!permit || isLoading}
-                >
-                  {isLoading && permit ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Minting...
-                    </span>
-                  ) : (
-                    "Mint SBT"
-                  )}
-                </button>
-              </div>
-
-              {status && (
-                <div className={`p-4 rounded-xl ${
-                  status.startsWith("✓") 
-                    ? "bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800" 
-                    : status.startsWith("✗")
-                    ? "bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800"
-                    : "bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800"
-                }`}>
-                  <p className={`text-sm font-medium ${
-                    status.startsWith("✓") 
-                      ? "text-green-800 dark:text-green-200" 
-                      : status.startsWith("✗")
-                      ? "text-red-800 dark:text-red-200"
-                      : "text-blue-800 dark:text-blue-200"
-                  }`}>
-                    {status}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <VerifyMintCard
+            repo={repo}
+            sha={sha}
+            isLoading={isLoading}
+            permit={permit}
+            status={status}
+            address={address}
+            onRepoChange={setRepo}
+            onShaChange={setSha}
+            onVerify={onVerify}
+            onMint={onMint}
+          />
         </div>
 
         {/* Activity Card */}

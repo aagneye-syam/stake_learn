@@ -2,7 +2,7 @@ import { useTransactionsContext } from '@/_context/TransactionsContext';
 
 export interface Transaction {
   hash: string;
-  type: 'stake' | 'complete' | 'refund' | 'datacoin';
+  type: 'stake' | 'complete' | 'refund' | 'datacoin' | 'consumer_data';
   amount: string;
   courseId: string;
   timestamp: number;
@@ -10,6 +10,7 @@ export interface Transaction {
   blockNumber: number;
   certificateCID?: string;
   reason?: string;
+  proofCid?: string; // For consumer data transactions
 }
 
 /**

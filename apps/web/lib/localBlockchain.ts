@@ -29,7 +29,6 @@ export class LocalBlockchain {
 
     // Only fetch new events
     try {
-      // This would use the optimized RPC calls
       const newEvents = await this.fetchNewEvents(contractAddress, this.lastSyncBlock + 1);
       this.storeEvents(contractAddress, newEvents);
       this.lastSyncBlock = Math.max(this.lastSyncBlock, ...newEvents.map(e => parseInt(e.blockNumber, 16)));
@@ -41,8 +40,24 @@ export class LocalBlockchain {
   }
 
   private static async fetchNewEvents(contractAddress: string, fromBlock: number) {
-    // Implementation would use the MultiRPCProvider
-    // This is a placeholder for the actual implementation
+    // This would use the MultiRPCProvider
+    // For now, return empty array to avoid RPC calls
+    console.log(`Would fetch events for ${contractAddress} from block ${fromBlock}`);
     return [];
+  }
+
+  // Clear local storage
+  static clearStorage() {
+    this.events.clear();
+    this.lastSyncBlock = 0;
+  }
+
+  // Get storage stats
+  static getStorageStats() {
+    return {
+      eventCount: Array.from(this.events.values()).reduce((sum, events) => sum + events.length, 0),
+      contractCount: this.events.size,
+      lastSyncBlock: this.lastSyncBlock
+    };
   }
 }

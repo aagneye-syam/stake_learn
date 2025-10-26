@@ -6,10 +6,14 @@ import { MoveRight, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import SignInModal from "@/_components/SignInModal";
+import { useRouter } from "next/navigation";
 
 function AnimatedHero() {
   const [titleNumber, setTitleNumber] = useState(0);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
   const titles = useMemo(
     () => ["revolutionary", "secure", "transparent", "rewarding", "innovative"],
     []
@@ -87,8 +91,13 @@ function AnimatedHero() {
 
       <SignInModal
         isOpen={isSignInModalOpen}
-        onClose={() => setIsSignInModalOpen(false)}
+        onClose={() => {
+          setIsSignInModalOpen(false);
+          setError("");
+        }}
         onSignIn={async () => {}}
+        isLoading={isLoading}
+        error={error}
       />
     </div>
   );

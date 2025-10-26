@@ -19,6 +19,7 @@ export interface Repository {
   userAddress: string;
   userName: string;
   userEmail: string;
+  githubUsername: string;
   repoUrl: string;
   repoName: string;
   repoOwner: string;
@@ -69,6 +70,7 @@ export async function submitRepository(
     stars?: number;
     forks?: number;
     isPrivate: boolean;
+    githubUsername?: string;
   }
 ): Promise<string> {
   try {
@@ -80,6 +82,7 @@ export async function submitRepository(
       userAddress: userAddress.toLowerCase(),
       userName,
       userEmail,
+      githubUsername: repoData.githubUsername || repoData.owner,
       repoUrl,
       repoName: repoData.name,
       repoOwner: repoData.owner,

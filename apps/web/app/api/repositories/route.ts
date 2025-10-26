@@ -67,6 +67,38 @@ export async function POST(request: NextRequest) {
       repoData
     );
     
+    // Fetch commits from GitHub API
+    try {
+      const commitsResponse = await fetch(`https://api.github.com/repos/${repoData.owner}/${repoData.name}/commits?per_page=100`);
+      if (commitsResponse.ok) {
+        const commits = await commitsResponse.json();
+        const formattedCommits = commits.map((commit: any) => ({
+          sha: commit.sha,
+          message: commit.commit.message,
+          author: commit.commit.author.name,
+          authorEmail: commit.commit.author.email,
+          date: new Date(commit.commit.author.date),
+          additions: commit.stats?.additions || 0,
+          deletions: commit.stats?.deletions || 0,
+          filesChanged: commit.files?.map((file: any) => file.filename) || []
+        }));
+        
+        // Add commits to repository
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/repositories/${repoId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'addCommits',
+            commits: formattedCommits
+          }),
+        });
+      }
+    } catch (commitsError) {
+      console.error('Failed to fetch commits:', commitsError);
+    }
+    
     // Mint DataCoins for repository submission
     try {
       const rewardResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/progress`, {

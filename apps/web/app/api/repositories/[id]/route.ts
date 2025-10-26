@@ -41,28 +41,34 @@ export async function PUT(
         const { status, reviewedBy, dataCoinsEarned } = data;
         await updateRepositoryStatus(repoId, status, reviewedBy, dataCoinsEarned);
         
-        // Mint DataCoins for repository approval
+        // Mint DataCoins for repository approval (to the user who submitted)
         if (status === 'approved') {
           try {
-            const rewardResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/progress`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                studentAddress: reviewedBy, // Admin gets the reward
-                rewardType: 'repository_approval',
-                courseId: '0',
-                progressPercentage: 0,
-                streakDays: 0,
-                milestone: 'Repository Approval',
-                moduleId: '0',
-                totalModules: 1
-              }),
-            });
+            // Get the repository to find the user who submitted it
+            const { getRepository } = await import('@/services/repository.service');
+            const repository = await getRepository(repoId);
             
-            if (rewardResponse.ok) {
-              console.log('DataCoins minted for repository approval');
+            if (repository) {
+              const rewardResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/progress`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  studentAddress: repository.userAddress, // User who submitted gets the reward
+                  rewardType: 'repository_approval',
+                  courseId: '0',
+                  progressPercentage: 0,
+                  streakDays: 0,
+                  milestone: 'Repository Approval',
+                  moduleId: '0',
+                  totalModules: 1
+                }),
+              });
+              
+              if (rewardResponse.ok) {
+                console.log('DataCoins minted for repository approval');
+              }
             }
           } catch (rewardError) {
             console.error('Failed to mint DataCoins for repository approval:', rewardError);
@@ -99,28 +105,34 @@ export async function PUT(
           verificationNotes
         );
         
-        // Mint DataCoins for commit verification
+        // Mint DataCoins for commit verification (to the user who submitted)
         if (commitStatus === 'verified') {
           try {
-            const rewardResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/progress`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                studentAddress: verifiedBy, // Admin gets the reward
-                rewardType: 'commit_verification',
-                courseId: '0',
-                progressPercentage: 0,
-                streakDays: 0,
-                milestone: 'Commit Verification',
-                moduleId: '0',
-                totalModules: 1
-              }),
-            });
+            // Get the repository to find the user who submitted it
+            const { getRepository } = await import('@/services/repository.service');
+            const repository = await getRepository(repoId);
             
-            if (rewardResponse.ok) {
-              console.log('DataCoins minted for commit verification');
+            if (repository) {
+              const rewardResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/progress`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  studentAddress: repository.userAddress, // User who submitted gets the reward
+                  rewardType: 'commit_verification',
+                  courseId: '0',
+                  progressPercentage: 0,
+                  streakDays: 0,
+                  milestone: 'Commit Verification',
+                  moduleId: '0',
+                  totalModules: 1
+                }),
+              });
+              
+              if (rewardResponse.ok) {
+                console.log('DataCoins minted for commit verification');
+              }
             }
           } catch (rewardError) {
             console.error('Failed to mint DataCoins for commit verification:', rewardError);

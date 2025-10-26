@@ -14,6 +14,7 @@ export function RepositorySubmissionCard({ onRepositoryAdded }: RepositorySubmis
   const { repositories, loading, submitRepository } = useRepositories();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
+  const [githubUsername, setGithubUsername] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -72,7 +73,8 @@ export function RepositorySubmissionCard({ onRepositoryAdded }: RepositorySubmis
         language: repoData.language,
         stars: repoData.stargazers_count,
         forks: repoData.forks_count,
-        isPrivate: repoData.private
+        isPrivate: repoData.private,
+        githubUsername: githubUsername || repoData.owner.login
       });
 
       setSuccess(result.message);
@@ -144,6 +146,22 @@ export function RepositorySubmissionCard({ onRepositoryAdded }: RepositorySubmis
           />
           <p className="text-xs text-gray-500 mt-1">
             Enter the full GitHub URL or just owner/repo format
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            GitHub Username (Optional)
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-black focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+            placeholder="Your GitHub username"
+            value={githubUsername}
+            onChange={(e) => setGithubUsername(e.target.value)}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Your GitHub username for verification (will auto-detect from repo if not provided)
           </p>
         </div>
 

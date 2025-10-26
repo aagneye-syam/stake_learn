@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
-import { useRepositories, Repository, Commit } from "@/hooks/useRepositories";
+import { useRepositories } from "@/hooks/useRepositories";
+import type { Repository, Commit } from "@/services/repository.service";
 import { useWalletAuth } from "@/_context/WalletAuthContext";
 import { useRouter } from "next/navigation";
 import { 
@@ -375,6 +376,11 @@ export default function AdminPage() {
                   </div>
                   
                   <div className="text-sm">
+                    <span className="text-gray-600">GitHub Username:</span>
+                    <span className="ml-2 font-medium">{selectedRepository.githubUsername}</span>
+                  </div>
+                  
+                  <div className="text-sm">
                     <span className="text-gray-600">Submitted:</span>
                     <span className="ml-2 font-medium">
                       {new Date(selectedRepository.submittedAt.seconds * 1000).toLocaleDateString()}
@@ -384,52 +390,84 @@ export default function AdminPage() {
 
                 {/* Commits */}
                 <div>
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Commits</h4>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                    Commits ({selectedRepository.commits.length})
+                  </h4>
                   {selectedRepository.commits.length === 0 ? (
                     <p className="text-gray-500 text-sm">No commits available</p>
                   ) : (
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
                       {selectedRepository.commits.map((commit) => (
                         <div
                           key={commit.sha}
-                          className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                          className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-mono text-xs text-gray-500">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                                   {commit.sha.slice(0, 8)}
                                 </span>
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getCommitStatusColor(commit.status)}`}>
                                   {getCommitStatusIcon(commit.status)}
                                   <span className="ml-1 capitalize">{commit.status}</span>
                                 </span>
-                              </div>
-                              <p className="text-sm font-medium text-gray-900 mb-1">
-                                {commit.message}
-                              </p>
-                              <div className="flex items-center gap-4 text-xs text-gray-500">
-                                <span>{commit.author}</span>
-                                <span>+{commit.additions} -{commit.deletions}</span>
-                                <span>{commit.filesChanged.length} files</span>
                                 {commit.dataCoinsEarned > 0 && (
-                                  <span className="text-green-600 font-medium">
+                                  <span className="text-green-600 font-medium text-xs bg-green-100 px-2 py-1 rounded">
                                     +{commit.dataCoinsEarned} DataCoins
                                   </span>
                                 )}
                               </div>
+                              <p className="text-sm font-medium text-gray-900 mb-2">
+                                {commit.message}
+                              </p>
+                              <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {commit.author}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {new Date(commit.date.seconds * 1000).toLocaleDateString()}
+                                </span>
+                                <span className="text-green-600">+{commit.additions}</span>
+                                <span className="text-red-600">-{commit.deletions}</span>
+                                <span>{commit.filesChanged.length} files</span>
+                              </div>
+                              
+                              {/* Files Changed */}
+                              {commit.filesChanged.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs text-gray-600 mb-1">Files changed:</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {commit.filesChanged.slice(0, 5).map((file, index) => (
+                                      <span
+                                        key={index}
+                                        className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                                      >
+                                        {file}
+                                      </span>
+                                    ))}
+                                    {commit.filesChanged.length > 5 && (
+                                      <span className="text-xs text-gray-500 px-2 py-1">
+                                        +{commit.filesChanged.length - 5} more
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 ml-4">
                               <button
                                 onClick={() => handleCommitVerification(selectedRepository.id, commit.sha, 'verified', 5)}
-                                className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
-                                title="Verify commit"
+                                className="p-2 text-green-600 hover:bg-green-100 rounded transition-colors"
+                                title="Verify commit (+5 DataCoins)"
                               >
                                 <CheckCircle className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleCommitVerification(selectedRepository.id, commit.sha, 'rejected')}
-                                className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                                className="p-2 text-red-600 hover:bg-red-100 rounded transition-colors"
                                 title="Reject commit"
                               >
                                 <XCircle className="h-4 w-4" />

@@ -8,6 +8,7 @@ export interface Repository {
   userAddress: string;
   userName: string;
   userEmail: string;
+  githubUsername: string;
   repoUrl: string;
   repoName: string;
   repoOwner: string;

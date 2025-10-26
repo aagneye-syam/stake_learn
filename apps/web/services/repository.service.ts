@@ -74,6 +74,10 @@ export async function submitRepository(
   }
 ): Promise<string> {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
+    
     const repoRef = doc(collection(db, 'repositories'));
     const repoId = repoRef.id;
     
@@ -111,6 +115,11 @@ export async function submitRepository(
  */
 export async function getUserRepositories(userAddress: string): Promise<Repository[]> {
   try {
+    if (!db) {
+      console.warn('Firebase not initialized, returning empty repositories array');
+      return [];
+    }
+    
     const q = query(
       collection(db, 'repositories'),
       where('userAddress', '==', userAddress.toLowerCase()),
@@ -129,6 +138,11 @@ export async function getUserRepositories(userAddress: string): Promise<Reposito
  */
 export async function getAllRepositories(): Promise<Repository[]> {
   try {
+    if (!db) {
+      console.warn('Firebase not initialized, returning empty repositories array');
+      return [];
+    }
+    
     const q = query(
       collection(db, 'repositories'),
       orderBy('submittedAt', 'desc')
@@ -146,6 +160,11 @@ export async function getAllRepositories(): Promise<Repository[]> {
  */
 export async function getRepository(repoId: string): Promise<Repository | null> {
   try {
+    if (!db) {
+      console.warn('Firebase not initialized, returning null');
+      return null;
+    }
+    
     const repoRef = doc(db, 'repositories', repoId);
     const repoSnap = await getDoc(repoRef);
     
@@ -169,6 +188,10 @@ export async function updateRepositoryStatus(
   dataCoinsEarned: number = 0
 ): Promise<void> {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
+    
     const repoRef = doc(db, 'repositories', repoId);
     await updateDoc(repoRef, {
       status,
@@ -189,6 +212,10 @@ export async function addCommitsToRepository(
   commits: Omit<Commit, 'status' | 'dataCoinsEarned' | 'verifiedAt' | 'verifiedBy'>[]
 ): Promise<void> {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
+    
     const repoRef = doc(db, 'repositories', repoId);
     const commitsWithStatus = commits.map(commit => ({
       ...commit,
@@ -217,6 +244,10 @@ export async function verifyCommit(
   verificationNotes?: string
 ): Promise<void> {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
+    
     const repo = await getRepository(repoId);
     if (!repo) {
       throw new Error('Repository not found');

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle, User, Calendar, GitCommit, FileText, Plus, Minus, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, User, Calendar, GitCommit, FileText, Plus, Minus, ExternalLink, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 
 interface CommitFile {
   filename: string;
@@ -70,6 +70,7 @@ export function CommitDetailsModal({
   const [error, setError] = useState<string | null>(null);
   const [verificationNotes, setVerificationNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
+  const [expandedFiles, setExpandedFiles] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (isOpen && commit) {
@@ -103,6 +104,28 @@ export function CommitDetailsModal({
     onVerify(commit.sha, status, dataCoins, verificationNotes);
     setVerificationNotes("");
     setShowNotes(false);
+  };
+
+  const toggleFileExpansion = (index: number) => {
+    const newExpandedFiles = new Set(expandedFiles);
+    if (newExpandedFiles.has(index)) {
+      newExpandedFiles.delete(index);
+    } else {
+      newExpandedFiles.add(index);
+    }
+    setExpandedFiles(newExpandedFiles);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleString();
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const getFileStatusIcon = (status: string) => {
@@ -222,7 +245,7 @@ export function CommitDetailsModal({
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {new Date(commitDetails.author.date).toLocaleString()}
+                        {formatDate(commitDetails.author.date)}
                       </span>
                       <span className="font-mono text-xs bg-gray-200 px-2 py-1 rounded">
                         {commitDetails.sha.slice(0, 8)}
@@ -260,33 +283,46 @@ export function CommitDetailsModal({
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">
                   Files Changed ({commitDetails.files.length})
                 </h4>
-                <div className="space-y-3">
-                  {commitDetails.files.map((file, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          {getFileStatusIcon(file.status)}
-                          <span className="font-medium text-gray-900">{file.filename}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getFileStatusColor(file.status)}`}>
-                            {file.status}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="text-green-600">+{file.additions}</span>
-                          <span className="text-red-600">-{file.deletions}</span>
-                        </div>
-                      </div>
-                      
-                      {/* File Patch */}
-                      {file.patch && (
-                        <div className="bg-gray-900 rounded-lg p-3 overflow-x-auto">
-                          <div className="text-white text-xs font-mono">
-                            {formatPatch(file.patch)}
+                <div className="space-y-2">
+                  {commitDetails.files.map((file, index) => {
+                    const isExpanded = expandedFiles.has(index);
+                    return (
+                      <div key={index} className="border border-gray-200 rounded-lg">
+                        <div 
+                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => toggleFileExpansion(index)}
+                        >
+                          <div className="flex items-center gap-2 flex-1">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-gray-500" />
+                            )}
+                            {getFileStatusIcon(file.status)}
+                            <span className="font-medium text-gray-900 truncate">{file.filename}</span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getFileStatusColor(file.status)}`}>
+                              {file.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="text-green-600">+{file.additions}</span>
+                            <span className="text-red-600">-{file.deletions}</span>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        
+                        {/* File Patch - Only show when expanded */}
+                        {isExpanded && file.patch && (
+                          <div className="border-t border-gray-200 p-4">
+                            <div className="bg-gray-900 rounded-lg p-3 overflow-x-auto">
+                              <div className="text-white text-xs font-mono">
+                                {formatPatch(file.patch)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

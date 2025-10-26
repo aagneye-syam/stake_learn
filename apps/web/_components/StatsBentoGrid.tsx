@@ -30,7 +30,7 @@ export function StatsBentoGrid({
       description: `${sbts} Soulbound Tokens earned`,
       className: "lg:row-start-1 lg:row-end-2 lg:col-start-1 lg:col-end-2",
       background: (
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-600/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-100 to-blue-200" />
       ),
     },
     {
@@ -39,7 +39,7 @@ export function StatsBentoGrid({
       description: `${reputation} points total`,
       className: "lg:col-start-2 lg:col-end-3 lg:row-start-1 lg:row-end-2",
       background: (
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-600/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-cyan-200" />
       ),
     },
     {
@@ -48,7 +48,7 @@ export function StatsBentoGrid({
       description: `${dataCoins} tokens collected`,
       className: "lg:col-start-3 lg:col-end-4 lg:row-start-1 lg:row-end-2",
       background: (
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-amber-600/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-amber-200" />
       ),
       onClick: onRefreshDataCoins,
     },
@@ -58,7 +58,7 @@ export function StatsBentoGrid({
       description: `${certificates} courses completed`,
       className: "lg:col-start-4 lg:col-end-5 lg:row-start-1 lg:row-end-2",
       background: (
-        <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-600/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-emerald-200" />
       ),
     },
   ];

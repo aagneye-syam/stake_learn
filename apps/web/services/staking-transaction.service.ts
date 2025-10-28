@@ -56,3 +56,23 @@ export interface CourseData {
   title: string;
   modules: number;  // Total number of modules
 }
+
+/**
+ * Courses lookup table
+ * This matches the courses in your app
+ */
+const COURSES_DATA: { [key: number]: CourseData } = {
+  1: { id: 1, title: "HTML & CSS Fundamentals", modules: 4 },
+  2: { id: 2, title: "Solidity Smart Contracts", modules: 4 },
+  3: { id: 3, title: "Rust Programming", modules: 4 },
+  4: { id: 4, title: "React & Next.js", modules: 4 },
+  5: { id: 5, title: "Web3 & DApp Development", modules: 4 },
+  6: { id: 6, title: "Python for Data Science", modules: 4 },
+};
+
+/**
+ * Get course data by ID
+ */
+export function getCourseData(courseId: number): CourseData | null {
+  return COURSES_DATA[courseId] || null;
+}

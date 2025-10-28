@@ -134,3 +134,43 @@ export async function updateModuleCompletion(
     throw new Error(error.message || 'Failed to update module completion');
   }
 }
+
+/**
+ * Mark course as completed
+ */
+export async function markCourseCompleted(
+  userId: string,
+  courseId: number
+): Promise<void> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const stakeId = getCourseStakeId(userId, courseId);
+    const stakeRef = doc(db, 'courseStakes', stakeId);
+    
+    // Verify stake exists
+    const stakeSnap = await getDoc(stakeRef);
+    if (!stakeSnap.exists()) {
+      throw new Error('Course stake not found');
+    }
+
+    const stakeData = stakeSnap.data() as CourseStakeData;
+    
+    // Verify all modules are completed
+    if (stakeData.completedModules !== stakeData.totalModules) {
+      throw new Error('Not all modules are completed');
+    }
+
+    await updateDoc(stakeRef, {
+      isCompleted: true,
+      lastUpdated: Timestamp.now(),
+    });
+    
+    console.log('Course marked as completed:', stakeId);
+  } catch (error: any) {
+    console.error('Error marking course completed:', error);
+    throw new Error(error.message || 'Failed to mark course completed');
+  }
+}

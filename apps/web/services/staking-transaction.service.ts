@@ -277,3 +277,36 @@ export async function getUserCourseTransaction(
     throw new Error(error.message || 'Failed to get user course transaction');
   }
 }
+
+/**
+ * Update module completion progress for a transaction
+ */
+export async function updateTransactionModuleProgress(
+  transactionHash: string,
+  completedModules: number
+): Promise<void> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const transactionId = getStakingTransactionId(transactionHash);
+    const transactionRef = doc(db, 'stakingTransactions', transactionId);
+
+    const transactionSnap = await getDoc(transactionRef);
+    if (!transactionSnap.exists()) {
+      throw new Error('Transaction not found');
+    }
+
+    const updateData: any = {
+      completedModules,
+      lastActivityAt: Timestamp.now()
+    };
+
+    await setDoc(transactionRef, updateData, { merge: true });
+    console.log('Transaction module progress updated:', transactionId, completedModules);
+  } catch (error: any) {
+    console.error('Error updating transaction module progress:', error);
+    throw new Error(error.message || 'Failed to update transaction module progress');
+  }
+}

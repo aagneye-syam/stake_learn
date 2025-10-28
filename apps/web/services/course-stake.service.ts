@@ -73,3 +73,30 @@ export async function createCourseStake(
     throw new Error(error.message || 'Failed to create course stake');
   }
 }
+
+/**
+ * Get course stake data for a specific user and course
+ */
+export async function getCourseStake(
+  userId: string,
+  courseId: number
+): Promise<CourseStakeData | null> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const stakeId = getCourseStakeId(userId, courseId);
+    const stakeRef = doc(db, 'courseStakes', stakeId);
+    const stakeSnap = await getDoc(stakeRef);
+    
+    if (stakeSnap.exists()) {
+      return stakeSnap.data() as CourseStakeData;
+    }
+    
+    return null;
+  } catch (error: any) {
+    console.error('Error getting course stake:', error);
+    throw new Error(error.message || 'Failed to get course stake');
+  }
+}

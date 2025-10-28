@@ -310,3 +310,44 @@ export async function updateTransactionModuleProgress(
     throw new Error(error.message || 'Failed to update transaction module progress');
   }
 }
+
+/**
+ * Mark transaction as completed
+ */
+export async function markTransactionCompleted(
+  transactionHash: string
+): Promise<void> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const transactionId = getStakingTransactionId(transactionHash);
+    const transactionRef = doc(db, 'stakingTransactions', transactionId);
+
+    const transactionSnap = await getDoc(transactionRef);
+    if (!transactionSnap.exists()) {
+      throw new Error('Transaction not found');
+    }
+
+    const transaction = transactionSnap.data() as StakingTransaction;
+
+    // Validate all modules are completed
+    if (transaction.completedModules !== transaction.totalModules) {
+      throw new Error('Cannot mark as completed - not all modules finished');
+    }
+
+    const updateData: any = {
+      isCompleted: true,
+      status: 'completed',
+      completedAt: Timestamp.now(),
+      lastActivityAt: Timestamp.now()
+    };
+
+    await setDoc(transactionRef, updateData, { merge: true });
+    console.log('Transaction marked as completed:', transactionId);
+  } catch (error: any) {
+    console.error('Error marking transaction completed:', error);
+    throw new Error(error.message || 'Failed to mark transaction completed');
+  }
+}

@@ -109,3 +109,81 @@ async function getUserDetails(userId: string): Promise<{ email?: string; name?: 
     return {};
   }
 }
+
+/**
+ * Create a new staking transaction record
+ * This is called after successful blockchain transaction
+ */
+export async function createStakingTransaction(
+  transactionHash: string,
+  userId: string,
+  courseId: number,
+  stakeAmount: string,
+  stakeAmountWei: string,
+  network: string,
+  chainId: number
+): Promise<void> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    // Get course data
+    const courseData = getCourseData(courseId);
+    if (!courseData) {
+      throw new Error(`Course ${courseId} not found in courses data`);
+    }
+
+    // Get user details
+    const userDetails = await getUserDetails(userId);
+
+    // Create transaction document
+    const transactionId = getStakingTransactionId(transactionHash);
+    const transactionRef = doc(db, 'stakingTransactions', transactionId);
+
+    // Check if transaction already exists
+    const existingTransaction = await getDoc(transactionRef);
+    if (existingTransaction.exists()) {
+      console.log('Transaction already exists:', transactionId);
+      return; // Don't create duplicate
+    }
+
+    const transactionData: StakingTransaction = {
+      // Transaction Details
+      transactionHash: transactionHash.toLowerCase(),
+      
+      // User Details
+      userId: userId.toLowerCase(),
+      userEmail: userDetails.email,
+      userName: userDetails.name,
+      
+      // Course Details
+      courseId,
+      courseName: courseData.title,
+      totalModules: courseData.modules,
+      
+      // Staking Details
+      stakeAmount,
+      stakeAmountWei,
+      network,
+      chainId,
+      
+      // Progress Tracking
+      completedModules: 0,
+      isCompleted: false,
+      
+      // Timestamps
+      stakedAt: Timestamp.now(),
+      lastActivityAt: Timestamp.now(),
+      
+      // Status
+      status: 'active'
+    };
+
+    await setDoc(transactionRef, transactionData);
+    console.log('Staking transaction created:', transactionId);
+  } catch (error: any) {
+    console.error('Error creating staking transaction:', error);
+    throw new Error(error.message || 'Failed to create staking transaction');
+  }
+}

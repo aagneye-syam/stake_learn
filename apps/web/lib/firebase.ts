@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
@@ -11,11 +11,36 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Check if Firebase is already initialized
+let app;
+let db;
+let auth;
 
-// Initialize Firebase services
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+try {
+  // Only initialize if not already initialized and config is valid
+  if (getApps().length === 0 && firebaseConfig.apiKey && firebaseConfig.projectId) {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+  } else if (getApps().length > 0) {
+    // Use existing app
+    app = getApps()[0];
+    db = getFirestore(app);
+    auth = getAuth(app);
+  } else {
+    // Create mock objects for build time
+    console.warn('Firebase configuration incomplete, using mock objects');
+    db = null;
+    auth = null;
+    app = null;
+  }
+} catch (error) {
+  console.warn('Firebase initialization failed:', error);
+  // Create mock objects for build time
+  db = null;
+  auth = null;
+  app = null;
+}
 
+export { db, auth };
 export default app;

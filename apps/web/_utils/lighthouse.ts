@@ -185,8 +185,7 @@ export async function uploadEncryptedJson(
     const response = await lighthouse.uploadText(
       JSON.stringify(data),
       apiKey,
-      accessToken,
-      'application/json' // mimeType
+      accessToken
     );
     
     if (response.data && response.data.length > 0 && response.data[0].Hash) {

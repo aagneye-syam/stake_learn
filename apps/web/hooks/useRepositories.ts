@@ -90,6 +90,7 @@ export function useRepositories(adminView: boolean = false) {
       stars?: number;
       forks?: number;
       isPrivate: boolean;
+      githubUsername?: string;
     }
   ) => {
     if (!address) {

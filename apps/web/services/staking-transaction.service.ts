@@ -187,3 +187,29 @@ export async function createStakingTransaction(
     throw new Error(error.message || 'Failed to create staking transaction');
   }
 }
+
+/**
+ * Get staking transaction by transaction hash
+ */
+export async function getStakingTransactionByHash(
+  transactionHash: string
+): Promise<StakingTransaction | null> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const transactionId = getStakingTransactionId(transactionHash);
+    const transactionRef = doc(db, 'stakingTransactions', transactionId);
+    const transactionSnap = await getDoc(transactionRef);
+
+    if (transactionSnap.exists()) {
+      return transactionSnap.data() as StakingTransaction;
+    }
+
+    return null;
+  } catch (error: any) {
+    console.error('Error getting staking transaction:', error);
+    throw new Error(error.message || 'Failed to get staking transaction');
+  }
+}

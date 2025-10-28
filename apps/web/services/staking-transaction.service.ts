@@ -244,3 +244,36 @@ export async function getUserStakingTransactions(
     throw new Error(error.message || 'Failed to get user staking transactions');
   }
 }
+
+/**
+ * Get staking transaction for a specific user and course
+ */
+export async function getUserCourseTransaction(
+  userId: string,
+  courseId: number
+): Promise<StakingTransaction | null> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const transactionsRef = collection(db, 'stakingTransactions');
+    const q = query(
+      transactionsRef,
+      where('userId', '==', userId.toLowerCase()),
+      where('courseId', '==', courseId),
+      orderBy('stakedAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      // Return the most recent transaction for this user/course combo
+      return querySnapshot.docs[0].data() as StakingTransaction;
+    }
+
+    return null;
+  } catch (error: any) {
+    console.error('Error getting user course transaction:', error);
+    throw new Error(error.message || 'Failed to get user course transaction');
+  }
+}

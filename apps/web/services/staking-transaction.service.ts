@@ -213,3 +213,34 @@ export async function getStakingTransactionByHash(
     throw new Error(error.message || 'Failed to get staking transaction');
   }
 }
+
+/**
+ * Get all staking transactions for a user
+ */
+export async function getUserStakingTransactions(
+  userId: string
+): Promise<StakingTransaction[]> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const transactionsRef = collection(db, 'stakingTransactions');
+    const q = query(
+      transactionsRef, 
+      where('userId', '==', userId.toLowerCase()),
+      orderBy('stakedAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+
+    const transactions: StakingTransaction[] = [];
+    querySnapshot.forEach((doc) => {
+      transactions.push(doc.data() as StakingTransaction);
+    });
+
+    return transactions;
+  } catch (error: any) {
+    console.error('Error getting user staking transactions:', error);
+    throw new Error(error.message || 'Failed to get user staking transactions');
+  }
+}

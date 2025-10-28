@@ -100,3 +100,37 @@ export async function getCourseStake(
     throw new Error(error.message || 'Failed to get course stake');
   }
 }
+
+/**
+ * Update completed modules count for a course stake
+ */
+export async function updateModuleCompletion(
+  userId: string,
+  courseId: number,
+  completedModules: number
+): Promise<void> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const stakeId = getCourseStakeId(userId, courseId);
+    const stakeRef = doc(db, 'courseStakes', stakeId);
+    
+    // Verify stake exists
+    const stakeSnap = await getDoc(stakeRef);
+    if (!stakeSnap.exists()) {
+      throw new Error('Course stake not found');
+    }
+
+    await updateDoc(stakeRef, {
+      completedModules,
+      lastUpdated: Timestamp.now(),
+    });
+    
+    console.log('Module completion updated:', stakeId, completedModules);
+  } catch (error: any) {
+    console.error('Error updating module completion:', error);
+    throw new Error(error.message || 'Failed to update module completion');
+  }
+}

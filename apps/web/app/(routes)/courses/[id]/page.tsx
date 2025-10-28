@@ -617,6 +617,7 @@ export default function CourseDetailPage() {
                   ) : (
                     <StakingButton 
                       courseId={numericCourseId}
+                      totalModules={course.modules.length}
                       onStakeSuccess={() => {
                         // Optional: Add any success callback logic here
                         console.log("Staking successful!");

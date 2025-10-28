@@ -76,3 +76,11 @@ const COURSES_DATA: { [key: number]: CourseData } = {
 export function getCourseData(courseId: number): CourseData | null {
   return COURSES_DATA[courseId] || null;
 }
+
+/**
+ * Generate document ID for staking transaction
+ * Format: transactionHash (unique blockchain identifier)
+ */
+function getStakingTransactionId(transactionHash: string): string {
+  return transactionHash.toLowerCase();
+}

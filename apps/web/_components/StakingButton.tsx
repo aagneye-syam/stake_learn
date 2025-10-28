@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
+import { createCourseStake } from "@/services/course-stake.service";
 
 interface StakingButtonProps {
   courseId: number;
+  totalModules?: number;
   onStakeSuccess?: () => void;
 }
 
-export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) {
+export function StakingButton({ courseId, totalModules = 4, onStakeSuccess }: StakingButtonProps) {
   const { address, isConnected } = useAccount();
   const [stakeStatus, setStakeStatus] = useState<string>("");
 
@@ -29,13 +31,28 @@ export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) 
 
   const { hasStaked, hasCompleted, refetch } = useUserStake(address, courseId);
 
-  // Effect to handle transaction confirmation
+  // Effect to handle transaction confirmation and Firestore record creation
   useEffect(() => {
     if (isConfirming) {
       setStakeStatus("⏳ Confirming transaction...");
     }
-    if (isSuccess) {
-      setStakeStatus("✅ Successfully staked! You can now start the course.");
+    if (isSuccess && address) {
+      setStakeStatus("✅ Successfully staked! Creating course record...");
+      
+      // Create Firestore record after successful stake
+      const createStakeRecord = async () => {
+        try {
+          const stakeAmountInEth = (Number(effectiveStakeAmount) / 1e18).toString();
+          await createCourseStake(address, courseId, stakeAmountInEth, totalModules);
+          setStakeStatus("✅ Course unlocked! You can now start learning.");
+        } catch (error: any) {
+          console.error("Error creating stake record:", error);
+          setStakeStatus("⚠️ Staked successfully but failed to create course record. Please contact support.");
+        }
+      };
+      
+      createStakeRecord();
+      
       // Refetch stake info after a short delay to ensure blockchain state is updated
       setTimeout(() => {
         refetch();
@@ -49,7 +66,7 @@ export function StakingButton({ courseId, onStakeSuccess }: StakingButtonProps) 
       setStakeStatus(`❌ Staking failed: ${stakingError.message}`);
       setTimeout(() => setStakeStatus(""), 5000);
     }
-  }, [isConfirming, isSuccess, stakingError, refetch, onStakeSuccess]);
+  }, [isConfirming, isSuccess, stakingError, refetch, onStakeSuccess, address, courseId, effectiveStakeAmount, totalModules]);
 
   // Force refetch when component mounts to get latest state
   useEffect(() => {

@@ -31,3 +31,45 @@ export interface CourseStakeData {
 function getCourseStakeId(userId: string, courseId: number): string {
   return `${userId.toLowerCase()}_${courseId}`;
 }
+
+/**
+ * Create a new course stake when user stakes a course
+ */
+export async function createCourseStake(
+  userId: string,
+  courseId: number,
+  stakeAmount: string,
+  totalModules: number
+): Promise<void> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const stakeId = getCourseStakeId(userId, courseId);
+    const stakeRef = doc(db, 'courseStakes', stakeId);
+    
+    // Check if stake already exists
+    const existingStake = await getDoc(stakeRef);
+    if (existingStake.exists()) {
+      throw new Error('Course already staked by this user');
+    }
+
+    const stakeData: CourseStakeData = {
+      userId: userId.toLowerCase(),
+      courseId,
+      stakeAmount,
+      totalModules,
+      completedModules: 0,
+      isCompleted: false,
+      stakedAt: Timestamp.now(),
+      lastUpdated: Timestamp.now(),
+    };
+    
+    await setDoc(stakeRef, stakeData);
+    console.log('Course stake created:', stakeId);
+  } catch (error: any) {
+    console.error('Error creating course stake:', error);
+    throw new Error(error.message || 'Failed to create course stake');
+  }
+}

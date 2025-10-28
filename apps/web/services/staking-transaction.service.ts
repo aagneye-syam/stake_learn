@@ -47,3 +47,12 @@ export interface StakingTransaction {
   // Status
   status: 'active' | 'completed' | 'refunded';  // Transaction status
 }
+
+/**
+ * Interface for course data from courses table
+ */
+export interface CourseData {
+  id: number;
+  title: string;
+  modules: number;  // Total number of modules
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useDataCoinBalance } from './useDataCoin';
+import { updateModuleCompletion, markCourseCompleted } from '@/services/course-stake.service';
 
 // Helper function to get course name
 function getCourseName(courseId: number): string {
@@ -184,12 +185,29 @@ export function useModuleProgress(courseId: number, totalModules: number) {
           progressPercentage,
         });
 
+        // Update Firestore courseStakes collection
+        try {
+          await updateModuleCompletion(address, courseId, completedModules);
+          console.log('Firestore courseStakes updated:', { completedModules });
+        } catch (firestoreError) {
+          console.error('Failed to update Firestore:', firestoreError);
+          // Don't fail the entire operation if Firestore update fails
+        }
+
         console.log('Module completed successfully:', moduleId);
         
         // Check if all modules are now completed
-        const allModulesCompleted = completedModules + 1 === totalModules;
+        const allModulesCompleted = completedModules === totalModules;
         
         if (allModulesCompleted) {
+          // Mark course as completed in Firestore
+          try {
+            await markCourseCompleted(address, courseId);
+            console.log('Course marked as completed in Firestore');
+          } catch (firestoreError) {
+            console.error('Failed to mark course completed in Firestore:', firestoreError);
+          }
+
           // Store certificate on Lighthouse when all modules are completed
           try {
             const certificateResponse = await fetch('/api/complete-course', {

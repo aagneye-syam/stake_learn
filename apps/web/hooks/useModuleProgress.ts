@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useDataCoinBalance } from './useDataCoin';
 import { updateModuleCompletion, markCourseCompleted } from '@/services/course-stake.service';
+import { 
+  getUserCourseTransaction, 
+  updateTransactionModuleProgress, 
+  markTransactionCompleted 
+} from '@/services/staking-transaction.service';
 
 // Helper function to get course name
 function getCourseName(courseId: number): string {
@@ -189,6 +194,13 @@ export function useModuleProgress(courseId: number, totalModules: number) {
         try {
           await updateModuleCompletion(address, courseId, completedModules);
           console.log('Firestore courseStakes updated:', { completedModules });
+          
+          // Also update stakingTransactions collection
+          const transaction = await getUserCourseTransaction(address, courseId);
+          if (transaction) {
+            await updateTransactionModuleProgress(transaction.transactionHash, completedModules);
+            console.log('Firestore stakingTransactions updated:', { completedModules });
+          }
         } catch (firestoreError) {
           console.error('Failed to update Firestore:', firestoreError);
           // Don't fail the entire operation if Firestore update fails
@@ -204,6 +216,13 @@ export function useModuleProgress(courseId: number, totalModules: number) {
           try {
             await markCourseCompleted(address, courseId);
             console.log('Course marked as completed in Firestore');
+            
+            // Also mark transaction as completed
+            const transaction = await getUserCourseTransaction(address, courseId);
+            if (transaction) {
+              await markTransactionCompleted(transaction.transactionHash);
+              console.log('Transaction marked as completed in stakingTransactions');
+            }
           } catch (firestoreError) {
             console.error('Failed to mark course completed in Firestore:', firestoreError);
           }

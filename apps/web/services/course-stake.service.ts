@@ -174,3 +174,30 @@ export async function markCourseCompleted(
     throw new Error(error.message || 'Failed to mark course completed');
   }
 }
+
+/**
+ * Get all course stakes for a specific user
+ */
+export async function getUserCourseStakes(
+  userId: string
+): Promise<CourseStakeData[]> {
+  try {
+    if (!db) {
+      throw new Error('Firebase is not initialized');
+    }
+
+    const stakesRef = collection(db, 'courseStakes');
+    const q = query(stakesRef, where('userId', '==', userId.toLowerCase()));
+    const querySnapshot = await getDocs(q);
+    
+    const stakes: CourseStakeData[] = [];
+    querySnapshot.forEach((doc) => {
+      stakes.push(doc.data() as CourseStakeData);
+    });
+    
+    return stakes;
+  } catch (error: any) {
+    console.error('Error getting user course stakes:', error);
+    throw new Error(error.message || 'Failed to get user course stakes');
+  }
+}

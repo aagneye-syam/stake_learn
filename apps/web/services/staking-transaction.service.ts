@@ -84,3 +84,28 @@ export function getCourseData(courseId: number): CourseData | null {
 function getStakingTransactionId(transactionHash: string): string {
   return transactionHash.toLowerCase();
 }
+
+/**
+ * Get user details from users collection
+ */
+async function getUserDetails(userId: string): Promise<{ email?: string; name?: string }> {
+  try {
+    if (!db) return {};
+    
+    const userRef = doc(db, 'users', userId.toLowerCase());
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      return {
+        email: userData.email,
+        name: userData.name
+      };
+    }
+    
+    return {};
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    return {};
+  }
+}

@@ -31,6 +31,34 @@ export function StakingButton({ courseId, totalModules = 4, onStakeSuccess }: St
 
   const { hasStaked, hasCompleted, refetch } = useUserStake(address, courseId);
 
+  // Helper function to get clean error message
+  const getCleanErrorMessage = (error: any): string => {
+    const errorMessage = error?.message || error?.toString() || "";
+    
+    // User rejected the transaction
+    if (errorMessage.includes("User denied") || errorMessage.includes("User rejected")) {
+      return "Transaction cancelled. Please try again when ready.";
+    }
+    
+    // Insufficient funds
+    if (errorMessage.includes("insufficient funds")) {
+      return "Insufficient funds. Please add more ETH to your wallet.";
+    }
+    
+    // Network/connection issues
+    if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+      return "Network error. Please check your connection and try again.";
+    }
+    
+    // Gas estimation failed
+    if (errorMessage.includes("gas")) {
+      return "Transaction failed. Please try again.";
+    }
+    
+    // Default message for any other error
+    return "Transaction failed. Please try again.";
+  };
+
   // Effect to handle transaction confirmation and Firestore record creation
   useEffect(() => {
     if (isConfirming) {
@@ -63,7 +91,10 @@ export function StakingButton({ courseId, totalModules = 4, onStakeSuccess }: St
       }, 5000);
     }
     if (stakingError) {
-      setStakeStatus(`❌ Staking failed: ${stakingError.message}`);
+      // Log full error for debugging but show clean message to user
+      console.error("Staking error details:", stakingError);
+      const cleanMessage = getCleanErrorMessage(stakingError);
+      setStakeStatus(`❌ ${cleanMessage}`);
       setTimeout(() => setStakeStatus(""), 5000);
     }
   }, [isConfirming, isSuccess, stakingError, refetch, onStakeSuccess, address, courseId, effectiveStakeAmount, totalModules]);
@@ -106,8 +137,12 @@ export function StakingButton({ courseId, totalModules = 4, onStakeSuccess }: St
       setStakeStatus("💫 Please confirm the transaction in your wallet...");
       await stakeForCourse();
     } catch (error: any) {
-      console.error("Staking error:", error);
-      setStakeStatus(`❌ Staking failed: ${error.message || "Unknown error"}`);
+      // Log full error for debugging
+      console.error("Staking error details:", error);
+      
+      // Show clean message to user
+      const cleanMessage = getCleanErrorMessage(error);
+      setStakeStatus(`❌ ${cleanMessage}`);
       setTimeout(() => setStakeStatus(""), 5000);
     }
   };

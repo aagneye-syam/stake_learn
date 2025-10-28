@@ -351,3 +351,20 @@ export async function markTransactionCompleted(
     throw new Error(error.message || 'Failed to mark transaction completed');
   }
 }
+
+/**
+ * Check if user has staked a specific course
+ * Returns true if active or completed stake exists
+ */
+export async function hasUserStakedCourse(
+  userId: string,
+  courseId: number
+): Promise<boolean> {
+  try {
+    const transaction = await getUserCourseTransaction(userId, courseId);
+    return transaction !== null && (transaction.status === 'active' || transaction.status === 'completed');
+  } catch (error: any) {
+    console.error('Error checking if user staked course:', error);
+    return false;
+  }
+}

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { createCourseStake } from "@/services/course-stake.service";
+import { createStakingTransaction } from "@/services/staking-transaction.service";
 
 interface StakingButtonProps {
   courseId: number;
@@ -13,6 +14,7 @@ interface StakingButtonProps {
 
 export function StakingButton({ courseId, totalModules = 4, onStakeSuccess }: StakingButtonProps) {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const [stakeStatus, setStakeStatus] = useState<string>("");
 
   const {
@@ -65,21 +67,48 @@ export function StakingButton({ courseId, totalModules = 4, onStakeSuccess }: St
       setStakeStatus("⏳ Confirming transaction...");
     }
     if (isSuccess && address) {
-      setStakeStatus("✅ Successfully staked! Creating course record...");
+      setStakeStatus("✅ Successfully staked! Creating records...");
       
-      // Create Firestore record after successful stake
-      const createStakeRecord = async () => {
+      // Create both Firestore records after successful stake
+      const createStakeRecords = async () => {
         try {
           const stakeAmountInEth = (Number(effectiveStakeAmount) / 1e18).toString();
+          
+          // Get network name
+          const networkNames: { [key: number]: string } = {
+            1: 'mainnet',
+            11155111: 'sepolia',
+            8453: 'base',
+            84532: 'base-sepolia',
+            42161: 'arbitrum',
+            421614: 'arbitrum-sepolia'
+          };
+          const network = networkNames[chainId] || 'unknown';
+          
+          // Create courseStakes record (legacy)
           await createCourseStake(address, courseId, stakeAmountInEth, totalModules);
+          
+          // Create stakingTransactions record (new comprehensive record)
+          if (hash) {
+            await createStakingTransaction(
+              hash,
+              address,
+              courseId,
+              stakeAmountInEth,
+              effectiveStakeAmount.toString(),
+              network,
+              chainId
+            );
+          }
+          
           setStakeStatus("✅ Course unlocked! You can now start learning.");
         } catch (error: any) {
-          console.error("Error creating stake record:", error);
+          console.error("Error creating stake records:", error);
           setStakeStatus("⚠️ Staked successfully but failed to create course record. Please contact support.");
         }
       };
       
-      createStakeRecord();
+      createStakeRecords();
       
       // Refetch stake info after a short delay to ensure blockchain state is updated
       setTimeout(() => {

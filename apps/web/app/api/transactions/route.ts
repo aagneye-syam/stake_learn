@@ -3,6 +3,8 @@
   import { RPCOptimizer } from '@/lib/rpcOptimizer';
   import { MultiRPCProvider } from '@/lib/multiRPC';
   import { LocalBlockchain } from '@/lib/localBlockchain';
+  import { db } from '@/lib/firebase';
+  import { collection, doc, getDoc, getDocs, orderBy, query, setDoc, Timestamp, where } from 'firebase/firestore';
 
   // In-memory transaction storage (in production, use a database)
   // Use global variable to persist across Next.js API route reloads in development
@@ -32,6 +34,53 @@
     "event TokensMinted(address indexed to, uint256 amount, string reason)"
   ];
 
+  // Firestore helpers
+  async function getLastProcessedBlock(userAddress: string): Promise<number> {
+    try {
+      const ref = doc(db, 'transactionState', userAddress.toLowerCase());
+      const snap = await getDoc(ref);
+      return snap.exists() ? (snap.data().lastProcessedBlock as number) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  async function setLastProcessedBlock(userAddress: string, blockNumber: number): Promise<void> {
+    const ref = doc(db, 'transactionState', userAddress.toLowerCase());
+    await setDoc(ref, { lastProcessedBlock: blockNumber, updatedAt: Timestamp.now() }, { merge: true });
+  }
+
+  async function saveTransactionsToFirestore(userAddress: string, txs: any[]): Promise<void> {
+    const col = collection(db, 'userTransactions');
+    const lower = userAddress.toLowerCase();
+    for (const tx of txs) {
+      const id = (tx.hash || `${lower}_${tx.type}_${tx.blockNumber}_${tx.courseId || '0'}`).toLowerCase();
+      const ref = doc(col, id);
+      await setDoc(ref, {
+        userAddress: lower,
+        hash: tx.hash,
+        type: tx.type,
+        amount: tx.amount,
+        courseId: tx.courseId,
+        timestamp: tx.timestamp,
+        status: tx.status,
+        blockNumber: tx.blockNumber,
+        reason: tx.reason,
+        createdAt: Timestamp.now()
+      }, { merge: true });
+    }
+  }
+
+  async function getTransactionsFromFirestore(userAddress: string): Promise<any[]> {
+    const lower = userAddress.toLowerCase();
+    const col = collection(db, 'userTransactions');
+    const q = query(col, where('userAddress', '==', lower), orderBy('timestamp', 'desc'));
+    const snap = await getDocs(q);
+    const out: any[] = [];
+    snap.forEach(d => out.push(d.data()));
+    return out;
+  }
+
   export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userAddress = searchParams.get('userAddress');
@@ -49,41 +98,56 @@
         console.log('Cache cleared');
       }
 
-      // Get transactions from storage
-      const userTransactions = transactionStorage.get(userAddress) || [];
-      
-  // If no transactions in storage, try to fetch from contract events
-  if (userTransactions.length === 0) {
-    // Only fetch if we haven't tried recently (prevent infinite loops)
-    const lastFetchKey = `lastFetch_${userAddress}`;
-    const lastFetch = (transactionStorage.get(lastFetchKey) || [0])[0];
-    const now = Date.now();
-    const FETCH_COOLDOWN = 300000; // 5 minute cooldown (increased from 1 minute)
-    
-    if (now - lastFetch > FETCH_COOLDOWN) {
-      // Add a simple flag to prevent concurrent fetches
-      const fetchInProgressKey = `fetching_${userAddress}`;
-      if (!transactionStorage.get(fetchInProgressKey)) {
-        transactionStorage.set(fetchInProgressKey, [true]);
-        try {
-          await fetchTransactionsFromContracts(userAddress);
-          transactionStorage.set(lastFetchKey, [now]);
-        } finally {
-          transactionStorage.delete(fetchInProgressKey);
+      // Rolling fetch using lastProcessedBlock
+      const lower = userAddress.toLowerCase();
+      const lastProcessed = await getLastProcessedBlock(lower);
+
+      // Use optimized RPC provider with fallback
+      let provider;
+      try {
+        provider = new ethers.JsonRpcProvider(MultiRPCProvider.getCurrentProvider());
+        await provider.getBlockNumber();
+      } catch (error) {
+        const fallbackProviders = [
+          'https://ethereum-sepolia.publicnode.com',
+          'https://sepolia.drpc.org',
+          'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
+        ];
+        for (const rpcUrl of fallbackProviders) {
+          try {
+            provider = new ethers.JsonRpcProvider(rpcUrl);
+            await provider.getBlockNumber();
+            break;
+          } catch {
+            continue;
+          }
+        }
+        if (!provider) {
+          throw new Error('All RPC providers failed');
         }
       }
-    }
-    
-    const updatedTransactions = transactionStorage.get(userAddress) || [];
-    return NextResponse.json({ 
-      transactions: updatedTransactions,
-      cacheStats: RPCOptimizer.getCacheStats(),
-      localStats: LocalBlockchain.getStorageStats()
-    });
-  }
 
+      const currentBlock = await RPCOptimizer.getCachedEvents(
+        `currentBlock_${lower}`,
+        () => provider.getBlockNumber()
+      );
+
+      const defaultLookback = 50000; // initial bootstrap window
+      const fromBlock = Math.max(0, lastProcessed > 0 ? lastProcessed + 1 : currentBlock - defaultLookback);
+      const toBlock = currentBlock;
+
+      if (fromBlock <= toBlock) {
+        await fetchTransactionsFromContracts(lower, provider, fromBlock, toBlock).then(async (txs) => {
+          if (txs.length > 0) {
+            await saveTransactionsToFirestore(lower, txs);
+          }
+          await setLastProcessedBlock(lower, toBlock);
+        });
+      }
+
+      const persisted = await getTransactionsFromFirestore(lower);
       return NextResponse.json({ 
-        transactions: userTransactions,
+        transactions: persisted,
         cacheStats: RPCOptimizer.getCacheStats(),
         localStats: LocalBlockchain.getStorageStats()
       });
@@ -112,10 +176,8 @@
         blockNumber: Math.floor(Math.random() * 1000000) + 1000000
       };
 
-      // Store transaction
-      const userTransactions = transactionStorage.get(userAddress) || [];
-      userTransactions.push(transaction);
-      transactionStorage.set(userAddress, userTransactions);
+      // Store transaction in Firestore
+      await saveTransactionsToFirestore(userAddress, [transaction]);
 
       return NextResponse.json({ success: true, transaction });
     } catch (error) {
@@ -124,66 +186,31 @@
     }
   }
 
-  async function fetchTransactionsFromContracts(userAddress: string) {
+  async function fetchTransactionsFromContracts(userAddress: string, providerParam?: any, fromBlockParam?: number, toBlockParam?: number): Promise<any[]> {
     const startTime = Date.now();
     const MAX_EXECUTION_TIME = 30000; // 30 seconds max
     
     try {
       if (!STAKING_MANAGER_ADDRESS || !DATACOIN_ADDRESS) {
         console.log('Contract addresses not configured, skipping contract fetch');
-        return;
+        return [];
       }
 
       // Check if we're taking too long
       if (Date.now() - startTime > MAX_EXECUTION_TIME) {
         console.warn('Transaction fetch taking too long, aborting');
-        return;
+        return [];
       }
 
-      // Use optimized RPC provider with fallback
-      let provider;
-      try {
-        provider = new ethers.JsonRpcProvider(MultiRPCProvider.getCurrentProvider());
-        // Test the connection
-        await provider.getBlockNumber();
-      } catch (error) {
-        console.warn('Primary RPC failed, trying fallback providers...');
-        // Try fallback providers
-        const fallbackProviders = [
-          'https://ethereum-sepolia.publicnode.com',
-          'https://sepolia.drpc.org',
-          'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
-        ];
-        
-        for (const rpcUrl of fallbackProviders) {
-          try {
-            provider = new ethers.JsonRpcProvider(rpcUrl);
-            await provider.getBlockNumber();
-            console.log(`Connected to fallback RPC: ${rpcUrl}`);
-            break;
-          } catch (fallbackError) {
-            console.warn(`Fallback RPC failed: ${rpcUrl}`);
-            continue;
-          }
-        }
-        
-        if (!provider) {
-          throw new Error('All RPC providers failed');
-        }
-      }
+      const provider = providerParam || new ethers.JsonRpcProvider(MultiRPCProvider.getCurrentProvider());
       
       // Create contract instances
       const stakingContract = new ethers.Contract(STAKING_MANAGER_ADDRESS, STAKING_ABI, provider);
       const dataCoinContract = new ethers.Contract(DATACOIN_ADDRESS, DATACOIN_ABI, provider);
 
-      // Get current block number with retry logic
-      const currentBlock = await RPCOptimizer.getCachedEvents(
-        `currentBlock_${userAddress}`,
-        () => provider.getBlockNumber()
-      );
-      
-      // Use much smaller block range to prevent infinite loops
-      const fromBlock = Math.max(0, currentBlock - 100); // Reduced to 100 blocks only
+      // Determine block window
+      const currentBlock = toBlockParam ?? await provider.getBlockNumber();
+      const fromBlock = fromBlockParam ?? Math.max(0, currentBlock - 100);
       const blockRanges = RPCOptimizer.getOptimalBlockRange(fromBlock, currentBlock);
 
       console.log(`Fetching events for ${userAddress} in ${Array.isArray(blockRanges) ? blockRanges.length : 1} block range(s)`);
@@ -311,11 +338,10 @@
       // Sort by timestamp (newest first)
       transactions.sort((a, b) => b.timestamp - a.timestamp);
 
-      // Store transactions
-      transactionStorage.set(userAddress, transactions);
-
-      console.log(`Fetched ${transactions.length} transactions for ${userAddress}`);
+      console.log(`Fetched ${transactions.length} transactions for ${userAddress} from blocks ${fromBlock}-${currentBlock}`);
+      return transactions;
     } catch (error) {
       console.error('Error fetching transactions from contracts:', error);
+      return [];
     }
   }

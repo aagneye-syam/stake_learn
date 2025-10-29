@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadEncryptedJson } from '@/_utils/lighthouse';
 import { CertificateMetadata } from '@/types/certificate';
+import { ethers } from 'ethers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,6 +73,30 @@ export async function POST(request: NextRequest) {
     // Calculate DataCoins to allocate (3 DataCoins per module completed)
     const dataCoinsToAllocate = modules.length * 3;
 
+    // Call StakingManager.completeCourse to refund stake on-chain
+    let onChainCompletionSuccess = false;
+    try {
+      if (process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL && process.env.DEPLOYER_PRIVATE_KEY) {
+        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+        const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY, provider);
+        
+        const stakingManagerAddress = process.env.NEXT_PUBLIC_STAKING_MANAGER_CONTRACT_ADDRESS_SEPOLIA;
+        if (stakingManagerAddress) {
+          const stakingManagerABI = [
+            "function completeCourse(address user, uint256 courseId, string calldata certificateCID) external"
+          ];
+          const stakingManager = new ethers.Contract(stakingManagerAddress, stakingManagerABI, wallet);
+          
+          const tx = await stakingManager.completeCourse(studentAddress, courseId, cid);
+          await tx.wait();
+          onChainCompletionSuccess = true;
+          console.log('On-chain course completion successful:', tx.hash);
+        }
+      }
+    } catch (error) {
+      console.error('On-chain course completion failed:', error);
+    }
+
     // Track stake refund transaction
     try {
       await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/transactions`, {
@@ -115,6 +140,31 @@ export async function POST(request: NextRequest) {
       console.error('Failed to track completion transaction:', error);
     }
 
+    // Mint DataCoins on-chain
+    let dataCoinMintingSuccess = false;
+    try {
+      if (process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL && process.env.DEPLOYER_PRIVATE_KEY) {
+        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+        const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY, provider);
+        
+        const dataCoinAddress = process.env.NEXT_PUBLIC_DATACOIN_CONTRACT_ADDRESS_SEPOLIA;
+        if (dataCoinAddress) {
+          const dataCoinABI = [
+            "function mint(address to, uint256 amount, string calldata reason) external"
+          ];
+          const dataCoin = new ethers.Contract(dataCoinAddress, dataCoinABI, wallet);
+          
+          const amountWei = ethers.parseEther(dataCoinsToAllocate.toString());
+          const tx = await dataCoin.mint(studentAddress, amountWei, `Course ${courseId} completion reward`);
+          await tx.wait();
+          dataCoinMintingSuccess = true;
+          console.log('DataCoin minting successful:', tx.hash);
+        }
+      }
+    } catch (error) {
+      console.error('DataCoin minting failed:', error);
+    }
+
     // Track DataCoin allocation transaction
     try {
       await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/transactions`, {
@@ -127,9 +177,9 @@ export async function POST(request: NextRequest) {
           type: 'datacoin',
           amount: dataCoinsToAllocate.toString(),
           courseId: courseId.toString(),
-          hash: `0x${Math.random().toString(16).substring(2, 66)}`,
+          hash: dataCoinMintingSuccess ? 'on-chain-minted' : `0x${Math.random().toString(16).substring(2, 66)}`,
           timestamp: Math.floor(Date.now() / 1000),
-          status: 'success',
+          status: dataCoinMintingSuccess ? 'success' : 'pending',
           reason: 'Course completion reward'
         }),
       });
@@ -144,7 +194,9 @@ export async function POST(request: NextRequest) {
       certificateData,
       lighthouseUrl: certificateData.lighthouseUrl,
       dataCoinsAllocated: dataCoinsToAllocate,
-      message: `Certificate stored on Lighthouse, stake refunded, and ${dataCoinsToAllocate} DataCoins allocated!`
+      onChainCompletion: onChainCompletionSuccess,
+      dataCoinMinting: dataCoinMintingSuccess,
+      message: `Certificate stored on Lighthouse${onChainCompletionSuccess ? ', stake refunded on-chain' : ''}${dataCoinMintingSuccess ? ', and DataCoins minted on-chain' : ''}!`
     });
 
   } catch (error) {

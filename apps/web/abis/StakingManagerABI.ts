@@ -71,9 +71,53 @@ export const StakingManagerABI = [
   {
     inputs: [
       { name: "user", type: "address" },
-      { name: "courseId", type: "uint256" }
+      { name: "courseId", type: "uint256" },
+      { name: "certificateCID", type: "string" }
     ],
     name: "completeCourse",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  // Course Management Functions
+  {
+    inputs: [
+      { name: "courseId", type: "uint256" },
+      { name: "stakeAmount", type: "uint256" }
+    ],
+    name: "addCourse",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      { name: "courseId", type: "uint256" },
+      { name: "stakeAmount", type: "uint256" },
+      { name: "active", type: "bool" }
+    ],
+    name: "updateCourse",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [{ name: "verifier", type: "address" }],
+    name: "addVerifier",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [{ name: "verifier", type: "address" }],
+    name: "removeVerifier",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "emergencyWithdraw",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function"

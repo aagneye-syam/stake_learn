@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { CommitDetailsModal } from "@/_components/CommitDetailsModal";
 import { listCourses, upsertCourse, toggleCourseRepoSubmission, updateCourseStakeAmount, deleteCourse, CourseData, CourseModule } from "@/services/course.service";
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { StakingManagerABI } from '@/abis/StakingManagerABI';
+import { CONTRACTS } from '@/config/contracts';
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
@@ -35,6 +38,17 @@ export default function AdminPage() {
   const [courses, setCourses] = useState<CourseData[]>([]);
   const [isSavingCourse, setIsSavingCourse] = useState(false);
   const [courseForm, setCourseForm] = useState<{ id: number | ''; title: string; description: string; stakeAmount: string; allowRepoSubmission: boolean; modules: CourseModule[]; active: boolean }>({ id: '', title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
+  const [contractTxHash, setContractTxHash] = useState<string | null>(null);
+  const [contractTxStatus, setContractTxStatus] = useState<'pending' | 'success' | 'error' | null>(null);
+
+  // Contract interaction hooks
+  const { writeContract, isPending: isContractPending, error: contractError } = useWriteContract();
+  const { isLoading: isContractConfirming, isSuccess: isContractSuccess } = useWaitForTransactionReceipt({
+    hash: contractTxHash as `0x${string}`,
+    query: {
+      enabled: !!contractTxHash,
+    },
+  });
   const [stats, setStats] = useState({
     totalRepositories: 0,
     pendingRepositories: 0,
@@ -98,7 +112,10 @@ export default function AdminPage() {
   const handleSaveCourse = async () => {
     if (!courseForm.id || !courseForm.title) return;
     setIsSavingCourse(true);
+    setContractTxStatus('pending');
+    
     try {
+      // First save to Firestore
       await upsertCourse({
         id: Number(courseForm.id),
         title: courseForm.title,
@@ -108,11 +125,32 @@ export default function AdminPage() {
         modules: courseForm.modules,
         active: courseForm.active,
       });
+
+      // Then sync with contract
+      try {
+        const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
+        const stakeAmountWei = BigInt(Math.floor(parseFloat(courseForm.stakeAmount) * 1e18));
+        
+        const hash = await writeContract({
+          address: contractAddress,
+          abi: StakingManagerABI,
+          functionName: 'addCourse',
+          args: [BigInt(courseForm.id), stakeAmountWei],
+        });
+        
+        setContractTxHash(hash);
+        setContractTxStatus('pending');
+      } catch (contractErr) {
+        console.error('Contract interaction failed:', contractErr);
+        setContractTxStatus('error');
+      }
+
       const list = await listCourses(false);
       setCourses(list);
       resetCourseForm();
     } catch (e) {
       console.error('Failed to save course', e);
+      setContractTxStatus('error');
     } finally {
       setIsSavingCourse(false);
     }
@@ -138,6 +176,21 @@ export default function AdminPage() {
       console.error('Failed to delete course', e);
     }
   };
+
+  // Handle contract transaction status updates
+  useEffect(() => {
+    if (isContractConfirming) {
+      setContractTxStatus('pending');
+    }
+    if (isContractSuccess) {
+      setContractTxStatus('success');
+      setContractTxHash(null);
+    }
+    if (contractError) {
+      setContractTxStatus('error');
+      setContractTxHash(null);
+    }
+  }, [isContractConfirming, isContractSuccess, contractError]);
 
   const handleRepositoryStatusUpdate = async (
     repoId: string, 
@@ -497,9 +550,24 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <button onClick={handleSaveCourse} disabled={isSavingCourse} className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60">{isSavingCourse ? 'Saving...' : 'Save Course'}</button>
+                    <button onClick={handleSaveCourse} disabled={isSavingCourse || isContractPending} className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60">
+                      {isSavingCourse ? 'Saving...' : isContractPending ? 'Syncing with Contract...' : 'Save Course'}
+                    </button>
                     <button onClick={resetCourseForm} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">Reset</button>
                   </div>
+                  
+                  {/* Contract Transaction Status */}
+                  {contractTxStatus && (
+                    <div className={`mt-2 p-2 rounded-lg text-sm ${
+                      contractTxStatus === 'success' ? 'bg-green-100 text-green-800' :
+                      contractTxStatus === 'error' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {contractTxStatus === 'success' && '✅ Course synced with contract successfully!'}
+                      {contractTxStatus === 'error' && '❌ Contract sync failed. Course saved to Firestore only.'}
+                      {contractTxStatus === 'pending' && '⏳ Syncing with contract...'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Courses List */}

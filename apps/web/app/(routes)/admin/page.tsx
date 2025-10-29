@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRepositories } from "@/hooks/useRepositories";
 import type { Repository, Commit } from "@/services/repository.service";
-import { useWalletAuth } from "@/_context/WalletAuthContext";
+import { useAdminAuth } from "@/_context/AdminAuthContext";
 import { useRouter } from "next/navigation";
 import { 
   CheckCircle, 
@@ -23,7 +23,7 @@ import { CommitDetailsModal } from "@/_components/CommitDetailsModal";
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
-  const { isConnected: isWalletAuthConnected, isLoading: isAuthLoading } = useWalletAuth();
+  const { isAdminAuthed, isLoading: isAdminLoading, logout } = useAdminAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
@@ -53,12 +53,12 @@ export default function AdminPage() {
     setMounted(true);
   }, []);
 
-  // Redirect to signup if not authenticated
+  // Redirect to admin login if not admin-authenticated
   useEffect(() => {
-    if (mounted && !isAuthLoading && !isWalletAuthConnected) {
-      router.push("/signup");
+    if (mounted && !isAdminLoading && !isAdminAuthed) {
+      router.push("/admin/login");
     }
-  }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
+  }, [mounted, isAdminLoading, isAdminAuthed, router]);
 
   // Fetch stats
   useEffect(() => {
@@ -220,23 +220,23 @@ export default function AdminPage() {
   };
 
   // Show loading while checking auth
-  if (!mounted || isAuthLoading) {
+  if (!mounted || isAdminLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking wallet connection...</p>
+          <p className="text-gray-600">Checking admin access...</p>
         </div>
       </div>
     );
   }
 
   // Show nothing while redirecting to signup
-  if (!isWalletAuthConnected) {
+  if (!isAdminAuthed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <p className="text-gray-600">Redirecting to signup...</p>
+          <p className="text-gray-600">Redirecting to admin login...</p>
         </div>
       </div>
     );
@@ -265,6 +265,12 @@ export default function AdminPage() {
               >
                 ← Back to Dashboard
               </button>
+            <button
+              onClick={() => { logout(); router.push('/admin/login'); }}
+              className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
+            >
+              Logout
+            </button>
               <button
                 onClick={() => refetch()}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { isAdminAuthenticated, adminLogout } from "@/services/admin-auth.service";
+import { AdminSidebar } from "@/_components/AdminSidebar";
 import type { AdminUser } from "@/services/admin-auth.service";
 
 interface AdminLayoutProps {
@@ -12,6 +13,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -71,6 +73,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                 Admin Dashboard
               </h1>
@@ -94,9 +106,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Main Content */}
       <div className="flex">
-        {/* Sidebar will be added in next commit */}
-        <main className="flex-1">
-          {children}
+        {/* Sidebar */}
+        <AdminSidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+        />
+        
+        {/* Main Content Area */}
+        <main className="flex-1 lg:ml-64">
+          <div className="p-6">
+            {children}
+          </div>
         </main>
       </div>
     </div>

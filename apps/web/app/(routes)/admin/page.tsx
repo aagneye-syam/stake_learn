@@ -21,9 +21,10 @@ import {
 } from "lucide-react";
 import { CommitDetailsModal } from "@/_components/CommitDetailsModal";
 import { listCourses, upsertCourse, toggleCourseRepoSubmission, updateCourseStakeAmount, deleteCourse, CourseData, CourseModule } from "@/services/course.service";
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { StakingManagerABI } from '@/abis/StakingManagerABI';
 import { CONTRACTS } from '@/config/contracts';
+import { ethers } from 'ethers';
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
@@ -94,10 +95,19 @@ export default function AdminPage() {
     fetchStats();
   }, [repositories]);
 
-  // Fetch courses
+  // Fetch courses and sync with contract
   useEffect(() => {
     const loadCourses = async () => {
       try {
+        // Load from Firestore
+        const firestoreCourses = await listCourses(false);
+        
+        // Check if we need to sync initial courses from contract
+        if (firestoreCourses.length === 0) {
+          console.log('No courses in Firestore, syncing from contract...');
+          await syncInitialCoursesFromContract();
+        }
+        
         const list = await listCourses(false);
         setCourses(list);
       } catch (e) {
@@ -107,7 +117,57 @@ export default function AdminPage() {
     loadCourses();
   }, []);
 
+  // Sync initial courses from contract to Firestore
+  const syncInitialCoursesFromContract = async () => {
+    try {
+      const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
+      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+      const contract = new ethers.Contract(contractAddress, StakingManagerABI, provider);
+      
+      // Check courses 1-6 that were added during deployment
+      for (let courseId = 1; courseId <= 6; courseId++) {
+        try {
+          const stakeAmount = await contract.getCourseStakeAmount(courseId);
+          const isActive = await contract.activeCourses(courseId);
+          
+          if (stakeAmount > 0) {
+            // Create a basic course entry in Firestore
+            await upsertCourse({
+              id: courseId,
+              title: `Course ${courseId}`,
+              description: `Course ${courseId} description`,
+              stakeAmount: ethers.formatEther(stakeAmount),
+              allowRepoSubmission: false,
+              modules: [{ id: 1, title: `Module 1` }],
+              active: isActive,
+            });
+            console.log(`Synced course ${courseId} from contract`);
+          }
+        } catch (error) {
+          console.error(`Failed to sync course ${courseId}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sync courses from contract:', error);
+    }
+  };
+
   const resetCourseForm = () => setCourseForm({ id: '', title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
+
+  // Function to check if course exists in contract
+  const checkCourseExistsInContract = async (courseId: number): Promise<boolean> => {
+    try {
+      const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
+      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+      const contract = new ethers.Contract(contractAddress, StakingManagerABI, provider);
+      
+      const stakeAmount = await contract.getCourseStakeAmount(courseId);
+      return stakeAmount > 0;
+    } catch (error) {
+      console.error('Error checking course existence:', error);
+      return false;
+    }
+  };
 
   const handleSaveCourse = async () => {
     if (!courseForm.id || !courseForm.title) return;
@@ -131,11 +191,16 @@ export default function AdminPage() {
         const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
         const stakeAmountWei = BigInt(Math.floor(parseFloat(courseForm.stakeAmount) * 1e18));
         
+        // Check if course already exists in contract
+        const courseExists = await checkCourseExistsInContract(Number(courseForm.id));
+        
         const hash = await writeContract({
           address: contractAddress,
           abi: StakingManagerABI,
-          functionName: 'addCourse',
-          args: [BigInt(courseForm.id), stakeAmountWei],
+          functionName: courseExists ? 'updateCourse' : 'addCourse',
+          args: courseExists 
+            ? [BigInt(courseForm.id), stakeAmountWei, courseForm.active]
+            : [BigInt(courseForm.id), stakeAmountWei],
         });
         
         setContractTxHash(hash);
@@ -556,6 +621,16 @@ export default function AdminPage() {
                     <button onClick={resetCourseForm} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">Reset</button>
                   </div>
                   
+                  {/* Course Management Info */}
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+                    <p><strong>Course Management:</strong></p>
+                    <ul className="mt-1 space-y-1">
+                      <li>• <strong>Courses 1-6:</strong> Already exist in contract, will update stake amount and status</li>
+                      <li>• <strong>Course 7+:</strong> New courses, will be added to contract</li>
+                      <li>• <strong>Stake Amount:</strong> Set in ETH (e.g., 0.0001 for 0.0001 ETH)</li>
+                    </ul>
+                  </div>
+                  
                   {/* Contract Transaction Status */}
                   {contractTxStatus && (
                     <div className={`mt-2 p-2 rounded-lg text-sm ${
@@ -572,6 +647,15 @@ export default function AdminPage() {
 
                 {/* Courses List */}
                 <div className="border rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold text-gray-900">Courses</h4>
+                    <button 
+                      onClick={syncInitialCoursesFromContract}
+                      className="px-3 py-1 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      🔄 Sync from Contract
+                    </button>
+                  </div>
                   {courses.length === 0 ? (
                     <div className="text-sm text-gray-500">No courses found</div>
                   ) : (

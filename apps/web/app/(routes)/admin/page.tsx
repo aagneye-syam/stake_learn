@@ -20,6 +20,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { CommitDetailsModal } from "@/_components/CommitDetailsModal";
+import { listCourses, upsertCourse, toggleCourseRepoSubmission, updateCourseStakeAmount, deleteCourse, CourseData, CourseModule } from "@/services/course.service";
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
@@ -30,7 +31,10 @@ export default function AdminPage() {
   const [selectedCommit, setSelectedCommit] = useState<any>(null);
   const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
   const [isVerifyingCommit, setIsVerifyingCommit] = useState(false);
-  const [viewMode, setViewMode] = useState<'repositories' | 'users'>('repositories');
+  const [viewMode, setViewMode] = useState<'repositories' | 'users' | 'courses'>('repositories');
+  const [courses, setCourses] = useState<CourseData[]>([]);
+  const [isSavingCourse, setIsSavingCourse] = useState(false);
+  const [courseForm, setCourseForm] = useState<{ id: number | ''; title: string; description: string; stakeAmount: string; allowRepoSubmission: boolean; modules: CourseModule[]; active: boolean }>({ id: '', title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
   const [stats, setStats] = useState({
     totalRepositories: 0,
     pendingRepositories: 0,
@@ -75,6 +79,65 @@ export default function AdminPage() {
     };
     fetchStats();
   }, [repositories]);
+
+  // Fetch courses
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const list = await listCourses(false);
+        setCourses(list);
+      } catch (e) {
+        console.error('Failed to load courses', e);
+      }
+    };
+    loadCourses();
+  }, []);
+
+  const resetCourseForm = () => setCourseForm({ id: '', title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
+
+  const handleSaveCourse = async () => {
+    if (!courseForm.id || !courseForm.title) return;
+    setIsSavingCourse(true);
+    try {
+      await upsertCourse({
+        id: Number(courseForm.id),
+        title: courseForm.title,
+        description: courseForm.description,
+        stakeAmount: courseForm.stakeAmount,
+        allowRepoSubmission: courseForm.allowRepoSubmission,
+        modules: courseForm.modules,
+        active: courseForm.active,
+      });
+      const list = await listCourses(false);
+      setCourses(list);
+      resetCourseForm();
+    } catch (e) {
+      console.error('Failed to save course', e);
+    } finally {
+      setIsSavingCourse(false);
+    }
+  };
+
+  const handleEditCourse = (c: CourseData) => {
+    setCourseForm({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      stakeAmount: c.stakeAmount,
+      allowRepoSubmission: c.allowRepoSubmission,
+      modules: c.modules,
+      active: c.active ?? true,
+    });
+  };
+
+  const handleDeleteCourse = async (id: number) => {
+    try {
+      await deleteCourse(id);
+      setCourses(await listCourses(false));
+    } catch (e) {
+      console.error('Failed to delete course', e);
+    }
+  };
 
   const handleRepositoryStatusUpdate = async (
     repoId: string, 
@@ -358,6 +421,16 @@ export default function AdminPage() {
               >
                 By User
               </button>
+              <button
+                onClick={() => setViewMode('courses')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'courses'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Courses
+              </button>
             </div>
           </div>
         </div>
@@ -367,10 +440,92 @@ export default function AdminPage() {
           {/* Repository/User List */}
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
             <h3 className="text-xl font-bold text-gray-900 mb-6">
-              {viewMode === 'repositories' ? 'Submitted Repositories' : 'Users & Their Repositories'}
+              {viewMode === 'repositories' ? 'Submitted Repositories' : viewMode === 'users' ? 'Users & Their Repositories' : 'Courses'}
             </h3>
             
-            {loading ? (
+            {viewMode === 'courses' ? (
+              <div className="space-y-6">
+                {/* Course Form */}
+                <div className="border rounded-xl p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Course ID</label>
+                      <input value={courseForm.id} onChange={(e) => setCourseForm({ ...courseForm, id: (e.target.value as any) })} placeholder="Numeric ID" className="w-full px-3 py-2 border rounded-lg" />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Stake Amount (ETH)</label>
+                      <input value={courseForm.stakeAmount} onChange={(e) => setCourseForm({ ...courseForm, stakeAmount: e.target.value })} placeholder="0.0001" className="w-full px-3 py-2 border rounded-lg" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm text-gray-600 mb-1">Title</label>
+                      <input value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} placeholder="Course title" className="w-full px-3 py-2 border rounded-lg" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm text-gray-600 mb-1">Description</label>
+                      <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} placeholder="Course description" className="w-full px-3 py-2 border rounded-lg"></textarea>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input id="allowRepo" type="checkbox" checked={courseForm.allowRepoSubmission} onChange={(e) => setCourseForm({ ...courseForm, allowRepoSubmission: e.target.checked })} />
+                      <label htmlFor="allowRepo" className="text-sm text-gray-700">Enable Repository Submissions</label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input id="activeCourse" type="checkbox" checked={courseForm.active} onChange={(e) => setCourseForm({ ...courseForm, active: e.target.checked })} />
+                      <label htmlFor="activeCourse" className="text-sm text-gray-700">Active</label>
+                    </div>
+                  </div>
+                  {/* Modules */}
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-gray-900">Modules</h4>
+                      <button onClick={() => setCourseForm({ ...courseForm, modules: [...courseForm.modules, { id: courseForm.modules.length + 1, title: `Module ${courseForm.modules.length + 1}` }] })} className="px-3 py-1 text-sm rounded-lg bg-gray-800 text-white">Add Module</button>
+                    </div>
+                    <div className="space-y-2">
+                      {courseForm.modules.map((m, idx) => (
+                        <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <input value={m.title} onChange={(e) => {
+                            const copy = [...courseForm.modules];
+                            copy[idx] = { ...copy[idx], title: e.target.value };
+                            setCourseForm({ ...courseForm, modules: copy });
+                          }} className="px-3 py-2 border rounded-lg" placeholder={`Module ${m.id} title`} />
+                          <input value={m.duration || ''} onChange={(e) => {
+                            const copy = [...courseForm.modules];
+                            copy[idx] = { ...copy[idx], duration: e.target.value };
+                            setCourseForm({ ...courseForm, modules: copy });
+                          }} className="px-3 py-2 border rounded-lg" placeholder="Duration (e.g., 2 hours)" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <button onClick={handleSaveCourse} disabled={isSavingCourse} className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60">{isSavingCourse ? 'Saving...' : 'Save Course'}</button>
+                    <button onClick={resetCourseForm} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">Reset</button>
+                  </div>
+                </div>
+
+                {/* Courses List */}
+                <div className="border rounded-xl p-4">
+                  {courses.length === 0 ? (
+                    <div className="text-sm text-gray-500">No courses found</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {courses.map((c) => (
+                        <div key={c.id} className="p-3 border rounded-lg flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-gray-900">{c.title} <span className="text-xs text-gray-500">(ID: {c.id})</span></div>
+                            <div className="text-xs text-gray-600">Stake: {c.stakeAmount} ETH • Modules: {c.totalModules} • Repo Submissions: {c.allowRepoSubmission ? 'Enabled' : 'Disabled'}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleEditCourse(c)} className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50">Edit</button>
+                            <button onClick={() => toggleCourseRepoSubmission(c.id, !c.allowRepoSubmission).then(async () => setCourses(await listCourses(false)))} className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50">{c.allowRepoSubmission ? 'Disable Repo' : 'Enable Repo'}</button>
+                            <button onClick={() => handleDeleteCourse(c.id)} className="px-3 py-1 text-sm rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Delete</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                 <span className="ml-2 text-gray-600">Loading repositories...</span>

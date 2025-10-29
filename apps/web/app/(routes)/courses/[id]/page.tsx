@@ -18,6 +18,8 @@ import { ModuleCard } from "@/components/ModuleCard";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
 import { DebugProgress } from "@/components/DebugProgress";
+import { getCourseById } from "@/services/course.service";
+import { RepositorySubmissionCard } from "@/_components/RepositorySubmissionCard";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -258,10 +260,21 @@ export default function CourseDetailPage() {
   const courseId = params.id as string;
   const course = coursesData[courseId as keyof typeof coursesData];
   const [mounted, setMounted] = useState(false);
+  const [repoEnabled, setRepoEnabled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+  useEffect(() => {
+    const cid = parseInt(courseId);
+    if (!isNaN(cid)) {
+      getCourseById(cid).then(c => {
+        if (c && typeof c.allowRepoSubmission === 'boolean') {
+          setRepoEnabled(!!c.allowRepoSubmission);
+        }
+      }).catch(() => {});
+    }
+  }, [courseId]);
   
   // Use staking hooks for display data only
   const numericCourseId = parseInt(courseId);
@@ -550,6 +563,13 @@ export default function CourseDetailPage() {
         {/* Sidebar - Stake Card */}
         <div className="lg:col-span-1">
           <div className="sticky top-8 space-y-4">
+            {/* Repository Submission (admin-controlled per course) */}
+            {repoEnabled && (
+              <div className="bg-white rounded-3xl p-6 shadow-2xl border border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">📦 Submit Repository</h3>
+                <RepositorySubmissionCard onRepositoryAdded={() => { /* optional refresh */ }} />
+              </div>
+            )}
             {/* Main Stake Card */}
             <div className="bg-white rounded-3xl p-6 shadow-2xl">
               <div className="text-center mb-6">

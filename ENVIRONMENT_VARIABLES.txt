@@ -1,0 +1,69 @@
+# Environment Variables for Stake & Learn Platform
+# Generated on: 2025-10-29
+# Network: Ethereum Sepolia Testnet (Chain ID: 11155111)
+
+# ===========================================
+# CONTRACT ADDRESSES (Sepolia Testnet)
+# ===========================================
+NEXT_PUBLIC_DATACOIN_CONTRACT_ADDRESS_SEPOLIA=0xD94843bE0c59C369248602b1D86F22A9769Cc6F8
+NEXT_PUBLIC_STAKING_MANAGER_CONTRACT_ADDRESS_SEPOLIA=0xe3B18E87e6B0e8D38AE37503E102276f732ad698
+
+# ===========================================
+# RPC CONFIGURATION
+# ===========================================
+NEXT_PUBLIC_ALCHEMY_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/30VrqdibFPwdIpposSfYp
+
+# ===========================================
+# DEPLOYER CONFIGURATION
+# ===========================================
+DEPLOYER_PRIVATE_KEY=e026fdddad0fecf4a7b1e7fc753c8c6dd99c65f5c6d8e4f5546b5a6dce81cabb
+
+# ===========================================
+# DEPLOYMENT DETAILS
+# ===========================================
+# Deployer Address: 0x6E4C42FB6dc855347A25812823Fe614c9139e50a
+# Deployment Date: 2025-10-29T15:44:52.987Z
+# Network: Sepolia Testnet
+# Chain ID: 11155111
+
+# ===========================================
+# CONTRACT FUNCTIONS
+# ===========================================
+# DataCoin Contract Functions:
+# - mint(address to, uint256 amount, string reason)
+# - burn(address from, uint256 amount, string reason)
+# - addMinter(address minter)
+# - removeMinter(address minter)
+
+# StakingManager Contract Functions:
+# - stake(uint256 courseId)
+# - completeCourse(address student, uint256 courseId, string certificateCID)
+# - addCourse(uint256 courseId, uint256 stakeAmount)
+# - updateCourse(uint256 courseId, uint256 stakeAmount, bool active)
+# - getCourseStakeAmount(uint256 courseId)
+# - activeCourses(uint256 courseId)
+
+# ===========================================
+# INITIAL COURSES (Added during deployment)
+# ===========================================
+# Course ID 1: Stake Amount = 0.0001 ETH
+# Course ID 2: Stake Amount = 0.0001 ETH
+# Course ID 3: Stake Amount = 0.0001 ETH
+# Course ID 4: Stake Amount = 0.0001 ETH
+# Course ID 5: Stake Amount = 0.0001 ETH
+# Course ID 6: Stake Amount = 0.0001 ETH
+
+# ===========================================
+# USAGE INSTRUCTIONS
+# ===========================================
+# 1. Copy these variables to your .env.local file in apps/web/
+# 2. The frontend will automatically use these contract addresses
+# 3. Admin panel can sync courses from contract to Firestore
+# 4. Users can stake ETH and complete courses to earn DataCoins
+# 5. All transactions are recorded on-chain on Sepolia testnet
+
+# ===========================================
+# VERIFICATION
+# ===========================================
+# DataCoin Contract: https://sepolia.etherscan.io/address/0xD94843bE0c59C369248602b1D86F22A9769Cc6F8
+# StakingManager Contract: https://sepolia.etherscan.io/address/0xe3B18E87e6B0e8D38AE37503E102276f732ad698

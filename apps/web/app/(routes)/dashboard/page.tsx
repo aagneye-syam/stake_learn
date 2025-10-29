@@ -196,10 +196,8 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [dataCoinBalance, setDataCoinBalance] = useState("0");
 
-  // DataCoin balance hook (local tracking)
+  // DataCoin balance hooks
   const { balance: localDataCoinBalance, refetch: refetchLocalDataCoinBalance } = useLocalDataCoin();
-  
-  // Contract DataCoin balance hook (for reference)
   const { balance: contractDataCoinBalance, refetch: refetchContractDataCoinBalance } = useDataCoinBalance(address);
   
   // Certificates hook
@@ -242,19 +240,22 @@ export default function DashboardPage() {
     }
   }, [mounted, isAuthLoading, isWalletAuthConnected, router]);
 
-  // Update DataCoin balance when local balance changes
+  // Prefer on-chain DataCoin balance; fallback to local
   useEffect(() => {
-    if (localDataCoinBalance !== undefined) {
+    if (contractDataCoinBalance !== undefined) {
+      setDataCoinBalance(contractDataCoinBalance.toString());
+    } else if (localDataCoinBalance !== undefined) {
       setDataCoinBalance(localDataCoinBalance.toString());
     }
-  }, [localDataCoinBalance]);
+  }, [contractDataCoinBalance, localDataCoinBalance]);
 
-  // Refresh DataCoin balance when user returns to dashboard
+  // Refresh DataCoin balances when user returns to dashboard
   useEffect(() => {
     if (isConnected && address) {
       refetchLocalDataCoinBalance();
+      refetchContractDataCoinBalance();
     }
-  }, [isConnected, address]); // Remove refetchLocalDataCoinBalance from dependencies
+  }, [isConnected, address]);
 
   useEffect(() => {
     // Check RPC status

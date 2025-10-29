@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import WalletConnectButton from "@/_components/WalletConnectButton";
 import UserOnboardingModal from "@/_components/UserOnboardingModal";
-import { createWalletUser } from "@/services/user.service";
+import { createWalletUser, getUserByWallet } from "@/services/user.service";
+import { getCurrentWalletAddress } from "@/services/wallet-auth.service";
 import { useWalletAuth } from "@/_context/WalletAuthContext";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { connect, user, isLoading: contextLoading, walletAddress } = useWalletAuth();
+  const { connect, user, isLoading: contextLoading, walletAddress, refreshUser } = useWalletAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -23,12 +24,16 @@ export default function SignUpPage() {
       // Step 1: Connect wallet using context
       await connect();
 
-      // Step 2: Check if user exists (context will load user data)
-      if (user) {
-        // Existing user - go directly to dashboard
+      // Step 2: Check if user exists in Firebase directly to avoid stale context
+      const address = (await getCurrentWalletAddress()) || walletAddress;
+      if (!address) {
+        throw new Error("Failed to detect wallet address after connection");
+      }
+
+      const existingUser = await getUserByWallet(address);
+      if (existingUser) {
         router.push("/dashboard");
       } else {
-        // New user - show onboarding form
         setShowOnboarding(true);
         setIsLoading(false);
       }
@@ -49,7 +54,7 @@ export default function SignUpPage() {
       setShowOnboarding(false);
       
       // Refresh user context to load the new user data
-      await connect();
+      await refreshUser();
       
       router.push("/dashboard");
     } catch (err: any) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useDataCoinBalance } from './useDataCoin';
-import { updateModuleCompletion, markCourseCompleted } from '@/services/course-stake.service';
+import { updateModuleCompletion, markCourseCompleted, getCourseStake } from '@/services/course-stake.service';
 import { 
   getUserCourseTransaction, 
   updateTransactionModuleProgress, 
@@ -57,20 +57,26 @@ export function useModuleProgress(courseId: number, totalModules: number) {
 
     const loadProgress = async () => {
       try {
-        // Try to load existing progress from API
-        const response = await fetch(`/api/progress?userAddress=${address}&courseId=${courseId}&totalModules=${totalModules}`);
-        const data = await response.json();
-        
-        console.log('API Response:', { 
-          success: data.success, 
-          hasProgress: !!data.progress, 
-          modulesCount: data.progress?.modules?.length,
-          data 
-        });
+        // Prefer persisted progress from Firestore courseStakes
+        const stake = await getCourseStake(address, courseId);
+        if (stake && stake.totalModules) {
+          const completedModulesCount = stake.completedModules || 0;
+          const modules: ModuleProgress[] = [];
+          for (let i = 1; i <= stake.totalModules; i++) {
+            modules.push({
+              courseId,
+              moduleId: i,
+              completed: i <= completedModulesCount,
+            });
+          }
 
-        if (data.success && data.progress) {
-          console.log('Loaded existing progress:', data.progress);
-          setCourseProgress(data.progress);
+          setCourseProgress({
+            courseId,
+            totalModules: stake.totalModules,
+            completedModules: completedModulesCount,
+            progressPercentage: Math.floor((completedModulesCount / stake.totalModules) * 100),
+            modules,
+          });
         } else {
           // Initialize empty progress if none exists
           const modules: ModuleProgress[] = [];
@@ -374,11 +380,25 @@ export function useModuleProgress(courseId: number, totalModules: number) {
     if (!address || !courseId) return;
     
     try {
-      const response = await fetch(`/api/progress?userAddress=${address}&courseId=${courseId}&totalModules=${totalModules}`);
-      const data = await response.json();
-      if (data.success && data.progress) {
-        console.log('Manually refreshed progress:', data.progress);
-        setCourseProgress(data.progress);
+      const stake = await getCourseStake(address, courseId);
+      if (stake) {
+        const completedModulesCount = stake.completedModules || 0;
+        const modules: ModuleProgress[] = [];
+        for (let i = 1; i <= stake.totalModules; i++) {
+          modules.push({
+            courseId,
+            moduleId: i,
+            completed: i <= completedModulesCount,
+          });
+        }
+
+        setCourseProgress({
+          courseId,
+          totalModules: stake.totalModules,
+          completedModules: completedModulesCount,
+          progressPercentage: Math.floor((completedModulesCount / stake.totalModules) * 100),
+          modules,
+        });
         // Also refresh DataCoin balance
         refetchDataCoinBalance();
       }

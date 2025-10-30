@@ -105,7 +105,7 @@ export default function AdminPage() {
     const loadCourses = async () => {
       try {
         // Load from Firestore
-        const firestoreCourses = await listCourses(false);
+        const firestoreCourses = await listCourses(true);
         
         // Check if we need to sync initial courses from contract
         if (firestoreCourses.length === 0) {
@@ -113,7 +113,7 @@ export default function AdminPage() {
           await syncInitialCoursesFromContract();
         }
         
-        const list = await listCourses(false);
+        const list = await listCourses(true);
         setCourses(list);
       } catch (e) {
         console.error('Failed to load courses', e);
@@ -240,7 +240,7 @@ export default function AdminPage() {
         return;
       }
 
-      const list = await listCourses(false);
+      const list = await listCourses(true);
       setCourses(list);
       resetCourseForm();
     } catch (e) {
@@ -284,8 +284,8 @@ export default function AdminPage() {
             args: [BigInt(course.id), stakeAmountWei, false],
           });
           setContractTxHash(hash as any);
-          // only after contract write success path, update Firestore flags
-          await updateCourseFlags(course.id, { active: false, published: false });
+          // on contract success, remove Firestore doc so it no longer appears anywhere
+          await deleteCourse(course.id);
         } catch (err) {
           console.error('On-chain deactivate failed (owner required?):', err);
           setCourseActionError('On-chain deactivate failed. Ensure owner wallet is connected.');
@@ -294,7 +294,7 @@ export default function AdminPage() {
       } else {
         await deleteCourse(course.id);
       }
-      const refreshed = await listCourses(false);
+      const refreshed = await listCourses(true);
       setCourses(refreshed);
     } catch (e) {
       console.error('Failed to delete/deactivate course', e);
@@ -307,7 +307,7 @@ export default function AdminPage() {
     try {
       setRowLoading((m) => ({ ...m, [course.id]: true }));
       await toggleCourseRepoSubmission(course.id, !course.allowRepoSubmission);
-      const refreshed = await listCourses(false);
+      const refreshed = await listCourses(true);
       setCourses(refreshed);
     } catch (e) {
       console.error('Failed to toggle repo submission', e);
@@ -824,7 +824,7 @@ export default function AdminPage() {
                           }
                           setRowLoading((m) => ({ ...m, [manageCourse.id]: true }));
                           await setCoursePublished(manageCourse.id, true);
-                          const refreshed = await listCourses(false);
+      const refreshed = await listCourses(true);
                           setCourses(refreshed);
                           setManageCourse(refreshed.find(r => r.id === manageCourse.id) || null);
                           setRowLoading((m) => ({ ...m, [manageCourse.id]: false }));
@@ -857,7 +857,7 @@ export default function AdminPage() {
                               <button
                                 onClick={async () => {
                                   await deleteModuleResource(manageCourse.id, m.id, r.id);
-                                  const refreshed = await listCourses(false);
+                                  const refreshed = await listCourses(true);
                                   setCourses(refreshed);
                                   setManageCourse(refreshed.find(c => c.id === manageCourse.id) || null);
                                 }}
@@ -944,7 +944,7 @@ export default function AdminPage() {
                                 url: draft.type === 'video' ? draft.url : undefined,
                               };
                               await addModuleResource(manageCourse.id, m.id, resource);
-                              const refreshed = await listCourses(false);
+                              const refreshed = await listCourses(true);
                               setCourses(refreshed);
                               setManageCourse(refreshed.find(c => c.id === manageCourse.id) || null);
                               setResourceDrafts((d) => ({ ...d, [m.id]: { type: 'text', title: '', content: '', url: '' } }));

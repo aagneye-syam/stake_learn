@@ -184,6 +184,19 @@ export default function AdminPage() {
     setCourseActionError(null);
     
     try {
+      // Basic validation for numeric ID and stake
+      const idNum = Number(courseForm.id);
+      if (!Number.isInteger(idNum) || idNum <= 0) {
+        setContractTxStatus('error');
+        setCourseActionError('Course ID must be a positive integer.');
+        return;
+      }
+      const stakeNum = parseFloat(courseForm.stakeAmount);
+      if (!Number.isFinite(stakeNum) || stakeNum <= 0) {
+        setContractTxStatus('error');
+        setCourseActionError('Stake Amount must be a positive number.');
+        return;
+      }
       // Require connected wallet for contract operations
       if (!isConnected) {
         setContractTxStatus('error');
@@ -194,25 +207,25 @@ export default function AdminPage() {
       // First write to contract
       try {
         const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
-        const stakeAmountWei = BigInt(Math.floor(parseFloat(courseForm.stakeAmount) * 1e18));
+        const stakeAmountWei = BigInt(Math.floor(stakeNum * 1e18));
         
         // Check if course already exists in contract
-        const courseExists = await checkCourseExistsInContract(Number(courseForm.id));
+        const courseExists = await checkCourseExistsInContract(idNum);
         
         const hash = await (writeContract as any)({
           address: contractAddress,
           abi: StakingManagerABI,
           functionName: courseExists ? 'updateCourse' : 'addCourse',
           args: courseExists 
-            ? [BigInt(courseForm.id), stakeAmountWei, courseForm.active]
-            : [BigInt(courseForm.id), stakeAmountWei],
+            ? [BigInt(idNum), stakeAmountWei, courseForm.active]
+            : [BigInt(idNum), stakeAmountWei],
         });
         
         setContractTxHash(hash as any);
         setContractTxStatus('pending');
         // If contract write did not throw, persist to Firestore
         await upsertCourse({
-          id: Number(courseForm.id),
+          id: idNum,
           title: courseForm.title,
           description: courseForm.description,
           stakeAmount: courseForm.stakeAmount,
@@ -648,7 +661,17 @@ export default function AdminPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">Course ID</label>
-                      <input value={courseForm.id} onChange={(e) => setCourseForm({ ...courseForm, id: (e.target.value as any) })} placeholder="Numeric ID" className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" />
+                      <input
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={courseForm.id}
+                        onChange={(e) => {
+                          const next = e.target.value.replace(/[^0-9]/g, '');
+                          setCourseForm({ ...courseForm, id: (next as any) });
+                        }}
+                        placeholder="Numeric ID"
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400"
+                      />
                     </div>
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">Stake Amount (ETH)</label>

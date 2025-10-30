@@ -20,11 +20,12 @@ import {
   RefreshCw
 } from "lucide-react";
 import { CommitDetailsModal } from "@/_components/CommitDetailsModal";
-import { listCourses, upsertCourse, toggleCourseRepoSubmission, updateCourseStakeAmount, deleteCourse, CourseData, CourseModule } from "@/services/course.service";
+import { listCourses, upsertCourse, toggleCourseRepoSubmission, updateCourseStakeAmount, deleteCourse, CourseData, CourseModule, addModuleResource, deleteModuleResource, setCoursePublished, CourseModuleResource, updateCourseFlags, getCourseById } from "@/services/course.service";
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { StakingManagerABI } from '@/abis/StakingManagerABI';
 import { CONTRACTS } from '@/config/contracts';
 import { ethers } from 'ethers';
+import { DynamicWalletButton } from "@/components/DynamicWalletButton";
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
@@ -38,6 +39,10 @@ export default function AdminPage() {
   const [viewMode, setViewMode] = useState<'repositories' | 'users' | 'courses'>('repositories');
   const [courses, setCourses] = useState<CourseData[]>([]);
   const [isSavingCourse, setIsSavingCourse] = useState(false);
+  const [rowLoading, setRowLoading] = useState<{ [id: number]: boolean }>({});
+  const [manageCourse, setManageCourse] = useState<CourseData | null>(null);
+  const [resourceDrafts, setResourceDrafts] = useState<Record<number, { type: 'text' | 'video'; title: string; content?: string; url?: string }>>({});
+  const [courseActionError, setCourseActionError] = useState<string | null>(null);
   const [courseForm, setCourseForm] = useState<{ id: number | ''; title: string; description: string; stakeAmount: string; allowRepoSubmission: boolean; modules: CourseModule[]; active: boolean }>({ id: '', title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
   const [contractTxHash, setContractTxHash] = useState<string | null>(null);
   const [contractTxStatus, setContractTxStatus] = useState<'pending' | 'success' | 'error' | null>(null);
@@ -131,17 +136,20 @@ export default function AdminPage() {
           const isActive = await contract.activeCourses(courseId);
           
           if (stakeAmount > 0) {
-            // Create a basic course entry in Firestore
-            await upsertCourse({
-              id: courseId,
-              title: `Course ${courseId}`,
-              description: `Course ${courseId} description`,
-              stakeAmount: ethers.formatEther(stakeAmount),
-              allowRepoSubmission: false,
-              modules: [{ id: 1, title: `Module 1` }],
-              active: isActive,
-            });
-            console.log(`Synced course ${courseId} from contract`);
+            // Only create if not present; do not overwrite local (draft/published) state
+            const existing = await getCourseById(courseId);
+            if (!existing) {
+              await upsertCourse({
+                id: courseId,
+                title: `Course ${courseId}`,
+                description: `Course ${courseId} description`,
+                stakeAmount: ethers.formatEther(stakeAmount),
+                allowRepoSubmission: false,
+                modules: [{ id: 1, title: `Module 1` }],
+                active: isActive,
+              });
+              console.log(`Synced course ${courseId} from contract`);
+            }
           }
         } catch (error) {
           console.error(`Failed to sync course ${courseId}:`, error);
@@ -173,20 +181,17 @@ export default function AdminPage() {
     if (!courseForm.id || !courseForm.title) return;
     setIsSavingCourse(true);
     setContractTxStatus('pending');
+    setCourseActionError(null);
     
     try {
-      // First save to Firestore
-      await upsertCourse({
-        id: Number(courseForm.id),
-        title: courseForm.title,
-        description: courseForm.description,
-        stakeAmount: courseForm.stakeAmount,
-        allowRepoSubmission: courseForm.allowRepoSubmission,
-        modules: courseForm.modules,
-        active: courseForm.active,
-      });
+      // Require connected wallet for contract operations
+      if (!isConnected) {
+        setContractTxStatus('error');
+        setCourseActionError('Connect your wallet to perform contract operations.');
+        return;
+      }
 
-      // Then sync with contract
+      // First write to contract
       try {
         const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
         const stakeAmountWei = BigInt(Math.floor(parseFloat(courseForm.stakeAmount) * 1e18));
@@ -205,9 +210,21 @@ export default function AdminPage() {
         
         setContractTxHash(hash as any);
         setContractTxStatus('pending');
+        // If contract write did not throw, persist to Firestore
+        await upsertCourse({
+          id: Number(courseForm.id),
+          title: courseForm.title,
+          description: courseForm.description,
+          stakeAmount: courseForm.stakeAmount,
+          allowRepoSubmission: courseForm.allowRepoSubmission,
+          modules: courseForm.modules,
+          active: courseForm.active,
+        });
       } catch (contractErr) {
         console.error('Contract interaction failed:', contractErr);
         setContractTxStatus('error');
+        setCourseActionError('Contract sync failed. Course was not saved.');
+        return;
       }
 
       const list = await listCourses(false);
@@ -216,6 +233,7 @@ export default function AdminPage() {
     } catch (e) {
       console.error('Failed to save course', e);
       setContractTxStatus('error');
+      setCourseActionError('Save failed.');
     } finally {
       setIsSavingCourse(false);
     }
@@ -233,12 +251,55 @@ export default function AdminPage() {
     });
   };
 
-  const handleDeleteCourse = async (id: number) => {
+  const handleDeleteCourse = async (course: CourseData) => {
     try {
-      await deleteCourse(id);
-      setCourses(await listCourses(false));
+      setRowLoading((m) => ({ ...m, [course.id]: true }));
+      const existsOnChain = await checkCourseExistsInContract(Number(course.id));
+      if (existsOnChain) {
+        if (!isConnected) {
+          setCourseActionError('Connect your wallet to perform contract operations.');
+          return;
+        }
+        // Deactivate on-chain instead of delete
+        try {
+          const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
+          const stakeAmountWei = BigInt(Math.floor(parseFloat(course.stakeAmount) * 1e18));
+          const hash = await (writeContract as any)({
+            address: contractAddress,
+            abi: StakingManagerABI,
+            functionName: 'updateCourse',
+            args: [BigInt(course.id), stakeAmountWei, false],
+          });
+          setContractTxHash(hash as any);
+          // only after contract write success path, update Firestore flags
+          await updateCourseFlags(course.id, { active: false, published: false });
+        } catch (err) {
+          console.error('On-chain deactivate failed (owner required?):', err);
+          setCourseActionError('On-chain deactivate failed. Ensure owner wallet is connected.');
+          return;
+        }
+      } else {
+        await deleteCourse(course.id);
+      }
+      const refreshed = await listCourses(false);
+      setCourses(refreshed);
     } catch (e) {
-      console.error('Failed to delete course', e);
+      console.error('Failed to delete/deactivate course', e);
+    } finally {
+      setRowLoading((m) => ({ ...m, [course.id]: false }));
+    }
+  };
+
+  const handleToggleRepo = async (course: CourseData) => {
+    try {
+      setRowLoading((m) => ({ ...m, [course.id]: true }));
+      await toggleCourseRepoSubmission(course.id, !course.allowRepoSubmission);
+      const refreshed = await listCourses(false);
+      setCourses(refreshed);
+    } catch (e) {
+      console.error('Failed to toggle repo submission', e);
+    } finally {
+      setRowLoading((m) => ({ ...m, [course.id]: false }));
     }
   };
 
@@ -439,7 +500,11 @@ export default function AdminPage() {
                 Manage repository submissions and verify commits
               </p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
+              {/* Connect Wallet for on-chain admin actions */}
+              <div className="hidden sm:block">
+                <DynamicWalletButton />
+              </div>
               <button
                 onClick={() => router.push('/dashboard')}
                 className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
@@ -565,6 +630,21 @@ export default function AdminPage() {
               <div className="space-y-6">
                 {/* Course Form */}
                 <div className="border rounded-xl p-4">
+                  {courseActionError && (
+                    <div className="mb-3 p-2 rounded bg-red-50 text-red-700 border border-red-200 text-sm">
+                      {courseActionError}
+                    </div>
+                  )}
+                  {!isConnected && (
+                    <div className="mb-3 p-3 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-between">
+                      <div className="text-sm text-yellow-800">
+                        Connect your wallet to add/update/deactivate on-chain courses.
+                      </div>
+                      <div>
+                        <DynamicWalletButton />
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">Course ID</label>
@@ -664,18 +744,197 @@ export default function AdminPage() {
                         <div key={c.id} className="p-3 border rounded-lg flex items-center justify-between">
                           <div>
                             <div className="font-semibold text-gray-900">{c.title} <span className="text-xs text-gray-500">(ID: {c.id})</span></div>
-                            <div className="text-xs text-gray-600">Stake: {c.stakeAmount} ETH • Modules: {c.totalModules} • Repo Submissions: {c.allowRepoSubmission ? 'Enabled' : 'Disabled'}</div>
+                          <div className="text-xs text-gray-600">Stake: {c.stakeAmount} ETH • Modules: {c.totalModules} • Repo Submissions: {c.allowRepoSubmission ? 'Enabled' : 'Disabled'} • Status: {c.published ? 'Published' : 'Draft'}</div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => handleEditCourse(c)} className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50">Edit</button>
-                            <button onClick={() => toggleCourseRepoSubmission(c.id, !c.allowRepoSubmission).then(async () => setCourses(await listCourses(false)))} className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50">{c.allowRepoSubmission ? 'Disable Repo' : 'Enable Repo'}</button>
-                            <button onClick={() => handleDeleteCourse(c.id)} className="px-3 py-1 text-sm rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Delete</button>
+                          <button
+                            onClick={() => setManageCourse(c)}
+                            className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50"
+                            disabled={!!rowLoading[c.id]}
+                          >
+                            {rowLoading[c.id] ? '...' : 'Manage'}
+                          </button>
+                            <button
+                              onClick={() => handleEditCourse(c)}
+                              className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50"
+                              disabled={!!rowLoading[c.id]}
+                            >
+                              {rowLoading[c.id] ? '...' : 'Edit'}
+                            </button>
+                            <button
+                              onClick={() => handleToggleRepo(c)}
+                              className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50"
+                              disabled={!!rowLoading[c.id]}
+                            >
+                              {rowLoading[c.id]
+                                ? (c.allowRepoSubmission ? 'Disabling...' : 'Enabling...')
+                                : (c.allowRepoSubmission ? 'Disable Repo' : 'Enable Repo')}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCourse(c)}
+                              className="px-3 py-1 text-sm rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                              disabled={!!rowLoading[c.id]}
+                            >
+                              {rowLoading[c.id] ? 'Deleting...' : 'Delete'}
+                            </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
+
+              {/* Manage Course Drawer */}
+              {manageCourse && (
+                <div className="mt-4 border rounded-xl p-4 bg-gray-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-gray-900">Manage: {manageCourse.title} <span className="text-xs text-gray-500">(ID: {manageCourse.id})</span></h4>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          // simple validation: each module must have at least one resource
+                          const course = await getCourseById(manageCourse.id);
+                          const allOk = (course?.modules || []).every((m) => (m.resources || []).length > 0);
+                          if (!allOk) {
+                            alert('Add at least one resource per module before publishing.');
+                            return;
+                          }
+                          setRowLoading((m) => ({ ...m, [manageCourse.id]: true }));
+                          await setCoursePublished(manageCourse.id, true);
+                          const refreshed = await listCourses(false);
+                          setCourses(refreshed);
+                          setManageCourse(refreshed.find(r => r.id === manageCourse.id) || null);
+                          setRowLoading((m) => ({ ...m, [manageCourse.id]: false }));
+                        }}
+                        className="px-3 py-1 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700"
+                        disabled={!!rowLoading[manageCourse.id] || manageCourse.published}
+                      >
+                        {manageCourse.published ? 'Published' : 'Publish'}
+                      </button>
+                      <button onClick={() => setManageCourse(null)} className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50">Close</button>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {(manageCourse.modules || []).map((m) => (
+                      <div key={m.id} className="p-3 bg-white border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <div className="font-medium text-gray-900">Module {m.id}: {m.title}</div>
+                            <div className="text-xs text-gray-500">Resources: {(m.resources || []).length}</div>
+                          </div>
+                        </div>
+                        <div className="space-y-2 mb-3">
+                          {(m.resources || []).map((r) => (
+                            <div key={r.id} className="flex items-center justify-between text-sm border rounded p-2">
+                              <div>
+                                <span className="px-2 py-0.5 text-xs rounded bg-gray-100 mr-2">{r.type}</span>
+                                <span className="font-medium">{r.title}</span>
+                                {r.url && <span className="ml-2 text-gray-500">{r.url}</span>}
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  await deleteModuleResource(manageCourse.id, m.id, r.id);
+                                  const refreshed = await listCourses(false);
+                                  setCourses(refreshed);
+                                  setManageCourse(refreshed.find(c => c.id === manageCourse.id) || null);
+                                }}
+                                className="text-red-600 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Add Resource */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                          <select
+                            className="px-3 py-2 border rounded-lg"
+                            value={resourceDrafts[m.id]?.type || 'text'}
+                            onChange={(e) => setResourceDrafts((d) => ({
+                              ...d,
+                              [m.id]: {
+                                type: (e.target.value as any),
+                                title: d[m.id]?.title || '',
+                                content: d[m.id]?.content || '',
+                                url: d[m.id]?.url || ''
+                              }
+                            }))}
+                          >
+                            <option value="text">Text</option>
+                            <option value="video">Video</option>
+                          </select>
+                          <input
+                            className="px-3 py-2 border rounded-lg"
+                            placeholder="Resource title"
+                            value={resourceDrafts[m.id]?.title || ''}
+                            onChange={(e) => setResourceDrafts((d) => ({
+                              ...d,
+                              [m.id]: {
+                                type: d[m.id]?.type || 'text',
+                                title: e.target.value,
+                                content: d[m.id]?.content || '',
+                                url: d[m.id]?.url || ''
+                              }
+                            }))}
+                          />
+                          {resourceDrafts[m.id]?.type === 'text' ? (
+                            <input
+                              className="px-3 py-2 border rounded-lg"
+                              placeholder="Text content"
+                              value={resourceDrafts[m.id]?.content || ''}
+                              onChange={(e) => setResourceDrafts((d) => ({
+                                ...d,
+                                [m.id]: {
+                                  type: d[m.id]?.type || 'text',
+                                  title: d[m.id]?.title || '',
+                                  content: e.target.value,
+                                  url: d[m.id]?.url || ''
+                                }
+                              }))}
+                            />
+                          ) : (
+                            <input
+                              className="px-3 py-2 border rounded-lg"
+                              placeholder="Video URL"
+                              value={resourceDrafts[m.id]?.url || ''}
+                              onChange={(e) => setResourceDrafts((d) => ({
+                                ...d,
+                                [m.id]: {
+                                  type: d[m.id]?.type || 'video',
+                                  title: d[m.id]?.title || '',
+                                  content: d[m.id]?.content || '',
+                                  url: e.target.value
+                                }
+                              }))}
+                            />
+                          )}
+                          <button
+                            className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                            onClick={async () => {
+                              const draft = resourceDrafts[m.id];
+                              if (!draft || !draft.title || (draft.type === 'text' ? !draft.content : !draft.url)) return;
+                              const resource: CourseModuleResource = {
+                                id: crypto.randomUUID(),
+                                type: draft.type,
+                                title: draft.title,
+                                content: draft.type === 'text' ? draft.content : undefined,
+                                url: draft.type === 'video' ? draft.url : undefined,
+                              };
+                              await addModuleResource(manageCourse.id, m.id, resource);
+                              const refreshed = await listCourses(false);
+                              setCourses(refreshed);
+                              setManageCourse(refreshed.find(c => c.id === manageCourse.id) || null);
+                              setResourceDrafts((d) => ({ ...d, [m.id]: { type: 'text', title: '', content: '', url: '' } }));
+                            }}
+                          >
+                            Add Resource
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               </div>
             ) : loading ? (
               <div className="flex items-center justify-center py-8">

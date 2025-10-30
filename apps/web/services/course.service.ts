@@ -7,6 +7,17 @@ export interface CourseModule {
   description?: string;
   lessons?: number;
   duration?: string;
+  resources?: CourseModuleResource[];
+}
+
+export type CourseModuleResourceType = 'text' | 'video';
+
+export interface CourseModuleResource {
+  id: string; // uuid
+  type: CourseModuleResourceType;
+  title: string;
+  content?: string; // for text
+  url?: string; // for video
 }
 
 export interface CourseData {
@@ -20,6 +31,7 @@ export interface CourseData {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   active?: boolean;
+  published?: boolean;
 }
 
 function courseDocId(id: number): string {
@@ -53,6 +65,7 @@ export interface UpsertCourseInput {
 
 export async function upsertCourse(input: UpsertCourseInput): Promise<void> {
   const now = Timestamp.now();
+  const existing = await getCourseById(input.id);
   const data: CourseData = {
     id: input.id,
     title: input.title,
@@ -64,6 +77,7 @@ export async function upsertCourse(input: UpsertCourseInput): Promise<void> {
     createdAt: now,
     updatedAt: now,
     active: input.active ?? true,
+    published: existing?.published ?? false,
   };
   const ref = doc(db, 'courses', courseDocId(input.id));
   await setDoc(ref, data, { merge: true });
@@ -83,6 +97,57 @@ export async function toggleCourseRepoSubmission(id: number, enabled: boolean): 
 export async function updateCourseStakeAmount(id: number, stakeAmount: string): Promise<void> {
   const ref = doc(db, 'courses', courseDocId(id));
   await updateDoc(ref, { stakeAmount, updatedAt: Timestamp.now() });
+}
+
+export async function setCoursePublished(id: number, published: boolean): Promise<void> {
+  const ref = doc(db, 'courses', courseDocId(id));
+  await updateDoc(ref, { published, updatedAt: Timestamp.now() });
+}
+
+export async function updateCourseFlags(
+  id: number,
+  flags: Partial<Pick<CourseData, 'active' | 'published'>>
+): Promise<void> {
+  const ref = doc(db, 'courses', courseDocId(id));
+  await updateDoc(ref, { ...flags, updatedAt: Timestamp.now() });
+}
+
+export async function addModuleResource(
+  courseId: number,
+  moduleId: number,
+  resource: CourseModuleResource
+): Promise<void> {
+  const ref = doc(db, 'courses', courseDocId(courseId));
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const course = snap.data() as CourseData;
+  const modules = (course.modules || []).map((m) => {
+    if (m.id === moduleId) {
+      const nextResources = [ ...(m.resources || []), resource ];
+      return { ...m, resources: nextResources };
+    }
+    return m;
+  });
+  await updateDoc(ref, { modules, updatedAt: Timestamp.now() });
+}
+
+export async function deleteModuleResource(
+  courseId: number,
+  moduleId: number,
+  resourceId: string
+): Promise<void> {
+  const ref = doc(db, 'courses', courseDocId(courseId));
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const course = snap.data() as CourseData;
+  const modules = (course.modules || []).map((m) => {
+    if (m.id === moduleId) {
+      const nextResources = (m.resources || []).filter((r) => r.id !== resourceId);
+      return { ...m, resources: nextResources };
+    }
+    return m;
+  });
+  await updateDoc(ref, { modules, updatedAt: Timestamp.now() });
 }
 
 

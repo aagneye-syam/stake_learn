@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 export default function RoutesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hideNavbar = pathname?.startsWith("/admin");
+  const hideNavbar = pathname?.startsWith("/admin") || pathname?.startsWith("/controlpanel");
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-purple-50/20 to-blue-50/20">
       {!hideNavbar && <Navbar1 />}

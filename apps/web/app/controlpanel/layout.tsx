@@ -24,13 +24,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       setIsLoading(false);
       
       // If not authenticated and not on login page, redirect to login
-      if (!user && pathname !== "/admin") {
-        router.push("/admin");
+      if (!user && pathname !== "/controlpanel") {
+        router.push("/controlpanel");
       }
       
       // If authenticated and on login page, redirect to dashboard
-      if (user && pathname === "/admin") {
-        router.push("/admin/dashboard");
+      if (user && pathname === "/controlpanel") {
+        router.push("/controlpanel/dashboard");
       }
     };
 
@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const handleLogout = () => {
     adminLogout();
     setAdminUser(null);
-    router.push("/admin");
+    router.push("/controlpanel");
   };
 
   // Show loading state
@@ -56,7 +56,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   // If not authenticated and on login page, show children (login form)
-  if (!adminUser && pathname === "/admin") {
+  if (!adminUser && pathname === "/controlpanel") {
     return <>{children}</>;
   }
 

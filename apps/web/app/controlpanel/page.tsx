@@ -20,8 +20,8 @@ export default function AdminLoginPage() {
       const adminUser = await adminLogin(email, password);
       
       if (adminUser) {
-        // Redirect to admin dashboard
-        router.push("/admin/dashboard");
+        // Redirect to control panel dashboard
+        router.push("/controlpanel/dashboard");
       } else {
         setError("Invalid email or password");
       }

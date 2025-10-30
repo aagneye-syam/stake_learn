@@ -194,7 +194,7 @@ export default function AdminPage() {
         // Check if course already exists in contract
         const courseExists = await checkCourseExistsInContract(Number(courseForm.id));
         
-        const hash = await writeContract({
+        const hash = await (writeContract as any)({
           address: contractAddress,
           abi: StakingManagerABI,
           functionName: courseExists ? 'updateCourse' : 'addCourse',
@@ -203,7 +203,7 @@ export default function AdminPage() {
             : [BigInt(courseForm.id), stakeAmountWei],
         });
         
-        setContractTxHash(hash);
+        setContractTxHash(hash as any);
         setContractTxStatus('pending');
       } catch (contractErr) {
         console.error('Contract interaction failed:', contractErr);
@@ -451,7 +451,7 @@ export default function AdminPage() {
               className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
             >
               Logout
-            </button>
+              </button>
               <button
                 onClick={() => refetch()}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
@@ -568,19 +568,19 @@ export default function AdminPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">Course ID</label>
-                      <input value={courseForm.id} onChange={(e) => setCourseForm({ ...courseForm, id: (e.target.value as any) })} placeholder="Numeric ID" className="w-full px-3 py-2 border rounded-lg" />
+                      <input value={courseForm.id} onChange={(e) => setCourseForm({ ...courseForm, id: (e.target.value as any) })} placeholder="Numeric ID" className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" />
                     </div>
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">Stake Amount (ETH)</label>
-                      <input value={courseForm.stakeAmount} onChange={(e) => setCourseForm({ ...courseForm, stakeAmount: e.target.value })} placeholder="0.0001" className="w-full px-3 py-2 border rounded-lg" />
+                      <input value={courseForm.stakeAmount} onChange={(e) => setCourseForm({ ...courseForm, stakeAmount: e.target.value })} placeholder="0.0001" className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" />
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm text-gray-600 mb-1">Title</label>
-                      <input value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} placeholder="Course title" className="w-full px-3 py-2 border rounded-lg" />
+                      <input value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} placeholder="Course title" className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" />
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm text-gray-600 mb-1">Description</label>
-                      <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} placeholder="Course description" className="w-full px-3 py-2 border rounded-lg"></textarea>
+                      <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} placeholder="Course description" className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400"></textarea>
                     </div>
                     <div className="flex items-center gap-2">
                       <input id="allowRepo" type="checkbox" checked={courseForm.allowRepoSubmission} onChange={(e) => setCourseForm({ ...courseForm, allowRepoSubmission: e.target.checked })} />
@@ -604,12 +604,12 @@ export default function AdminPage() {
                             const copy = [...courseForm.modules];
                             copy[idx] = { ...copy[idx], title: e.target.value };
                             setCourseForm({ ...courseForm, modules: copy });
-                          }} className="px-3 py-2 border rounded-lg" placeholder={`Module ${m.id} title`} />
+                          }} className="px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" placeholder={`Module ${m.id} title`} />
                           <input value={m.duration || ''} onChange={(e) => {
                             const copy = [...courseForm.modules];
                             copy[idx] = { ...copy[idx], duration: e.target.value };
                             setCourseForm({ ...courseForm, modules: copy });
-                          }} className="px-3 py-2 border rounded-lg" placeholder="Duration (e.g., 2 hours)" />
+                          }} className="px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" placeholder="Duration (e.g., 2 hours)" />
                         </div>
                       ))}
                     </div>

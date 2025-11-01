@@ -27,6 +27,9 @@ contract StakingManager is Ownable, ReentrancyGuard {
     
     // Authorized addresses that can mark courses as complete
     mapping(address => bool) public authorizedVerifiers;
+    
+    // Auto-increment course counter
+    uint256 public courseCount;
 
     event Staked(address indexed user, uint256 indexed courseId, uint256 amount);
     event CourseCompleted(address indexed user, uint256 indexed courseId, string certificateCID);
@@ -39,6 +42,7 @@ contract StakingManager is Ownable, ReentrancyGuard {
 
     constructor(address initialOwner) Ownable(initialOwner) {
         authorizedVerifiers[initialOwner] = true;
+        courseCount = 0; // Initialize course counter
     }
 
     modifier onlyVerifier() {
@@ -47,16 +51,19 @@ contract StakingManager is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Add a new course with stake amount
+     * @dev Add a new course with stake amount (auto-increments course ID)
      */
-    function addCourse(uint256 courseId, uint256 stakeAmount) external onlyOwner {
-        require(courseStakeAmounts[courseId] == 0, "Course already exists");
+    function addCourse(uint256 stakeAmount) external onlyOwner returns (uint256) {
         require(stakeAmount > 0, "Stake amount must be greater than 0");
         
-        courseStakeAmounts[courseId] = stakeAmount;
-        activeCourses[courseId] = true;
+        courseCount++; // Auto-increment to get next positive integer ID
+        uint256 newCourseId = courseCount;
         
-        emit CourseAdded(courseId, stakeAmount);
+        courseStakeAmounts[newCourseId] = stakeAmount;
+        activeCourses[newCourseId] = true;
+        
+        emit CourseAdded(newCourseId, stakeAmount);
+        return newCourseId;
     }
 
     /**

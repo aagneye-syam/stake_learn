@@ -82,12 +82,18 @@ export const StakingManagerABI = [
   // Course Management Functions
   {
     inputs: [
-      { name: "courseId", type: "uint256" },
       { name: "stakeAmount", type: "uint256" }
     ],
     name: "addCourse",
-    outputs: [],
+    outputs: [{ name: "", type: "uint256" }],
     stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "courseCount",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
     type: "function"
   },
   {

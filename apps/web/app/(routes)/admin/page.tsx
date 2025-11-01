@@ -43,7 +43,7 @@ export default function AdminPage() {
   const [manageCourse, setManageCourse] = useState<CourseData | null>(null);
   const [resourceDrafts, setResourceDrafts] = useState<Record<number, { type: 'text' | 'video'; title: string; content?: string; url?: string }>>({});
   const [courseActionError, setCourseActionError] = useState<string | null>(null);
-  const [courseForm, setCourseForm] = useState<{ id: number | ''; title: string; description: string; stakeAmount: string; allowRepoSubmission: boolean; modules: CourseModule[]; active: boolean }>({ id: '', title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
+  const [courseForm, setCourseForm] = useState<{ title: string; description: string; stakeAmount: string; allowRepoSubmission: boolean; modules: CourseModule[]; active: boolean }>({ title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
   const [contractTxHash, setContractTxHash] = useState<string | null>(null);
   const [contractTxStatus, setContractTxStatus] = useState<'pending' | 'success' | 'error' | null>(null);
 
@@ -160,7 +160,7 @@ export default function AdminPage() {
     }
   };
 
-  const resetCourseForm = () => setCourseForm({ id: '', title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
+  const resetCourseForm = () => setCourseForm({ title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
 
   // Function to check if course exists in contract
   const checkCourseExistsInContract = async (courseId: number): Promise<boolean> => {
@@ -178,19 +178,13 @@ export default function AdminPage() {
   };
 
   const handleSaveCourse = async () => {
-    if (!courseForm.id || !courseForm.title) return;
+    if (!courseForm.title) return;
     setIsSavingCourse(true);
     setContractTxStatus('pending');
     setCourseActionError(null);
     
     try {
-      // Basic validation for numeric ID and stake
-      const idNum = Number(courseForm.id);
-      if (!Number.isInteger(idNum) || idNum <= 0) {
-        setContractTxStatus('error');
-        setCourseActionError('Course ID must be a positive integer.');
-        return;
-      }
+      // Basic validation for stake amount
       const stakeNum = parseFloat(courseForm.stakeAmount);
       if (!Number.isFinite(stakeNum) || stakeNum <= 0) {
         setContractTxStatus('error');
@@ -204,28 +198,31 @@ export default function AdminPage() {
         return;
       }
 
-      // First write to contract
+      // Write to contract to get auto-generated course ID
       try {
         const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
         const stakeAmountWei = BigInt(Math.floor(stakeNum * 1e18));
         
-        // Check if course already exists in contract
-        const courseExists = await checkCourseExistsInContract(idNum);
-        
+        // Call addCourse which will auto-generate and return the course ID
         const hash = await (writeContract as any)({
           address: contractAddress,
           abi: StakingManagerABI,
-          functionName: courseExists ? 'updateCourse' : 'addCourse',
-          args: courseExists 
-            ? [BigInt(idNum), stakeAmountWei, courseForm.active]
-            : [BigInt(idNum), stakeAmountWei],
+          functionName: 'addCourse',
+          args: [stakeAmountWei],
         });
         
         setContractTxHash(hash as any);
         setContractTxStatus('pending');
-        // If contract write did not throw, persist to Firestore
+        
+        // Get the next course ID from the contract
+        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
+        const contract = new ethers.Contract(contractAddress, StakingManagerABI, provider);
+        const courseCount = await contract.courseCount();
+        const newCourseId = Number(courseCount);
+        
+        // Persist to Firestore with the auto-generated ID
         await upsertCourse({
-          id: idNum,
+          id: newCourseId,
           title: courseForm.title,
           description: courseForm.description,
           stakeAmount: courseForm.stakeAmount,
@@ -253,8 +250,9 @@ export default function AdminPage() {
   };
 
   const handleEditCourse = (c: CourseData) => {
+    // Note: Editing existing courses is not supported with auto-increment
+    // This function is kept for compatibility but doesn't load the ID
     setCourseForm({
-      id: c.id,
       title: c.title,
       description: c.description,
       stakeAmount: c.stakeAmount,
@@ -660,20 +658,6 @@ export default function AdminPage() {
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-gray-600 mb-1">Course ID</label>
-                      <input
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={courseForm.id}
-                        onChange={(e) => {
-                          const next = e.target.value.replace(/[^0-9]/g, '');
-                          setCourseForm({ ...courseForm, id: (next as any) });
-                        }}
-                        placeholder="Numeric ID"
-                        className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400"
-                      />
-                    </div>
-                    <div>
                       <label className="block text-sm text-gray-600 mb-1">Stake Amount (ETH)</label>
                       <input value={courseForm.stakeAmount} onChange={(e) => setCourseForm({ ...courseForm, stakeAmount: e.target.value })} placeholder="0.0001" className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" />
                     </div>
@@ -728,9 +712,10 @@ export default function AdminPage() {
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
                     <p><strong>Course Management:</strong></p>
                     <ul className="mt-1 space-y-1">
-                      <li>• <strong>Courses 1-6:</strong> Already exist in contract, will update stake amount and status</li>
-                      <li>• <strong>Course 7+:</strong> New courses, will be added to contract</li>
+                      <li>• <strong>Auto-Generated IDs:</strong> Course IDs are automatically assigned by the smart contract</li>
+                      <li>• <strong>Sequential IDs:</strong> Each new course gets the next available positive integer ID</li>
                       <li>• <strong>Stake Amount:</strong> Set in ETH (e.g., 0.0001 for 0.0001 ETH)</li>
+                      <li>• <strong>No Manual IDs:</strong> You don't need to specify an ID - it's auto-incremented on-chain</li>
                     </ul>
                   </div>
                   
@@ -777,13 +762,6 @@ export default function AdminPage() {
                           >
                             {rowLoading[c.id] ? '...' : 'Manage'}
                           </button>
-                            <button
-                              onClick={() => handleEditCourse(c)}
-                              className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50"
-                              disabled={!!rowLoading[c.id]}
-                            >
-                              {rowLoading[c.id] ? '...' : 'Edit'}
-                            </button>
                             <button
                               onClick={() => handleToggleRepo(c)}
                               className="px-3 py-1 text-sm rounded-lg bg-white border hover:bg-gray-50"

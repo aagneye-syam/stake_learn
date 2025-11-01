@@ -20,6 +20,14 @@ export interface CourseModuleResource {
   url?: string; // for video
 }
 
+export interface CourseAssignment {
+  id: string; // uuid
+  heading: string;
+  description: string;
+  allowRepoSubmission: boolean;
+  createdAt?: Timestamp;
+}
+
 export interface CourseData {
   id: number;
   title: string;
@@ -28,6 +36,7 @@ export interface CourseData {
   totalModules: number;
   modules: CourseModule[];
   allowRepoSubmission: boolean;
+  assignments?: CourseAssignment[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
   active?: boolean;
@@ -60,6 +69,7 @@ export interface UpsertCourseInput {
   stakeAmount: string;
   allowRepoSubmission: boolean;
   modules: CourseModule[];
+  assignments?: CourseAssignment[];
   active?: boolean;
 }
 
@@ -74,6 +84,7 @@ export async function upsertCourse(input: UpsertCourseInput): Promise<void> {
     totalModules: input.modules.length,
     modules: input.modules,
     allowRepoSubmission: input.allowRepoSubmission,
+    assignments: input.assignments || [],
     createdAt: now,
     updatedAt: now,
     active: input.active ?? true,
@@ -148,6 +159,45 @@ export async function deleteModuleResource(
     return m;
   });
   await updateDoc(ref, { modules, updatedAt: Timestamp.now() });
+}
+
+export async function addAssignment(
+  courseId: number,
+  assignment: CourseAssignment
+): Promise<void> {
+  const ref = doc(db, 'courses', courseDocId(courseId));
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const course = snap.data() as CourseData;
+  const assignments = [...(course.assignments || []), { ...assignment, createdAt: Timestamp.now() }];
+  await updateDoc(ref, { assignments, updatedAt: Timestamp.now() });
+}
+
+export async function updateAssignment(
+  courseId: number,
+  assignmentId: string,
+  updates: Partial<Omit<CourseAssignment, 'id' | 'createdAt'>>
+): Promise<void> {
+  const ref = doc(db, 'courses', courseDocId(courseId));
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const course = snap.data() as CourseData;
+  const assignments = (course.assignments || []).map((a) => 
+    a.id === assignmentId ? { ...a, ...updates } : a
+  );
+  await updateDoc(ref, { assignments, updatedAt: Timestamp.now() });
+}
+
+export async function deleteAssignment(
+  courseId: number,
+  assignmentId: string
+): Promise<void> {
+  const ref = doc(db, 'courses', courseDocId(courseId));
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const course = snap.data() as CourseData;
+  const assignments = (course.assignments || []).filter((a) => a.id !== assignmentId);
+  await updateDoc(ref, { assignments, updatedAt: Timestamp.now() });
 }
 
 

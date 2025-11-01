@@ -20,7 +20,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { CommitDetailsModal } from "@/_components/CommitDetailsModal";
-import { listCourses, upsertCourse, toggleCourseRepoSubmission, updateCourseStakeAmount, deleteCourse, CourseData, CourseModule, addModuleResource, deleteModuleResource, setCoursePublished, CourseModuleResource, updateCourseFlags, getCourseById } from "@/services/course.service";
+import { listCourses, upsertCourse, toggleCourseRepoSubmission, updateCourseStakeAmount, deleteCourse, CourseData, CourseModule, addModuleResource, deleteModuleResource, setCoursePublished, CourseModuleResource, updateCourseFlags, getCourseById, CourseAssignment, addAssignment, deleteAssignment } from "@/services/course.service";
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { StakingManagerABI } from '@/abis/StakingManagerABI';
 import { CONTRACTS } from '@/config/contracts';
@@ -43,7 +43,8 @@ export default function AdminPage() {
   const [manageCourse, setManageCourse] = useState<CourseData | null>(null);
   const [resourceDrafts, setResourceDrafts] = useState<Record<number, { type: 'text' | 'video'; title: string; content?: string; url?: string }>>({});
   const [courseActionError, setCourseActionError] = useState<string | null>(null);
-  const [courseForm, setCourseForm] = useState<{ title: string; description: string; stakeAmount: string; allowRepoSubmission: boolean; modules: CourseModule[]; active: boolean }>({ title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
+  const [courseForm, setCourseForm] = useState<{ title: string; description: string; stakeAmount: string; allowRepoSubmission: boolean; modules: CourseModule[]; active: boolean; enableAssignments: boolean; assignments: CourseAssignment[] }>({ title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true, enableAssignments: false, assignments: [] });
+  const [assignmentDraft, setAssignmentDraft] = useState<{ heading: string; description: string; allowRepoSubmission: boolean }>({ heading: '', description: '', allowRepoSubmission: false });
   const [contractTxHash, setContractTxHash] = useState<string | null>(null);
   const [contractTxStatus, setContractTxStatus] = useState<'pending' | 'success' | 'error' | null>(null);
 
@@ -160,7 +161,7 @@ export default function AdminPage() {
     }
   };
 
-  const resetCourseForm = () => setCourseForm({ title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true });
+  const resetCourseForm = () => setCourseForm({ title: '', description: '', stakeAmount: '0.0001', allowRepoSubmission: false, modules: [{ id: 1, title: 'Module 1' }], active: true, enableAssignments: false, assignments: [] });
 
   // Function to check if course exists in contract
   const checkCourseExistsInContract = async (courseId: number): Promise<boolean> => {
@@ -228,6 +229,7 @@ export default function AdminPage() {
           stakeAmount: courseForm.stakeAmount,
           allowRepoSubmission: courseForm.allowRepoSubmission,
           modules: courseForm.modules,
+          assignments: courseForm.enableAssignments ? courseForm.assignments : [],
           active: courseForm.active,
         });
       } catch (contractErr) {
@@ -259,6 +261,8 @@ export default function AdminPage() {
       allowRepoSubmission: c.allowRepoSubmission,
       modules: c.modules,
       active: c.active ?? true,
+      enableAssignments: (c.assignments && c.assignments.length > 0) || false,
+      assignments: c.assignments || [],
     });
   };
 
@@ -701,6 +705,97 @@ export default function AdminPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Assignments */}
+                  <div className="mt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <input 
+                        id="enableAssignments" 
+                        type="checkbox" 
+                        checked={courseForm.enableAssignments} 
+                        onChange={(e) => setCourseForm({ ...courseForm, enableAssignments: e.target.checked })} 
+                      />
+                      <label htmlFor="enableAssignments" className="text-sm font-semibold text-gray-900">Enable Assignment Submissions</label>
+                    </div>
+                    
+                    {courseForm.enableAssignments && (
+                      <div className="border rounded-lg p-3 bg-gray-50 space-y-3">
+                        {/* Existing Assignments */}
+                        {courseForm.assignments.length > 0 && (
+                          <div className="space-y-2">
+                            {courseForm.assignments.map((assignment, idx) => (
+                              <div key={idx} className="p-2 bg-white border rounded flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm text-gray-900">{assignment.heading}</div>
+                                  <div className="text-xs text-gray-600">{assignment.description}</div>
+                                  {assignment.allowRepoSubmission && (
+                                    <div className="text-xs text-purple-600 mt-1">✓ Repository submission enabled</div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const filtered = courseForm.assignments.filter((_, i) => i !== idx);
+                                    setCourseForm({ ...courseForm, assignments: filtered });
+                                  }}
+                                  className="text-red-600 text-xs hover:underline ml-2"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Add New Assignment */}
+                        <div className="space-y-2">
+                          <input
+                            value={assignmentDraft.heading}
+                            onChange={(e) => setAssignmentDraft({ ...assignmentDraft, heading: e.target.value })}
+                            placeholder="Assignment heading"
+                            className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 text-sm"
+                          />
+                          <textarea
+                            value={assignmentDraft.description}
+                            onChange={(e) => setAssignmentDraft({ ...assignmentDraft, description: e.target.value })}
+                            placeholder="Assignment description"
+                            rows={3}
+                            className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 text-sm"
+                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              id="assignmentRepoSubmission"
+                              type="checkbox"
+                              checked={assignmentDraft.allowRepoSubmission}
+                              onChange={(e) => setAssignmentDraft({ ...assignmentDraft, allowRepoSubmission: e.target.checked })}
+                            />
+                            <label htmlFor="assignmentRepoSubmission" className="text-xs text-gray-700">
+                              Enable Repository Submission for this assignment
+                            </label>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (!assignmentDraft.heading || !assignmentDraft.description) return;
+                              const newAssignment: CourseAssignment = {
+                                id: crypto.randomUUID(),
+                                heading: assignmentDraft.heading,
+                                description: assignmentDraft.description,
+                                allowRepoSubmission: assignmentDraft.allowRepoSubmission,
+                              };
+                              setCourseForm({
+                                ...courseForm,
+                                assignments: [...courseForm.assignments, newAssignment],
+                              });
+                              setAssignmentDraft({ heading: '', description: '', allowRepoSubmission: false });
+                            }}
+                            className="px-3 py-1 text-sm rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                          >
+                            Add Assignment
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="mt-4 flex gap-2">
                     <button onClick={handleSaveCourse} disabled={isSavingCourse || isContractPending} className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60">
                       {isSavingCourse ? 'Saving...' : isContractPending ? 'Syncing with Contract...' : 'Save Course'}

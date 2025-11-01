@@ -1033,6 +1033,39 @@ export default function AdminPage() {
                         </div>
                       </div>
                     ))}
+                    
+                    {/* Assignment Management */}
+                    <div className="p-3 bg-white border rounded-lg">
+                      <h5 className="font-medium text-gray-900 mb-3">Assignments ({(manageCourse.assignments || []).length})</h5>
+                      {(manageCourse.assignments || []).length > 0 ? (
+                        <div className="space-y-2">
+                          {(manageCourse.assignments || []).map((assignment) => (
+                            <div key={assignment.id} className="flex items-start justify-between text-sm border rounded p-2">
+                              <div className="flex-1">
+                                <div className="font-medium">{assignment.heading}</div>
+                                <div className="text-xs text-gray-600 mt-1">{assignment.description}</div>
+                                {assignment.allowRepoSubmission && (
+                                  <div className="text-xs text-purple-600 mt-1">✓ Repository submission enabled</div>
+                                )}
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  await deleteAssignment(manageCourse.id, assignment.id);
+                                  const refreshed = await listCourses(true);
+                                  setCourses(refreshed);
+                                  setManageCourse(refreshed.find(c => c.id === manageCourse.id) || null);
+                                }}
+                                className="text-red-600 hover:underline ml-2"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">No assignments yet</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

@@ -18,6 +18,8 @@ import { ModuleCard } from "@/components/ModuleCard";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
 import { DebugProgress } from "@/components/DebugProgress";
+import { AssignmentList } from "@/_components/AssignmentList";
+import { getCourseById, CourseData as FirebaseCourseData } from "@/services/course.service";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -258,10 +260,21 @@ export default function CourseDetailPage() {
   const courseId = params.id as string;
   const course = coursesData[courseId as keyof typeof coursesData];
   const [mounted, setMounted] = useState(false);
+  const [firebaseCourse, setFirebaseCourse] = useState<FirebaseCourseData | null>(null);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    // Fetch course from Firebase to get assignments
+    const loadCourse = async () => {
+      try {
+        const data = await getCourseById(parseInt(courseId));
+        setFirebaseCourse(data);
+      } catch (error) {
+        console.error("Failed to load course from Firebase:", error);
+      }
+    };
+    loadCourse();
+  }, [courseId]);
   
   // Use staking hooks for display data only
   const numericCourseId = parseInt(courseId);
@@ -545,6 +558,13 @@ export default function CourseDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Course Assignments */}
+          {firebaseCourse && firebaseCourse.assignments && firebaseCourse.assignments.length > 0 && (
+            <div className="mt-8">
+              <AssignmentList assignments={firebaseCourse.assignments} />
+            </div>
+          )}
         </div>
 
         {/* Sidebar - Stake Card */}

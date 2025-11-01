@@ -23,19 +23,24 @@ contract CourseRegistry is Ownable {
     event CourseUpdated(uint256 indexed courseId, string name, uint256 stakeAmount, bool active);
     event CourseDeactivated(uint256 indexed courseId);
 
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    constructor(address initialOwner) Ownable(initialOwner) {
+        courseCount = 0; // Start from 0, first course will be ID 1
+    }
 
     function createCourse(string memory name, uint256 stakeAmount) external onlyOwner returns (uint256) {
-        courseCount++;
-        courses[courseCount] = Course({
+        courseCount++; // Auto-increment to get next positive integer ID
+        uint256 newCourseId = courseCount;
+        
+        courses[newCourseId] = Course({
             name: name,
             stakeAmount: stakeAmount,
             active: true,
             totalStakers: 0,
             totalCompleted: 0
         });
-        emit CourseCreated(courseCount, name, stakeAmount);
-        return courseCount;
+        
+        emit CourseCreated(newCourseId, name, stakeAmount);
+        return newCourseId;
     }
 
     function updateCourse(uint256 courseId, string memory name, uint256 stakeAmount, bool active) external onlyOwner {

@@ -847,7 +847,12 @@ export default function AdminPage() {
                         <div key={c.id} className="p-3 border rounded-lg flex items-center justify-between">
                           <div>
                             <div className="font-semibold text-gray-900">{c.title} <span className="text-xs text-gray-500">(ID: {c.id})</span></div>
-                          <div className="text-xs text-gray-600">Stake: {c.stakeAmount} ETH • Modules: {c.totalModules} • Repo Submissions: {c.allowRepoSubmission ? 'Enabled' : 'Disabled'} • Status: {c.published ? 'Published' : 'Draft'}</div>
+                          <div className="text-xs text-gray-600">
+                            Stake: {c.stakeAmount} ETH • Modules: {c.totalModules} • 
+                            Assignments: {c.assignments?.length || 0} • 
+                            Repo Submissions: {c.allowRepoSubmission ? 'Enabled' : 'Disabled'} • 
+                            Status: {c.published ? 'Published' : 'Draft'}
+                          </div>
                           </div>
                           <div className="flex gap-2">
                           <button

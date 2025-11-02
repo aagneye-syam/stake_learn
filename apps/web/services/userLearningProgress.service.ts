@@ -319,6 +319,112 @@ export async function isAssignmentSubmitted(
 }
 
 /**
+ * Admin: Verify an assignment submission
+ */
+export async function verifyAssignment(
+  userId: string,
+  courseId: number,
+  assignmentId: string,
+  adminUserId: string,
+  feedback?: string
+): Promise<UserLearningProgress | null> {
+  if (!db) {
+    throw new Error("Firebase not initialized");
+  }
+
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) {
+    throw new Error("User progress not found");
+  }
+
+  const assignmentIndex = progress.assignments.findIndex(
+    (a) => a.assignmentId === assignmentId
+  );
+  if (assignmentIndex === -1) {
+    throw new Error("Assignment not found");
+  }
+
+  if (!progress.assignments[assignmentIndex].isSubmitted) {
+    throw new Error("Assignment not submitted yet");
+  }
+
+  const now = Timestamp.now();
+  const updatedAssignments = [...progress.assignments];
+
+  updatedAssignments[assignmentIndex] = {
+    ...updatedAssignments[assignmentIndex],
+    isVerified: true,
+    verifiedAt: now,
+    verifiedBy: adminUserId,
+    feedback: feedback || "",
+  };
+
+  const verifiedCount = updatedAssignments.filter((a) => a.isVerified).length;
+
+  const docId = getProgressDocId(userId, courseId);
+  const docRef = doc(db, COLLECTION_NAME, docId);
+
+  await updateDoc(docRef, {
+    assignments: updatedAssignments,
+    verifiedAssignmentsCount: verifiedCount,
+    updatedAt: now,
+  });
+
+  return await getUserProgress(userId, courseId);
+}
+
+/**
+ * Admin: Reject an assignment submission
+ */
+export async function rejectAssignment(
+  userId: string,
+  courseId: number,
+  assignmentId: string,
+  adminUserId: string,
+  feedback: string
+): Promise<UserLearningProgress | null> {
+  if (!db) {
+    throw new Error("Firebase not initialized");
+  }
+
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) {
+    throw new Error("User progress not found");
+  }
+
+  const assignmentIndex = progress.assignments.findIndex(
+    (a) => a.assignmentId === assignmentId
+  );
+  if (assignmentIndex === -1) {
+    throw new Error("Assignment not found");
+  }
+
+  const now = Timestamp.now();
+  const updatedAssignments = [...progress.assignments];
+
+  // Reset submission so user can resubmit
+  updatedAssignments[assignmentIndex] = {
+    ...updatedAssignments[assignmentIndex],
+    isSubmitted: false,
+    isVerified: false,
+    submittedAt: undefined,
+    verifiedAt: undefined,
+    verifiedBy: adminUserId,
+    feedback,
+  };
+
+  const docId = getProgressDocId(userId, courseId);
+  const docRef = doc(db, COLLECTION_NAME, docId);
+
+  await updateDoc(docRef, {
+    assignments: updatedAssignments,
+    updatedAt: now,
+  });
+
+  return await getUserProgress(userId, courseId);
+}
+
+/**
  * Get assignment submission details
  */
 export async function getAssignmentSubmission(

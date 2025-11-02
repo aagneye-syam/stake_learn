@@ -219,6 +219,15 @@ export default function AdminPage() {
       
       // Update counter (increment for next course)
       await setDoc(counterRef, { value: newCourseId });
+      
+      // Reserve this ID permanently (even if course gets deleted later)
+      const reservedIdRef = doc(db, "reservedCourseIds", newCourseId.toString());
+      await setDoc(reservedIdRef, {
+        courseId: newCourseId,
+        reservedAt: new Date().toISOString(),
+        title: courseForm.title,
+        status: 'active'
+      });
 
       // First save to Firestore
       await upsertCourse({
@@ -302,6 +311,15 @@ export default function AdminPage() {
           setContractTxHash(hash as any);
           // on contract success, remove Firestore doc so it no longer appears anywhere
           await deleteCourse(course.id);
+          
+          // Mark ID as deleted but still reserved (never to be reused)
+          const reservedIdRef = doc(db, "reservedCourseIds", course.id.toString());
+          await setDoc(reservedIdRef, {
+            courseId: course.id,
+            deletedAt: new Date().toISOString(),
+            title: course.title,
+            status: 'deleted'
+          }, { merge: true });
         } catch (err) {
           console.error('On-chain deactivate failed (owner required?):', err);
           setCourseActionError('On-chain deactivate failed. Ensure owner wallet is connected.');
@@ -309,6 +327,15 @@ export default function AdminPage() {
         }
       } else {
         await deleteCourse(course.id);
+        
+        // Mark ID as deleted but still reserved (never to be reused)
+        const reservedIdRef = doc(db, "reservedCourseIds", course.id.toString());
+        await setDoc(reservedIdRef, {
+          courseId: course.id,
+          deletedAt: new Date().toISOString(),
+          title: course.title,
+          status: 'deleted'
+        }, { merge: true });
       }
       const refreshed = await listCourses(true);
       setCourses(refreshed);

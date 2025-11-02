@@ -47,17 +47,10 @@ async function main() {
   const stakingManagerAddress = await stakingManager.getAddress();
   console.log("✅ StakingManager deployed to:", stakingManagerAddress);
 
-  // Add sample courses with configurable stake amounts
-  console.log("\n🔧 Adding sample courses...");
-  const defaultStakeAmount = process.env.DEFAULT_STAKE_AMOUNT || "0.0001"; // Default to 0.0001 ETH for testing
-  const stakeAmountWei = ethers.parseEther(defaultStakeAmount);
-  
-  // Add all 6 courses with the same configurable stake amount
-  for (let i = 1; i <= 6; i++) {
-    const courseTx = await stakingManager.addCourse(i, stakeAmountWei);
-    await courseTx.wait();
-    console.log(`✅ Course ${i} added with stake amount: ${defaultStakeAmount} ETH`);
-  }
+  // Note: Courses are now managed via admin panel in Firebase
+  // No need to add courses during deployment
+  console.log("\n📝 StakingManager deployed with auto-increment course IDs");
+  console.log("💡 Add courses via the admin panel after deployment");
 
   // Save deployment addresses
   const deployments = {

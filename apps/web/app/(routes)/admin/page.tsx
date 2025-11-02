@@ -26,6 +26,8 @@ import { StakingManagerABI } from '@/abis/StakingManagerABI';
 import { CONTRACTS } from '@/config/contracts';
 import { ethers } from 'ethers';
 import { DynamicWalletButton } from "@/components/DynamicWalletButton";
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
@@ -199,12 +201,24 @@ export default function AdminPage() {
         return;
       }
 
-      // Get next course ID from Firestore
-      const existingCourses = await listCourses(false);
-      const maxId = existingCourses.length > 0 
-        ? Math.max(...existingCourses.map(c => c.id)) 
-        : 0;
-      const newCourseId = maxId + 1;
+      // Get next course ID from persistent counter (never reuse deleted IDs)
+      const counterRef = doc(db, "metadata", "courseCounter");
+      const counterSnap = await getDoc(counterRef);
+      
+      let newCourseId: number;
+      if (counterSnap.exists()) {
+        newCourseId = counterSnap.data().value + 1;
+      } else {
+        // First time: initialize counter based on existing courses
+        const existingCourses = await listCourses(false);
+        const maxId = existingCourses.length > 0 
+          ? Math.max(...existingCourses.map(c => c.id)) 
+          : 0;
+        newCourseId = maxId + 1;
+      }
+      
+      // Update counter (increment for next course)
+      await setDoc(counterRef, { value: newCourseId });
 
       // First save to Firestore
       await upsertCourse({

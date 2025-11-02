@@ -199,12 +199,30 @@ export default function AdminPage() {
         return;
       }
 
-      // Write to contract to get auto-generated course ID
+      // Get next course ID from Firestore
+      const existingCourses = await listCourses(false);
+      const maxId = existingCourses.length > 0 
+        ? Math.max(...existingCourses.map(c => c.id)) 
+        : 0;
+      const newCourseId = maxId + 1;
+
+      // First save to Firestore
+      await upsertCourse({
+        id: newCourseId,
+        title: courseForm.title,
+        description: courseForm.description,
+        stakeAmount: courseForm.stakeAmount,
+        allowRepoSubmission: courseForm.allowRepoSubmission,
+        modules: courseForm.modules,
+        assignments: courseForm.enableAssignments ? courseForm.assignments : [],
+        active: courseForm.active,
+      });
+
+      // Then sync to contract (optional - can fail without breaking course creation)
       try {
         const contractAddress = CONTRACTS.sepolia.STAKING_MANAGER as `0x${string}`;
         const stakeAmountWei = BigInt(Math.floor(stakeNum * 1e18));
         
-        // Call addCourse which will auto-generate and return the course ID
         const hash = await (writeContract as any)({
           address: contractAddress,
           abi: StakingManagerABI,
@@ -213,30 +231,12 @@ export default function AdminPage() {
         });
         
         setContractTxHash(hash as any);
-        setContractTxStatus('pending');
-        
-        // Get the next course ID from the contract
-        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL);
-        const contract = new ethers.Contract(contractAddress, StakingManagerABI, provider);
-        const courseCount = await contract.courseCount();
-        const newCourseId = Number(courseCount);
-        
-        // Persist to Firestore with the auto-generated ID
-        await upsertCourse({
-          id: newCourseId,
-          title: courseForm.title,
-          description: courseForm.description,
-          stakeAmount: courseForm.stakeAmount,
-          allowRepoSubmission: courseForm.allowRepoSubmission,
-          modules: courseForm.modules,
-          assignments: courseForm.enableAssignments ? courseForm.assignments : [],
-          active: courseForm.active,
-        });
+        setContractTxStatus('success');
+        setCourseActionError(null);
       } catch (contractErr) {
-        console.error('Contract interaction failed:', contractErr);
+        console.error('Contract sync failed (course saved to Firestore):', contractErr);
         setContractTxStatus('error');
-        setCourseActionError('Contract sync failed. Course was not saved.');
-        return;
+        setCourseActionError('Course saved to Firestore, but contract sync failed. You can sync manually later.');
       }
 
       const list = await listCourses(true);
@@ -773,7 +773,10 @@ export default function AdminPage() {
                           </div>
                           <button
                             onClick={() => {
-                              if (!assignmentDraft.heading || !assignmentDraft.description) return;
+                              if (!assignmentDraft.heading || !assignmentDraft.description) {
+                                alert('Please fill in both assignment heading and description');
+                                return;
+                              }
                               const newAssignment: CourseAssignment = {
                                 id: crypto.randomUUID(),
                                 heading: assignmentDraft.heading,
@@ -786,7 +789,8 @@ export default function AdminPage() {
                               });
                               setAssignmentDraft({ heading: '', description: '', allowRepoSubmission: false });
                             }}
-                            className="px-3 py-1 text-sm rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                            disabled={!assignmentDraft.heading || !assignmentDraft.description}
+                            className="px-3 py-1 text-sm rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Add Assignment
                           </button>

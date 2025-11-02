@@ -947,89 +947,96 @@ export default function AdminPage() {
                           ))}
                         </div>
                         {/* Add Resource */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                          <select
-                            className="px-3 py-2 border rounded-lg"
-                            value={resourceDrafts[m.id]?.type || 'text'}
-                            onChange={(e) => setResourceDrafts((d) => ({
-                              ...d,
-                              [m.id]: {
-                                type: (e.target.value as any),
-                                title: d[m.id]?.title || '',
-                                content: d[m.id]?.content || '',
-                                url: d[m.id]?.url || ''
-                              }
-                            }))}
-                          >
-                            <option value="text">Text</option>
-                            <option value="video">Video</option>
-                          </select>
-                          <input
-                            className="px-3 py-2 border rounded-lg"
-                            placeholder="Resource title"
-                            value={resourceDrafts[m.id]?.title || ''}
-                            onChange={(e) => setResourceDrafts((d) => ({
-                              ...d,
-                              [m.id]: {
-                                type: d[m.id]?.type || 'text',
-                                title: e.target.value,
-                                content: d[m.id]?.content || '',
-                                url: d[m.id]?.url || ''
-                              }
-                            }))}
-                          />
-                          {resourceDrafts[m.id]?.type === 'text' ? (
-                            <input
-                              className="px-3 py-2 border rounded-lg"
-                              placeholder="Text content"
-                              value={resourceDrafts[m.id]?.content || ''}
+                        <div className="space-y-2 bg-gray-50 p-3 rounded-lg">
+                          <div className="text-xs font-medium text-gray-700">Add Learning Resource (Video or Text)</div>
+                          <div className="grid grid-cols-1 gap-2">
+                            <select
+                              className="px-3 py-2 border rounded-lg text-sm"
+                              value={resourceDrafts[m.id]?.type || 'video'}
                               onChange={(e) => setResourceDrafts((d) => ({
                                 ...d,
                                 [m.id]: {
-                                  type: d[m.id]?.type || 'text',
+                                  type: (e.target.value as any),
                                   title: d[m.id]?.title || '',
-                                  content: e.target.value,
+                                  content: d[m.id]?.content || '',
                                   url: d[m.id]?.url || ''
                                 }
                               }))}
-                            />
-                          ) : (
+                            >
+                              <option value="video">📹 Video (YouTube)</option>
+                              <option value="text">📝 Text Content</option>
+                            </select>
                             <input
-                              className="px-3 py-2 border rounded-lg"
-                              placeholder="Video URL"
-                              value={resourceDrafts[m.id]?.url || ''}
+                              className="px-3 py-2 border rounded-lg text-sm"
+                              placeholder="Resource title (e.g., 'Introduction to HTML')"
+                              value={resourceDrafts[m.id]?.title || ''}
                               onChange={(e) => setResourceDrafts((d) => ({
                                 ...d,
                                 [m.id]: {
                                   type: d[m.id]?.type || 'video',
-                                  title: d[m.id]?.title || '',
+                                  title: e.target.value,
                                   content: d[m.id]?.content || '',
-                                  url: e.target.value
+                                  url: d[m.id]?.url || ''
                                 }
                               }))}
                             />
-                          )}
-                          <button
-                            className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-                            onClick={async () => {
-                              const draft = resourceDrafts[m.id];
-                              if (!draft || !draft.title || (draft.type === 'text' ? !draft.content : !draft.url)) return;
-                              const resource: CourseModuleResource = {
-                                id: crypto.randomUUID(),
-                                type: draft.type,
-                                title: draft.title,
-                                content: draft.type === 'text' ? draft.content : undefined,
-                                url: draft.type === 'video' ? draft.url : undefined,
-                              };
-                              await addModuleResource(manageCourse.id, m.id, resource);
-                              const refreshed = await listCourses(true);
-                              setCourses(refreshed);
-                              setManageCourse(refreshed.find(c => c.id === manageCourse.id) || null);
-                              setResourceDrafts((d) => ({ ...d, [m.id]: { type: 'text', title: '', content: '', url: '' } }));
-                            }}
-                          >
-                            Add Resource
-                          </button>
+                            {resourceDrafts[m.id]?.type === 'text' ? (
+                              <textarea
+                                className="px-3 py-2 border rounded-lg text-sm"
+                                placeholder="Enter text content or lesson description"
+                                rows={3}
+                                value={resourceDrafts[m.id]?.content || ''}
+                                onChange={(e) => setResourceDrafts((d) => ({
+                                  ...d,
+                                  [m.id]: {
+                                    type: d[m.id]?.type || 'text',
+                                    title: d[m.id]?.title || '',
+                                    content: e.target.value,
+                                    url: d[m.id]?.url || ''
+                                  }
+                                }))}
+                              />
+                            ) : (
+                              <input
+                                className="px-3 py-2 border rounded-lg text-sm"
+                                placeholder="YouTube URL (https://youtube.com/watch?v=...)"
+                                value={resourceDrafts[m.id]?.url || ''}
+                                onChange={(e) => setResourceDrafts((d) => ({
+                                  ...d,
+                                  [m.id]: {
+                                    type: d[m.id]?.type || 'video',
+                                    title: d[m.id]?.title || '',
+                                    content: d[m.id]?.content || '',
+                                    url: e.target.value
+                                  }
+                                }))}
+                              />
+                            )}
+                            <button
+                              className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm"
+                              onClick={async () => {
+                                const draft = resourceDrafts[m.id];
+                                if (!draft || !draft.title || (draft.type === 'text' ? !draft.content : !draft.url)) {
+                                  alert('Please fill in all required fields');
+                                  return;
+                                }
+                                const resource: CourseModuleResource = {
+                                  id: crypto.randomUUID(),
+                                  type: draft.type,
+                                  title: draft.title,
+                                  content: draft.type === 'text' ? draft.content : undefined,
+                                  url: draft.type === 'video' ? draft.url : undefined,
+                                };
+                                await addModuleResource(manageCourse.id, m.id, resource);
+                                const refreshed = await listCourses(true);
+                                setCourses(refreshed);
+                                setManageCourse(refreshed.find(c => c.id === manageCourse.id) || null);
+                                setResourceDrafts((d) => ({ ...d, [m.id]: { type: 'video', title: '', content: '', url: '' } }));
+                              }}
+                            >
+                              ➕ Add Resource to Module
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

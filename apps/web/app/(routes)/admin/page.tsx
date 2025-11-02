@@ -674,10 +674,6 @@ export default function AdminPage() {
                       <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} placeholder="Course description" className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400"></textarea>
                     </div>
                     <div className="flex items-center gap-2">
-                      <input id="allowRepo" type="checkbox" checked={courseForm.allowRepoSubmission} onChange={(e) => setCourseForm({ ...courseForm, allowRepoSubmission: e.target.checked })} />
-                      <label htmlFor="allowRepo" className="text-sm text-gray-700">Enable Repository Submissions</label>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <input id="activeCourse" type="checkbox" checked={courseForm.active} onChange={(e) => setCourseForm({ ...courseForm, active: e.target.checked })} />
                       <label htmlFor="activeCourse" className="text-sm text-gray-700">Active</label>
                     </div>
@@ -687,6 +683,9 @@ export default function AdminPage() {
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-semibold text-gray-900">Modules</h4>
                       <button onClick={() => setCourseForm({ ...courseForm, modules: [...courseForm.modules, { id: courseForm.modules.length + 1, title: `Module ${courseForm.modules.length + 1}` }] })} className="px-3 py-1 text-sm rounded-lg bg-gray-800 text-white">Add Module</button>
+                    </div>
+                    <div className="text-xs text-gray-600 mb-2 bg-blue-50 p-2 rounded">
+                      💡 Tip: After creating the course, click "Manage" to add video/text content to each module
                     </div>
                     <div className="space-y-2">
                       {courseForm.modules.map((m, idx) => (

@@ -5,6 +5,8 @@ import { useAccount, useChainId } from "wagmi";
 import { useStaking, useUserStake } from "@/hooks/useStaking";
 import { createCourseStake } from "@/services/course-stake.service";
 import { createStakingTransaction } from "@/services/staking-transaction.service";
+import { createUserProgress } from "@/services/userLearningProgress.service";
+import { getCourseById } from "@/services/course.service";
 
 interface StakingButtonProps {
   courseId: number;
@@ -69,7 +71,7 @@ export function StakingButton({ courseId, totalModules = 4, onStakeSuccess }: St
     if (isSuccess && address) {
       setStakeStatus("✅ Successfully staked! Creating records...");
       
-      // Create both Firestore records after successful stake
+      // Create all Firestore records after successful stake
       const createStakeRecords = async () => {
         try {
           const stakeAmountInEth = (Number(effectiveStakeAmount) / 1e18).toString();
@@ -99,6 +101,25 @@ export function StakingButton({ courseId, totalModules = 4, onStakeSuccess }: St
               network,
               chainId
             );
+          }
+
+          // Create user learning progress record
+          try {
+            const courseData = await getCourseById(courseId);
+            const assignmentIds = courseData?.assignments?.map(a => a.id) || [];
+            
+            await createUserProgress({
+              userId: address,
+              courseId: courseId,
+              stakeAmount: stakeAmountInEth,
+              totalModules: courseData?.totalModules || totalModules,
+              assignmentIds: assignmentIds,
+            });
+            
+            console.log("✅ User learning progress created successfully");
+          } catch (progressError) {
+            console.error("Error creating user learning progress:", progressError);
+            // Don't fail the whole operation if this fails
           }
           
           setStakeStatus("✅ Course unlocked! You can now start learning.");

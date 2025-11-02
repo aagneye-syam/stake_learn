@@ -374,6 +374,106 @@ export async function verifyAssignment(
 }
 
 /**
+ * Mark course as completed
+ */
+export async function completeCourse(
+  userId: string,
+  courseId: number
+): Promise<UserLearningProgress | null> {
+  if (!db) {
+    throw new Error("Firebase not initialized");
+  }
+
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) {
+    throw new Error("User progress not found");
+  }
+
+  // Check if all modules are completed
+  const allModulesCompleted = progress.modules.every((m) => m.isCompleted);
+  if (!allModulesCompleted) {
+    throw new Error("Not all modules are completed");
+  }
+
+  const now = Timestamp.now();
+  const docId = getProgressDocId(userId, courseId);
+  const docRef = doc(db, COLLECTION_NAME, docId);
+
+  await updateDoc(docRef, {
+    isCourseCompleted: true,
+    completedAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+  });
+
+  return await getUserProgress(userId, courseId);
+}
+
+/**
+ * Mark certificate as minted
+ */
+export async function markCertificateMinted(
+  userId: string,
+  courseId: number,
+  tokenId: string
+): Promise<UserLearningProgress | null> {
+  if (!db) {
+    throw new Error("Firebase not initialized");
+  }
+
+  const docId = getProgressDocId(userId, courseId);
+  const docRef = doc(db, COLLECTION_NAME, docId);
+
+  await updateDoc(docRef, {
+    certificateMinted: true,
+    certificateTokenId: tokenId,
+    updatedAt: Timestamp.now(),
+  });
+
+  return await getUserProgress(userId, courseId);
+}
+
+/**
+ * Mark stake as returned
+ */
+export async function markStakeReturned(
+  userId: string,
+  courseId: number
+): Promise<UserLearningProgress | null> {
+  if (!db) {
+    throw new Error("Firebase not initialized");
+  }
+
+  const now = Timestamp.now();
+  const docId = getProgressDocId(userId, courseId);
+  const docRef = doc(db, COLLECTION_NAME, docId);
+
+  await updateDoc(docRef, {
+    isStakeReturned: true,
+    stakeReturnedAt: now,
+    updatedAt: now,
+  });
+
+  return await getUserProgress(userId, courseId);
+}
+
+/**
+ * Get course completion percentage
+ */
+export async function getCourseCompletionPercentage(
+  userId: string,
+  courseId: number
+): Promise<number> {
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) return 0;
+
+  const totalModules = progress.modules.length;
+  if (totalModules === 0) return 0;
+
+  return Math.round((progress.completedModulesCount / totalModules) * 100);
+}
+
+/**
  * Admin: Reject an assignment submission
  */
 export async function rejectAssignment(

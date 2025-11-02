@@ -725,22 +725,117 @@ export default function AdminPage() {
                       <h4 className="font-semibold text-gray-900">Modules</h4>
                       <button onClick={() => setCourseForm({ ...courseForm, modules: [...courseForm.modules, { id: courseForm.modules.length + 1, title: `Module ${courseForm.modules.length + 1}` }] })} className="px-3 py-1 text-sm rounded-lg bg-gray-800 text-white">Add Module</button>
                     </div>
-                    <div className="text-xs text-gray-600 mb-2 bg-blue-50 p-2 rounded">
-                      💡 Tip: After creating the course, click "Manage" to add video/text content to each module
-                    </div>
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       {courseForm.modules.map((m, idx) => (
-                        <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <input value={m.title} onChange={(e) => {
-                            const copy = [...courseForm.modules];
-                            copy[idx] = { ...copy[idx], title: e.target.value };
-                            setCourseForm({ ...courseForm, modules: copy });
-                          }} className="px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" placeholder={`Module ${m.id} title`} />
-                          <input value={m.duration || ''} onChange={(e) => {
-                            const copy = [...courseForm.modules];
-                            copy[idx] = { ...copy[idx], duration: e.target.value };
-                            setCourseForm({ ...courseForm, modules: copy });
-                          }} className="px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" placeholder="Duration (e.g., 2 hours)" />
+                        <div key={idx} className="border rounded-lg p-3 bg-gray-50 space-y-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input value={m.title} onChange={(e) => {
+                              const copy = [...courseForm.modules];
+                              copy[idx] = { ...copy[idx], title: e.target.value };
+                              setCourseForm({ ...courseForm, modules: copy });
+                            }} className="px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" placeholder={`Module ${m.id} title`} />
+                            <input value={m.duration || ''} onChange={(e) => {
+                              const copy = [...courseForm.modules];
+                              copy[idx] = { ...copy[idx], duration: e.target.value };
+                              setCourseForm({ ...courseForm, modules: copy });
+                            }} className="px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" placeholder="Duration (e.g., 2 hours)" />
+                          </div>
+                          
+                          {/* Module Content Section */}
+                          <div className="pt-2 border-t">
+                            <label className="text-xs font-medium text-gray-700 mb-1 block">Module Content</label>
+                            <div className="space-y-2">
+                              {/* Content Type Selection */}
+                              <select 
+                                value={m.resources?.[0]?.type || 'video'}
+                                onChange={(e) => {
+                                  const copy = [...courseForm.modules];
+                                  const currentResource = copy[idx].resources?.[0];
+                                  copy[idx] = { 
+                                    ...copy[idx], 
+                                    resources: [{
+                                      id: currentResource?.id || `res-${Date.now()}`,
+                                      type: e.target.value as 'text' | 'video',
+                                      title: currentResource?.title || '',
+                                      content: e.target.value === 'text' ? (currentResource?.content || '') : undefined,
+                                      url: e.target.value === 'video' ? (currentResource?.url || '') : undefined,
+                                    }]
+                                  };
+                                  setCourseForm({ ...courseForm, modules: copy });
+                                }}
+                                className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 text-sm"
+                              >
+                                <option value="video">Video (YouTube)</option>
+                                <option value="text">Text Content</option>
+                              </select>
+                              
+                              {/* Resource Title */}
+                              <input
+                                value={m.resources?.[0]?.title || ''}
+                                onChange={(e) => {
+                                  const copy = [...courseForm.modules];
+                                  const currentResource = copy[idx].resources?.[0];
+                                  copy[idx] = { 
+                                    ...copy[idx], 
+                                    resources: [{
+                                      id: currentResource?.id || `res-${Date.now()}`,
+                                      type: currentResource?.type || 'video',
+                                      title: e.target.value,
+                                      content: currentResource?.content,
+                                      url: currentResource?.url,
+                                    }]
+                                  };
+                                  setCourseForm({ ...courseForm, modules: copy });
+                                }}
+                                placeholder="Resource title"
+                                className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 text-sm"
+                              />
+                              
+                              {/* Conditional Input based on type */}
+                              {(m.resources?.[0]?.type || 'video') === 'video' ? (
+                                <input
+                                  value={m.resources?.[0]?.url || ''}
+                                  onChange={(e) => {
+                                    const copy = [...courseForm.modules];
+                                    const currentResource = copy[idx].resources?.[0];
+                                    copy[idx] = { 
+                                      ...copy[idx], 
+                                      resources: [{
+                                        id: currentResource?.id || `res-${Date.now()}`,
+                                        type: 'video',
+                                        title: currentResource?.title || '',
+                                        url: e.target.value,
+                                      }]
+                                    };
+                                    setCourseForm({ ...courseForm, modules: copy });
+                                  }}
+                                  placeholder="YouTube URL"
+                                  className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 text-sm"
+                                />
+                              ) : (
+                                <textarea
+                                  value={m.resources?.[0]?.content || ''}
+                                  onChange={(e) => {
+                                    const copy = [...courseForm.modules];
+                                    const currentResource = copy[idx].resources?.[0];
+                                    copy[idx] = { 
+                                      ...copy[idx], 
+                                      resources: [{
+                                        id: currentResource?.id || `res-${Date.now()}`,
+                                        type: 'text',
+                                        title: currentResource?.title || '',
+                                        content: e.target.value,
+                                      }]
+                                    };
+                                    setCourseForm({ ...courseForm, modules: copy });
+                                  }}
+                                  placeholder="Text content (supports markdown)"
+                                  rows={4}
+                                  className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 text-sm"
+                                />
+                              )}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>

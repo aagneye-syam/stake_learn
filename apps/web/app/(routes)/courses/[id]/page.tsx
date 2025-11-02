@@ -19,7 +19,9 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { useModuleProgress } from "@/hooks/useModuleProgress";
 import { DebugProgress } from "@/components/DebugProgress";
 import { AssignmentList } from "@/_components/AssignmentList";
-import { getCourseById, CourseData as FirebaseCourseData } from "@/services/course.service";
+import { getCourseById, CourseData } from "@/services/course.service";
+import { getCourseById as getCourseMeta } from "@/lib/courseService";
+import { Course } from "@/types/course";
 
 // Client-only wrapper to prevent hydration issues
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -36,241 +38,34 @@ function ClientOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Course data - should match the IDs from dashboard
-const coursesData = {
-  "1": {
-    id: "1",
-    title: "HTML & CSS Fundamentals",
-    description: "Master the basics of web development with HTML5 and CSS3. Build responsive layouts and beautiful interfaces from scratch.",
-    difficulty: "Beginner" as const,
-    duration: "4-6 weeks",
-    category: "Web Development",
-    gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    stakeAmount: "0.002",
-    icon: (
-      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-      </svg>
-    ),
-    fullDescription: `
-      Learn to build modern, responsive websites from the ground up. This comprehensive course covers 
-      everything from basic HTML tags to advanced CSS layouts including Flexbox and Grid. 
-      
-      You'll create real-world projects and learn industry best practices for web development.
-    `,
-    whatYouWillLearn: [
-      "HTML5 semantic elements and structure",
-      "CSS3 styling, animations, and transitions",
-      "Responsive design with Flexbox and Grid",
-      "CSS custom properties and preprocessors",
-      "Modern layout techniques",
-      "Accessibility best practices",
-      "Browser developer tools",
-      "Project: Build a portfolio website"
-    ],
-    modules: [
-      { id: 1, title: "Introduction to HTML", lessons: 8, duration: "2 hours" },
-      { id: 2, title: "CSS Fundamentals", lessons: 10, duration: "3 hours" },
-      { id: 3, title: "Responsive Design", lessons: 6, duration: "2.5 hours" },
-      { id: 4, title: "Advanced CSS", lessons: 12, duration: "4 hours" },
-    ]
-  },
-  "2": {
-    id: "2",
-    title: "Solidity Smart Contracts",
-    description: "Learn to write, test, and deploy secure smart contracts on Ethereum. Understand DeFi protocols and NFTs.",
-    difficulty: "Intermediate" as const,
-    duration: "8-10 weeks",
-    category: "Blockchain",
-    gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-    stakeAmount: "0.002",
-    icon: (
-      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z" />
-      </svg>
-    ),
-    fullDescription: `
-      Dive deep into blockchain development with Solidity. Learn to create secure smart contracts, 
-      understand gas optimization, and build decentralized applications on Ethereum.
-    `,
-    whatYouWillLearn: [
-      "Solidity programming fundamentals",
-      "Smart contract security patterns",
-      "ERC-20 and ERC-721 token standards",
-      "DeFi protocol development",
-      "Hardhat development environment",
-      "Contract testing with Chai",
-      "Gas optimization techniques",
-      "Project: Build your own DeFi protocol"
-    ],
-    modules: [
-      { id: 1, title: "Blockchain Basics", lessons: 6, duration: "2 hours" },
-      { id: 2, title: "Solidity Fundamentals", lessons: 15, duration: "5 hours" },
-      { id: 3, title: "Smart Contract Security", lessons: 10, duration: "4 hours" },
-      { id: 4, title: "DeFi & NFTs", lessons: 12, duration: "5 hours" },
-    ]
-  },
-  "3": {
-    id: "3",
-    title: "Rust Programming",
-    description: "Dive into systems programming with Rust. Build fast, safe, and concurrent applications with zero-cost abstractions.",
-    difficulty: "Advanced" as const,
-    duration: "10-12 weeks",
-    category: "Systems Programming",
-    gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-    stakeAmount: "0.002",
-    icon: (
-      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-      </svg>
-    ),
-    fullDescription: `
-      Master Rust programming language and build high-performance systems. Learn memory safety, 
-      concurrency, and zero-cost abstractions in this comprehensive course.
-    `,
-    whatYouWillLearn: [
-      "Rust syntax and ownership model",
-      "Memory safety without garbage collection",
-      "Concurrent programming with threads",
-      "Error handling patterns",
-      "Cargo and the Rust ecosystem",
-      "Traits and generics",
-      "Async programming",
-      "Project: Build a CLI tool and web server"
-    ],
-    modules: [
-      { id: 1, title: "Getting Started with Rust", lessons: 10, duration: "3 hours" },
-      { id: 2, title: "Ownership & Borrowing", lessons: 12, duration: "4 hours" },
-      { id: 3, title: "Advanced Concepts", lessons: 15, duration: "5 hours" },
-      { id: 4, title: "Real-World Projects", lessons: 8, duration: "6 hours" },
-    ]
-  },
-  "4": {
-    id: "4",
-    title: "React & Next.js",
-    description: "Build modern web applications with React and Next.js. Learn hooks, server components, and full-stack development.",
-    difficulty: "Intermediate" as const,
-    duration: "6-8 weeks",
-    category: "Frontend",
-    gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-    stakeAmount: "0.002",
-    icon: (
-      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-      </svg>
-    ),
-    fullDescription: `
-      Master modern React development with Next.js 14. Build server-rendered applications with 
-      the latest features including App Router, Server Components, and Server Actions.
-    `,
-    whatYouWillLearn: [
-      "React fundamentals and hooks",
-      "Next.js App Router architecture",
-      "Server and Client Components",
-      "API routes and Server Actions",
-      "Data fetching patterns",
-      "State management with Context",
-      "TypeScript integration",
-      "Project: Build a full-stack app"
-    ],
-    modules: [
-      { id: 1, title: "React Fundamentals", lessons: 12, duration: "4 hours" },
-      { id: 2, title: "Next.js Essentials", lessons: 10, duration: "3.5 hours" },
-      { id: 3, title: "Advanced Patterns", lessons: 8, duration: "3 hours" },
-      { id: 4, title: "Full-Stack Project", lessons: 6, duration: "4 hours" },
-    ]
-  },
-  "5": {
-    id: "5",
-    title: "Web3 & DApp Development",
-    description: "Create decentralized applications using ethers.js, wagmi, and IPFS. Connect smart contracts to beautiful UIs.",
-    difficulty: "Advanced" as const,
-    duration: "8-10 weeks",
-    category: "Web3",
-    gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-    stakeAmount: "0.002",
-    icon: (
-      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M13 7H7v6h6V7z" />
-        <path fillRule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clipRule="evenodd" />
-      </svg>
-    ),
-    fullDescription: `
-      Learn to build decentralized applications that connect to blockchain networks. Master Web3 
-      libraries, wallet connections, and create production-ready DApps.
-    `,
-    whatYouWillLearn: [
-      "Web3 fundamentals and architecture",
-      "Wallet integration (MetaMask, WalletConnect)",
-      "ethers.js and wagmi libraries",
-      "IPFS for decentralized storage",
-      "Smart contract interaction",
-      "Transaction handling",
-      "Real-time blockchain data",
-      "Project: Build a complete DApp"
-    ],
-    modules: [
-      { id: 1, title: "Web3 Basics", lessons: 8, duration: "2.5 hours" },
-      { id: 2, title: "Wallet Integration", lessons: 10, duration: "3 hours" },
-      { id: 3, title: "Contract Interaction", lessons: 12, duration: "4 hours" },
-      { id: 4, title: "Building DApps", lessons: 10, duration: "5 hours" },
-    ]
-  },
-  "6": {
-    id: "6",
-    title: "Python for Data Science",
-    description: "Analyze data with Python, NumPy, and Pandas. Create visualizations and build machine learning models.",
-    difficulty: "Beginner" as const,
-    duration: "5-7 weeks",
-    category: "Data Science",
-    gradient: "linear-gradient(135deg, #fa8bff 0%, #2bd2ff 90%, #2bff88 100%)",
-    stakeAmount: "0.002",
-    icon: (
-      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-      </svg>
-    ),
-    fullDescription: `
-      Start your data science journey with Python. Learn to analyze data, create visualizations, 
-      and build predictive models using industry-standard tools.
-    `,
-    whatYouWillLearn: [
-      "Python programming basics",
-      "NumPy for numerical computing",
-      "Pandas for data manipulation",
-      "Matplotlib and Seaborn visualizations",
-      "Statistical analysis",
-      "Machine learning introduction",
-      "Jupyter Notebooks",
-      "Project: Data analysis and ML model"
-    ],
-    modules: [
-      { id: 1, title: "Python Basics", lessons: 10, duration: "3 hours" },
-      { id: 2, title: "Data Manipulation", lessons: 12, duration: "4 hours" },
-      { id: 3, title: "Data Visualization", lessons: 8, duration: "2.5 hours" },
-      { id: 4, title: "Machine Learning Intro", lessons: 10, duration: "4 hours" },
-    ]
-  },
-};
-
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const courseId = params.id as string;
-  const course = coursesData[courseId as keyof typeof coursesData];
   const [mounted, setMounted] = useState(false);
-  const [firebaseCourse, setFirebaseCourse] = useState<FirebaseCourseData | null>(null);
+  const [courseData, setCourseData] = useState<CourseData | null>(null);
+  const [courseMeta, setCourseMeta] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    // Fetch course from Firebase to get assignments
     const loadCourse = async () => {
       try {
-        const data = await getCourseById(parseInt(courseId));
-        setFirebaseCourse(data);
+        setLoading(true);
+        const numericId = parseInt(courseId);
+        
+        // Fetch from Firebase course service (detailed data)
+        const data = await getCourseById(numericId);
+        setCourseData(data);
+        
+        // Fetch from course meta (for additional display info)
+        const meta = await getCourseMeta(courseId);
+        setCourseMeta(meta);
       } catch (error) {
-        console.error("Failed to load course from Firebase:", error);
+        console.error("Failed to load course:", error);
+      } finally {
+        setLoading(false);
       }
     };
     loadCourse();
@@ -290,53 +85,53 @@ export default function CourseDetailPage() {
     getModuleProgress,
     error: moduleError,
     refreshProgress
-  } = useModuleProgress(numericCourseId, course?.modules.length || 0);
+  } = useModuleProgress(numericCourseId, courseData?.totalModules || 0);
 
   // Check if all modules are completed
   const allModulesCompleted = courseProgress && courseProgress.completedModules === courseProgress.totalModules;
 
   // Format stake amount for display with fallback
-  const fallbackAmount = "0.00001"; // 0.0001 ETH for testing
-  const displayStakeAmount = contractStakeAmount 
-    ? (Number(contractStakeAmount) / 1e18).toFixed(6) 
+  const fallbackAmount = "0.000100"; // from Firebase or contract
+  const displayStakeAmount = courseData?.stakeAmount || contractStakeAmount 
+    ? courseData?.stakeAmount || (Number(contractStakeAmount) / 1e18).toFixed(6) 
     : fallbackAmount;
-
-  if (!course) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Course Not Found</h1>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all"
-          >
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Beginner":
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+        return "bg-green-50 text-green-600 border border-green-200";
       case "Intermediate":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+        return "bg-yellow-50 text-yellow-600 border border-yellow-200";
       case "Advanced":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+        return "bg-red-50 text-red-600 border border-red-200";
       default:
         return "bg-gray-100 text-gray-700";
     }
   };
 
-  if (!mounted) {
+  if (!mounted || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading...</p>
+          <p className="text-gray-600 font-medium">Loading course...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!courseData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Course Not Found</h1>
+          <p className="text-gray-600 mb-6">The course you're looking for doesn't exist or hasn't been published yet.</p>
+          <button
+            onClick={() => router.push("/courses")}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all"
+          >
+            Back to Courses
+          </button>
         </div>
       </div>
     );
@@ -346,13 +141,13 @@ export default function CourseDetailPage() {
     <div className="space-y-8 animate-fadeIn">
 
       {/* Hero Section */}
-      <div className="relative overflow-visible rounded-3xl p-8 md:p-12 text-white shadow-2xl" style={{ background: course.gradient }}>
+      <div className="relative overflow-visible rounded-3xl p-8 md:p-12 text-white shadow-2xl" style={{ background: courseMeta?.level === "Advanced" ? "linear-gradient(135deg, #fa709a 0%, #fee140 100%)" : courseMeta?.level === "Intermediate" ? "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
         
         <div className="relative z-10">
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/courses")}
             className="mb-6 flex items-center gap-2 text-white/80 hover:text-white transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -365,29 +160,29 @@ export default function CourseDetailPage() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                  {course.icon}
+                  <span className="text-2xl">{courseMeta?.icon || "📚"}</span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getDifficultyColor(course.difficulty)}`}>
-                  {course.difficulty}
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getDifficultyColor(courseMeta?.level || "Beginner")}`}>
+                  {courseMeta?.level || "Beginner"}
                 </span>
                 <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
-                  {course.category}
+                  {courseMeta?.category || "Course"}
                 </span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">{course.title}</h1>
-              <p className="text-white/90 text-lg mb-6">{course.description}</p>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">{courseData.title}</h1>
+              <p className="text-white/90 text-lg mb-6">{courseData.description}</p>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>{course.duration}</span>
+                  <span>{courseMeta?.duration || "4-6 weeks"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
-                  <span>{course.modules.reduce((acc, m) => acc + m.lessons, 0)} lessons</span>
+                  <span>{courseData.modules.reduce((acc, m) => acc + (m.lessons || 0), 0)} lessons</span>
                 </div>
               </div>
             </div>
@@ -402,24 +197,26 @@ export default function CourseDetailPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">About this Course</h2>
             <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line leading-relaxed">
-              {course.fullDescription}
+              {courseData.description}
             </p>
           </div>
 
-          {/* What You'll Learn */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">What You&apos;ll Learn</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {course.whatYouWillLearn.map((item, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-gray-700 dark:text-gray-300">{item}</span>
-                </div>
-              ))}
+          {/* What You'll Learn - Only show if modules have descriptions */}
+          {courseData.modules.some(m => m.description) && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">What You&apos;ll Learn</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {courseData.modules.map((module, index) => module.description && (
+                  <div key={index} className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-700 dark:text-gray-300">{module.description}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Course Progress - Only show for staked courses */}
           {hasStaked && courseProgress && (
@@ -463,7 +260,7 @@ export default function CourseDetailPage() {
                   🎉 Congratulations! Course Completed!
                 </h2>
                 <p className="text-green-700 dark:text-green-300 text-lg mb-6">
-                  You've successfully completed all modules in <strong>{course.title}</strong>!
+                  You've successfully completed all modules in <strong>{courseData.title}</strong>!
                 </p>
                 <div className="bg-white/50 dark:bg-green-900/30 rounded-xl p-6 mb-6">
                   <h3 className="text-xl font-semibold text-green-800 dark:text-green-200 mb-4">🎯 What You've Achieved</h3>
@@ -541,10 +338,14 @@ export default function CourseDetailPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {course.modules.map((module) => (
+                {courseData.modules.map((module) => (
                   <ModuleCard
                     key={module.id}
-                    module={module}
+                    module={{
+                      ...module,
+                      lessons: module.lessons || 0,
+                      duration: module.duration || "TBD"
+                    }}
                     courseId={numericCourseId}
                     isCompleted={isModuleCompleted(module.id)}
                     onComplete={completeModule}
@@ -560,9 +361,9 @@ export default function CourseDetailPage() {
           </div>
 
           {/* Course Assignments */}
-          {firebaseCourse && firebaseCourse.assignments && firebaseCourse.assignments.length > 0 && (
+          {courseData.assignments && courseData.assignments.length > 0 && (
             <div className="mt-8">
-              <AssignmentList assignments={firebaseCourse.assignments} />
+              <AssignmentList assignments={courseData.assignments} />
             </div>
           )}
         </div>
@@ -637,7 +438,7 @@ export default function CourseDetailPage() {
                   ) : (
                     <StakingButton 
                       courseId={numericCourseId}
-                      totalModules={course.modules.length}
+                      totalModules={courseData.totalModules}
                       onStakeSuccess={() => {
                         // Optional: Add any success callback logic here
                         console.log("Staking successful!");
@@ -781,8 +582,8 @@ export default function CourseDetailPage() {
                 <NoSSR>
                   <CourseCompletion 
                     courseId={numericCourseId}
-                    courseName={course.title}
-                    courseDifficulty={course.difficulty}
+                    courseName={courseData.title}
+                    courseDifficulty={courseMeta?.level || "Beginner"}
                     onCompletion={(result) => {
                       console.log('Course completed:', result);
                       // You could trigger a page refresh or update state here

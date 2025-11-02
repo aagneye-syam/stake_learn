@@ -555,6 +555,106 @@ export async function getModuleProgress(
 }
 
 /**
+ * Admin: Get all users enrolled in a specific course
+ */
+export async function getCourseEnrollments(
+  courseId: number
+): Promise<UserLearningProgress[]> {
+  if (!db) {
+    console.warn("Firebase not initialized");
+    return [];
+  }
+
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where("courseId", "==", courseId)
+  );
+  const querySnapshot = await getDocs(q);
+
+  const enrollments: UserLearningProgress[] = [];
+  querySnapshot.forEach((doc) => {
+    enrollments.push(doc.data() as UserLearningProgress);
+  });
+
+  return enrollments;
+}
+
+/**
+ * Admin: Get all pending assignment submissions for a course
+ */
+export async function getPendingAssignments(
+  courseId: number
+): Promise<Array<UserLearningProgress & { userId: string }>> {
+  if (!db) {
+    console.warn("Firebase not initialized");
+    return [];
+  }
+
+  const enrollments = await getCourseEnrollments(courseId);
+
+  // Filter users who have submitted but unverified assignments
+  return enrollments.filter((enrollment) =>
+    enrollment.assignments.some((a) => a.isSubmitted && !a.isVerified)
+  );
+}
+
+/**
+ * Admin: Get course statistics
+ */
+export async function getCourseStatistics(courseId: number): Promise<{
+  totalEnrolled: number;
+  activeUsers: number;
+  completedUsers: number;
+  averageProgress: number;
+  pendingAssignments: number;
+}> {
+  if (!db) {
+    return {
+      totalEnrolled: 0,
+      activeUsers: 0,
+      completedUsers: 0,
+      averageProgress: 0,
+      pendingAssignments: 0,
+    };
+  }
+
+  const enrollments = await getCourseEnrollments(courseId);
+
+  const totalEnrolled = enrollments.length;
+  const completedUsers = enrollments.filter((e) => e.isCourseCompleted).length;
+
+  // Active users: those who had activity in last 7 days
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const activeUsers = enrollments.filter(
+    (e) => e.lastActivityAt.toDate() > sevenDaysAgo
+  ).length;
+
+  // Calculate average progress
+  const totalProgress = enrollments.reduce((sum, e) => {
+    const progress =
+      e.modules.length > 0 ? (e.completedModulesCount / e.modules.length) * 100 : 0;
+    return sum + progress;
+  }, 0);
+  const averageProgress =
+    totalEnrolled > 0 ? Math.round(totalProgress / totalEnrolled) : 0;
+
+  // Count pending assignments
+  const pendingAssignments = enrollments.reduce((count, e) => {
+    const pending = e.assignments.filter((a) => a.isSubmitted && !a.isVerified).length;
+    return count + pending;
+  }, 0);
+
+  return {
+    totalEnrolled,
+    activeUsers,
+    completedUsers,
+    averageProgress,
+    pendingAssignments,
+  };
+}
+
+/**
  * Delete user progress (for testing/admin purposes)
  */
 export async function deleteUserProgress(

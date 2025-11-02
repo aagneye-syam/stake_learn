@@ -167,6 +167,105 @@ async function updateLastActivity(
 }
 
 /**
+ * Complete a module (sequential unlocking)
+ */
+export async function completeModule(
+  userId: string,
+  courseId: number,
+  moduleId: number
+): Promise<UserLearningProgress | null> {
+  if (!db) {
+    throw new Error("Firebase not initialized");
+  }
+
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) {
+    throw new Error("User progress not found");
+  }
+
+  // Check if module exists and is unlocked
+  const moduleIndex = progress.modules.findIndex((m) => m.moduleId === moduleId);
+  if (moduleIndex === -1) {
+    throw new Error("Module not found");
+  }
+
+  if (!progress.modules[moduleIndex].isUnlocked) {
+    throw new Error("Module is not unlocked yet");
+  }
+
+  if (progress.modules[moduleIndex].isCompleted) {
+    throw new Error("Module already completed");
+  }
+
+  const now = Timestamp.now();
+  const updatedModules = [...progress.modules];
+
+  // Mark current module as completed
+  updatedModules[moduleIndex] = {
+    ...updatedModules[moduleIndex],
+    isCompleted: true,
+    completedAt: now,
+  };
+
+  // Unlock next module if it exists
+  if (moduleIndex + 1 < updatedModules.length) {
+    updatedModules[moduleIndex + 1] = {
+      ...updatedModules[moduleIndex + 1],
+      isUnlocked: true,
+      startedAt: now,
+    };
+  }
+
+  const completedCount = updatedModules.filter((m) => m.isCompleted).length;
+  const nextModuleId =
+    moduleIndex + 1 < updatedModules.length
+      ? updatedModules[moduleIndex + 1].moduleId
+      : moduleId;
+
+  const docId = getProgressDocId(userId, courseId);
+  const docRef = doc(db, COLLECTION_NAME, docId);
+
+  await updateDoc(docRef, {
+    modules: updatedModules,
+    completedModulesCount: completedCount,
+    currentModuleId: nextModuleId,
+    updatedAt: now,
+    lastActivityAt: now,
+  });
+
+  return await getUserProgress(userId, courseId);
+}
+
+/**
+ * Check if a module is unlocked for the user
+ */
+export async function isModuleUnlocked(
+  userId: string,
+  courseId: number,
+  moduleId: number
+): Promise<boolean> {
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) return false;
+
+  const module = progress.modules.find((m) => m.moduleId === moduleId);
+  return module?.isUnlocked || false;
+}
+
+/**
+ * Get module progress details
+ */
+export async function getModuleProgress(
+  userId: string,
+  courseId: number,
+  moduleId: number
+): Promise<ModuleProgress | null> {
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) return null;
+
+  return progress.modules.find((m) => m.moduleId === moduleId) || null;
+}
+
+/**
  * Delete user progress (for testing/admin purposes)
  */
 export async function deleteUserProgress(

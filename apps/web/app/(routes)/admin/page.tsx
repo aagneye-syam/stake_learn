@@ -727,13 +727,30 @@ export default function AdminPage() {
                     </div>
                     <div className="space-y-4">
                       {courseForm.modules.map((m, idx) => (
-                        <div key={idx} className="border rounded-lg p-3 bg-gray-50 space-y-2">
+                        <div key={idx} className="border-2 border-gray-200 rounded-lg p-4 bg-white shadow-sm space-y-3">
+                          {/* Module Header with Remove Button */}
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-semibold text-gray-900 text-sm">Module {idx + 1}</h5>
+                            {courseForm.modules.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const filtered = courseForm.modules.filter((_, i) => i !== idx);
+                                  setCourseForm({ ...courseForm, modules: filtered });
+                                }}
+                                className="text-red-600 text-xs hover:text-red-800 hover:underline"
+                              >
+                                Remove Module
+                              </button>
+                            )}
+                          </div>
+                          
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <input value={m.title} onChange={(e) => {
                               const copy = [...courseForm.modules];
                               copy[idx] = { ...copy[idx], title: e.target.value };
                               setCourseForm({ ...courseForm, modules: copy });
-                            }} className="px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" placeholder={`Module ${m.id} title`} />
+                            }} className="px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-700 dark:focus:border-purple-400" placeholder={`Module title`} />
                             <input value={m.duration || ''} onChange={(e) => {
                               const copy = [...courseForm.modules];
                               copy[idx] = { ...copy[idx], duration: e.target.value };

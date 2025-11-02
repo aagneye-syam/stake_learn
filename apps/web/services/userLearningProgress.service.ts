@@ -252,6 +252,89 @@ export async function isModuleUnlocked(
 }
 
 /**
+ * Submit an assignment
+ */
+export async function submitAssignment(
+  userId: string,
+  courseId: number,
+  assignmentId: string,
+  submissionUrl: string
+): Promise<UserLearningProgress | null> {
+  if (!db) {
+    throw new Error("Firebase not initialized");
+  }
+
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) {
+    throw new Error("User progress not found");
+  }
+
+  const assignmentIndex = progress.assignments.findIndex(
+    (a) => a.assignmentId === assignmentId
+  );
+  if (assignmentIndex === -1) {
+    throw new Error("Assignment not found");
+  }
+
+  const now = Timestamp.now();
+  const updatedAssignments = [...progress.assignments];
+
+  updatedAssignments[assignmentIndex] = {
+    ...updatedAssignments[assignmentIndex],
+    isSubmitted: true,
+    submittedAt: now,
+    submissionUrl,
+  };
+
+  const submittedCount = updatedAssignments.filter((a) => a.isSubmitted).length;
+
+  const docId = getProgressDocId(userId, courseId);
+  const docRef = doc(db, COLLECTION_NAME, docId);
+
+  await updateDoc(docRef, {
+    assignments: updatedAssignments,
+    completedAssignmentsCount: submittedCount,
+    updatedAt: now,
+    lastActivityAt: now,
+  });
+
+  return await getUserProgress(userId, courseId);
+}
+
+/**
+ * Check if assignment is submitted
+ */
+export async function isAssignmentSubmitted(
+  userId: string,
+  courseId: number,
+  assignmentId: string
+): Promise<boolean> {
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) return false;
+
+  const assignment = progress.assignments.find(
+    (a) => a.assignmentId === assignmentId
+  );
+  return assignment?.isSubmitted || false;
+}
+
+/**
+ * Get assignment submission details
+ */
+export async function getAssignmentSubmission(
+  userId: string,
+  courseId: number,
+  assignmentId: string
+): Promise<AssignmentSubmission | null> {
+  const progress = await getUserProgress(userId, courseId);
+  if (!progress) return null;
+
+  return (
+    progress.assignments.find((a) => a.assignmentId === assignmentId) || null
+  );
+}
+
+/**
  * Get module progress details
  */
 export async function getModuleProgress(

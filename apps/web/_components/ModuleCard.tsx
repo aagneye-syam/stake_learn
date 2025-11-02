@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { motion } from 'framer-motion';
+import { ModuleContentViewer } from './ModuleContentViewer';
+import { CourseModuleResource } from '@/services/course.service';
 
 interface Module {
   id: number;
   title: string;
   lessons: number;
   duration: string;
+  resources?: CourseModuleResource[];
 }
 
 interface ModuleCardProps {
@@ -121,6 +124,19 @@ export function ModuleCard({
                   </span>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Module Learning Resources */}
+          {module.resources && module.resources.length > 0 && hasStaked && (
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Learning Resources
+              </h4>
+              <ModuleContentViewer 
+                moduleName={module.title}
+                resources={module.resources}
+              />
             </div>
           )}
         </div>

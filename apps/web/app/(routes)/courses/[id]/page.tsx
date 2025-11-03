@@ -409,6 +409,7 @@ export default function CourseDetailPage() {
               <AssignmentList 
                 assignments={courseData.assignments}
                 courseId={numericCourseId}
+                hasStaked={hasStaked}
               />
             </div>
           )}

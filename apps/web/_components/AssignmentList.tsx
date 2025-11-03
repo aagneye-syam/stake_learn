@@ -12,9 +12,10 @@ interface AssignmentListProps {
   assignments: CourseAssignment[];
   courseId: number;
   title?: string;
+  hasStaked?: boolean;
 }
 
-export function AssignmentList({ assignments, courseId, title = "Assignments" }: AssignmentListProps) {
+export function AssignmentList({ assignments, courseId, title = "Assignments", hasStaked = false }: AssignmentListProps) {
   const { address } = useAccount();
   const [selectedAssignment, setSelectedAssignment] = useState<CourseAssignment | null>(null);
   const [submissionStatuses, setSubmissionStatuses] = useState<Map<string, boolean>>(new Map());
@@ -42,6 +43,10 @@ export function AssignmentList({ assignments, courseId, title = "Assignments" }:
   }, [address, assignments, courseId]);
 
   const handleSubmitClick = (assignment: CourseAssignment) => {
+    if (!hasStaked) {
+      alert("You must stake on this course before submitting assignments!");
+      return;
+    }
     setSelectedAssignment(assignment);
     setIsModalOpen(true);
   };
@@ -70,7 +75,13 @@ export function AssignmentList({ assignments, courseId, title = "Assignments" }:
       setIsModalOpen(false);
     } catch (error) {
       console.error("Failed to submit assignment:", error);
-      alert("Failed to submit assignment. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      
+      if (errorMessage.includes("User progress not found")) {
+        alert("You must stake on this course before submitting assignments. Please stake first!");
+      } else {
+        alert(`Failed to submit assignment: ${errorMessage}`);
+      }
       throw error;
     }
   };

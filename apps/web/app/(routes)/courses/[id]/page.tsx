@@ -406,7 +406,10 @@ export default function CourseDetailPage() {
           {/* Course Assignments */}
           {courseData.assignments && courseData.assignments.length > 0 && (
             <div className="mt-8">
-              <AssignmentList assignments={courseData.assignments} />
+              <AssignmentList 
+                assignments={courseData.assignments}
+                courseId={numericCourseId}
+              />
             </div>
           )}
         </div>

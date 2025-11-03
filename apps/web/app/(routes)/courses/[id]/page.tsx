@@ -16,7 +16,7 @@ import { DailyStreak } from "@/components/DailyStreak";
 import { CourseCompletion } from "@/components/CourseCompletion";
 import { ModuleCard } from "@/components/ModuleCard";
 import { ProgressBar } from "@/components/ProgressBar";
-import { useModuleProgress } from "@/hooks/useModuleProgress";
+import { useUserLearningProgress } from "@/hooks/useUserLearningProgress";
 import { DebugProgress } from "@/components/DebugProgress";
 import { AssignmentList } from "@/_components/AssignmentList";
 import { getCourseById, CourseData } from "@/services/course.service";
@@ -76,19 +76,62 @@ export default function CourseDetailPage() {
   const { stakeAmount: contractStakeAmount } = useStaking(numericCourseId);
   const { hasStaked, hasCompleted } = useUserStake(address, numericCourseId);
   
-  // Module progress tracking
-  const { 
-    courseProgress, 
-    loading: moduleLoading, 
-    completeModule, 
-    isModuleCompleted, 
-    getModuleProgress,
-    error: moduleError,
-    refreshProgress
-  } = useModuleProgress(numericCourseId, courseData?.totalModules || 0);
+  // New Firebase-based progress tracking
+  const {
+    progress: userProgress,
+    loading: progressLoading,
+    error: progressError,
+    completeModule: handleCompleteModule,
+    refetch: refetchProgress,
+    completedModulesCount,
+    totalModules,
+    currentModuleId,
+    isCourseCompleted,
+  } = useUserLearningProgress(address, numericCourseId);
 
   // Check if all modules are completed
-  const allModulesCompleted = courseProgress && courseProgress.completedModules === courseProgress.totalModules;
+  const allModulesCompleted = userProgress?.isCourseCompleted || false;
+
+  // Helper function to check if module is completed
+  const isModuleCompleted = (moduleId: number) => {
+    return userProgress?.modules.find(m => m.moduleId === moduleId)?.isCompleted || false;
+  };
+
+  // Helper function to check if module is unlocked
+  const isModuleUnlocked = (moduleId: number) => {
+    return userProgress?.modules.find(m => m.moduleId === moduleId)?.isUnlocked || false;
+  };
+
+  // Helper function to get module progress
+  const getModuleProgressData = (moduleId: number) => {
+    const module = userProgress?.modules.find(m => m.moduleId === moduleId);
+    if (!module) return undefined;
+    return {
+      completedAt: module.completedAt?.seconds,
+      rewardEarned: "3", // DataCoins per module
+      transactionHash: undefined,
+    };
+  };
+
+  // Wrapper for module completion to match ModuleCard interface
+  const onModuleComplete = async (moduleId: number): Promise<boolean> => {
+    try {
+      await handleCompleteModule(moduleId);
+      return true;
+    } catch (err) {
+      console.error("Failed to complete module:", err);
+      return false;
+    }
+  };
+
+  // Course progress for display
+  const courseProgress = userProgress ? {
+    totalModules: userProgress.modules.length,
+    completedModules: completedModulesCount,
+    progressPercentage: userProgress.modules.length > 0 
+      ? Math.round((completedModulesCount / userProgress.modules.length) * 100)
+      : 0,
+  } : null;
 
   // Format stake amount for display with fallback
   const fallbackAmount = "0.000100"; // from Firebase or contract
@@ -231,7 +274,7 @@ export default function CourseDetailPage() {
                   animated={true}
                 />
                 <button
-                  onClick={refreshProgress}
+                  onClick={refetchProgress}
                   className="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   🔄 Refresh
@@ -348,12 +391,12 @@ export default function CourseDetailPage() {
                     }}
                     courseId={numericCourseId}
                     isCompleted={isModuleCompleted(module.id)}
-                    onComplete={completeModule}
-                    loading={moduleLoading}
-                    moduleProgress={getModuleProgress(module.id)}
+                    onComplete={onModuleComplete}
+                    loading={progressLoading}
+                    moduleProgress={getModuleProgressData(module.id)}
                     hasStaked={hasStaked}
                     hasCompleted={hasCompleted}
-                    error={moduleError}
+                    error={progressError || undefined}
                   />
                 ))}
               </div>
@@ -395,6 +438,25 @@ export default function CourseDetailPage() {
                     <p className="text-2xl font-bold text-gray-900">{displayStakeAmount} ETH</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Total Balance Display */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <div className="w-5 h-5 rounded-full bg-gray-300"></div>
+                    <span className="text-sm">USD Value</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </div>
+                <p className="text-3xl font-bold text-gray-900 mb-1">$5.00</p>
+                <p className="text-sm text-orange-500 font-medium">⟠ {displayStakeAmount} ETH</p>
               </div>
 
               {/* Network Switcher */}

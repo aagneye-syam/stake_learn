@@ -89,6 +89,14 @@ export default function CourseDetailPage() {
     isCourseCompleted,
   } = useUserLearningProgress(address, numericCourseId);
 
+  // Debug: Log progress data
+  console.log('User Progress Data:', {
+    userProgress,
+    completedModulesCount,
+    hasStaked,
+    address
+  });
+
   // Check if all modules are completed
   const allModulesCompleted = userProgress?.isCourseCompleted || false;
 

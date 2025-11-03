@@ -103,13 +103,24 @@ export async function getUserProgress(
 
   const docId = getProgressDocId(userId, courseId);
   const docRef = doc(db, COLLECTION_NAME, docId);
+  
+  console.log('[getUserProgress] Fetching from collection:', COLLECTION_NAME, 'docId:', docId);
+  
   const docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) {
+    console.log('[getUserProgress] No document found for user:', userId, 'course:', courseId);
     return null;
   }
 
-  return docSnap.data() as UserLearningProgress;
+  const data = docSnap.data() as UserLearningProgress;
+  console.log('[getUserProgress] Found progress data:', {
+    completedModulesCount: data.completedModulesCount,
+    modules: data.modules,
+    currentModuleId: data.currentModuleId
+  });
+
+  return data;
 }
 
 /**

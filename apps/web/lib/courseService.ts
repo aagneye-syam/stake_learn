@@ -1,6 +1,7 @@
 import { db } from "./firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
 import { Course } from "../types/course";
+import { listCourses, CourseData } from "@/services/course.service";
 
 export async function fetchCourses(): Promise<Course[]> {
   try {
@@ -9,17 +10,21 @@ export async function fetchCourses(): Promise<Course[]> {
       return [];
     }
 
-    const coursesRef = collection(db, "courses");
-    const q = query(coursesRef, orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
+    // Fetch from the courses collection using the service
+    const coursesData = await listCourses(true); // Only active courses
 
-    const courses: Course[] = [];
-    querySnapshot.forEach((doc) => {
-      courses.push({
-        id: doc.id,
-        ...doc.data(),
-      } as Course);
-    });
+    // Transform CourseData to Course type for the UI
+    const courses: Course[] = coursesData.map((courseData: CourseData) => ({
+      id: courseData.id.toString(),
+      title: courseData.title,
+      description: courseData.description,
+      level: "Beginner" as const, // Default, should be added to CourseData
+      duration: "4-6 weeks", // Default, should be added to CourseData
+      category: "Course", // Default, should be added to CourseData
+      requiredStake: `${courseData.stakeAmount} ETH`,
+      status: "Not Started" as const,
+      icon: "📚", // Default, should be added to CourseData
+    }));
 
     return courses;
   } catch (error) {

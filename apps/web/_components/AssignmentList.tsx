@@ -19,12 +19,14 @@ export function AssignmentList({ assignments, courseId, title = "Assignments" }:
   const [selectedAssignment, setSelectedAssignment] = useState<CourseAssignment | null>(null);
   const [submissionStatuses, setSubmissionStatuses] = useState<Map<string, boolean>>(new Map());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Load submission statuses
   useEffect(() => {
     const loadStatuses = async () => {
       if (!address) return;
       
+      setIsLoading(true);
       const statusMap = new Map<string, boolean>();
       for (const assignment of assignments) {
         if (assignment.id) {
@@ -33,6 +35,7 @@ export function AssignmentList({ assignments, courseId, title = "Assignments" }:
         }
       }
       setSubmissionStatuses(statusMap);
+      setIsLoading(false);
     };
 
     loadStatuses();
@@ -51,14 +54,23 @@ export function AssignmentList({ assignments, courseId, title = "Assignments" }:
 
     try {
       await submitAssignment(address, courseId, data);
-      console.log("Assignment submitted successfully!");
+      
+      // Show success message
+      const successMessage = document.createElement("div");
+      successMessage.className = "fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in";
+      successMessage.textContent = "✓ Assignment submitted successfully!";
+      document.body.appendChild(successMessage);
+      
+      setTimeout(() => {
+        successMessage.remove();
+      }, 3000);
       
       // Update status
       setSubmissionStatuses(prev => new Map(prev).set(data.assignmentId, true));
       setIsModalOpen(false);
     } catch (error) {
       console.error("Failed to submit assignment:", error);
-      alert("Failed to submit assignment");
+      alert("Failed to submit assignment. Please try again.");
       throw error;
     }
   };
@@ -78,16 +90,23 @@ export function AssignmentList({ assignments, courseId, title = "Assignments" }:
         <h3 className="text-xl font-bold text-gray-900 mb-4">
           {title} ({assignments.length})
         </h3>
-        <div className="space-y-4">
-          {assignments.map((assignment) => (
-            <AssignmentCard 
-              key={assignment.id} 
-              assignment={assignment}
-              onSubmitClick={() => handleSubmitClick(assignment)}
-              isSubmitted={submissionStatuses.get(assignment.id || "") || false}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span className="ml-3 text-gray-600">Loading submission status...</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {assignments.map((assignment) => (
+              <AssignmentCard 
+                key={assignment.id} 
+                assignment={assignment}
+                onSubmitClick={() => handleSubmitClick(assignment)}
+                isSubmitted={submissionStatuses.get(assignment.id || "") || false}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {selectedAssignment && (

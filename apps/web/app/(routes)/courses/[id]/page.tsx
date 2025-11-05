@@ -102,12 +102,16 @@ export default function CourseDetailPage() {
 
   // Helper function to check if module is completed
   const isModuleCompleted = (moduleId: number) => {
-    return userProgress?.modules.find(m => m.moduleId === moduleId)?.isCompleted || false;
+    const isCompleted = userProgress?.modules.find(m => m.moduleId === moduleId)?.isCompleted || false;
+    console.log(`[isModuleCompleted] Module ${moduleId}:`, isCompleted, userProgress?.modules);
+    return isCompleted;
   };
 
   // Helper function to check if module is unlocked
   const isModuleUnlocked = (moduleId: number) => {
-    return userProgress?.modules.find(m => m.moduleId === moduleId)?.isUnlocked || false;
+    const isUnlocked = userProgress?.modules.find(m => m.moduleId === moduleId)?.isUnlocked || false;
+    console.log(`[isModuleUnlocked] Module ${moduleId}:`, isUnlocked);
+    return isUnlocked;
   };
 
   // Helper function to get module progress

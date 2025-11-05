@@ -30,6 +30,14 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
   const loadUser = async (address: string) => {
     try {
       console.log("🔵 Loading user for address:", address);
+      
+      // Ensure Firebase is initialized
+      if (!db) {
+        console.error("🔴 Firebase DB not initialized!");
+        setUser(null);
+        return;
+      }
+      
       const userData = await getUserByWallet(address);
       console.log("🔵 User data from Firestore:", userData);
       setUser(userData);

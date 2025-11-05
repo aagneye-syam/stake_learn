@@ -45,15 +45,24 @@ export async function createWalletUser(
  */
 export async function getUserByWallet(walletAddress: string): Promise<UserData | null> {
   try {
-    const userRef = doc(db, 'users', walletAddress.toLowerCase());
+    const normalizedAddress = walletAddress.toLowerCase();
+    console.log('[getUserByWallet] Querying for address:', normalizedAddress);
+    
+    const userRef = doc(db, 'users', normalizedAddress);
     const userSnap = await getDoc(userRef);
     
+    console.log('[getUserByWallet] Document exists:', userSnap.exists());
+    
     if (userSnap.exists()) {
-      return userSnap.data() as UserData;
+      const data = userSnap.data();
+      console.log('[getUserByWallet] User data:', data);
+      return data as UserData;
     }
     
+    console.log('[getUserByWallet] No user found for:', normalizedAddress);
     return null;
   } catch (error: any) {
+    console.error('[getUserByWallet] Error:', error);
     throw new Error(error.message || 'Failed to get user document');
   }
 }
